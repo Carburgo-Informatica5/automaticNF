@@ -1,0 +1,10 @@
+pyautogui
+pygetwindow
+unidecode
+pyyaml
+pyperclip
+tkinter
+xml
+queue
+threading
+TKinterModernThemes
