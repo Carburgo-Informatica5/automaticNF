@@ -5,6 +5,7 @@ import queue
 import tkinter as tk
 import sys
 import os
+import shutil
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -66,16 +67,18 @@ def  parse_nota_fiscal  (xml_file_path):
 
             data_emi = root.find('.//ide')
             if data_emi is not None:
+                data_emissao = data_emi.findtext("dhEmi")
+                data_emissao_format = data_emissao[:10].replace("-", " ")
                 nota_fiscal_data["data_emi"] = {
-                    "data_emissao": data_emi.findtext("dhEmi")
-                    # Pegar substring
+                    "data_emissao": f"{data_emissao_format[8:10]/{data_emissao_format[5:7]/{data_emissao_format[0:4]}}}"
                 }
 
             data_vali = root.find('.//ide')
             if data_vali is not None:
+                data_validade = data_vali.findtext("dVenc")
+                data_vali_format = data_validade[:10].replace("-", " ")
                 nota_fiscal_data["data_vali"] = {
-                    "data_validade": data_vali.findtext("dhSaiEnt")
-                    # Pegar substring
+                    "data_validade": f"{data_vali_format[8:10]/{data_vali_format[5:7]/{data_vali_format[0:4]}}}"
                 }
                 
             modelo = root.find(".//ide")
@@ -86,9 +89,9 @@ def  parse_nota_fiscal  (xml_file_path):
 
             chaveAcesso = root.find('.//infNFe') 
             if chaveAcesso is not None:
+                chave_completa = chaveAcesso.findtext("Id")
                 nota_fiscal_data["chaveAcesso"] = {
-                    "chave": chaveAcesso.findtext("Id")
-                    # Pegar substring
+                    "chave": chave_completa[3:]
                 }
             
         # Extrair Produto
@@ -133,6 +136,9 @@ def processar_notas_fiscais(xml_folder):
                 #Lançar nota no sistema Bravos
                 sucesso_bravos = inserir_dados_no_bravos(dados_nf)
                 
+                if sucesso_bravos: 
+                    mover_nota(xml_path, xml_folder)
+                
                 resultados.append({
                     "arquivo": xml_file,
                     "status": "Sucesso" if sucesso_bravos else "Falha",
@@ -149,6 +155,33 @@ def processar_notas_fiscais(xml_folder):
     
     enviar_relatorio_email(resultados)
     
+def mover_nota(xml_path, xml_folder):
+    """
+    Move a nota fiscal processada para a pasta 'processadas'
+    
+    Args:
+        xml_path (str): Caminho completo do arquivo XML processado
+        xml_folder (str): Diretório base dos XMLs
+    """
+    
+    # Cria a pasta 'processadas' se não existir
+    pasta_processadas = os.path.join(xml_folder, "processadas")
+    os.makedirs(pasta_processadas, exist_ok=True)
+    
+    # Nome do arquivo Original
+    nome_arquivo = os.path.basename(xml_path)
+    
+    # Caminho do destino
+    destino = os.path.join(pasta_processadas, nome_arquivo)
+    
+    try:
+        # Move o arquivo
+        shutil.move(xml_path, destino)
+        print(f"Arquivo {nome_arquivo} movido para pasta processadas")
+    except Exception as e:
+        print(f"Erro ao mover a nota do fiscal {nome_arquivo}: {e}")
+
+
 # Função auxiliar para inserir dados no sistema Bravos
 def inserir_dados_no_bravos(dados_nf):
     """
@@ -222,7 +255,7 @@ class SistemaNF:
         self.iniciar_bravos()
         
         # Inicia o processamento em uma thread separada
-        threading.Thread(target=self.processar_notas_fiscais, args=("caminho/para/pasta/xml",), daemon=True).start()
+        threading.Thread(target=self.processar_notas_fiscais, args=("xml_folder",), daemon=True).start()
 
         # Loop principal para atualizar a interface
         while True:

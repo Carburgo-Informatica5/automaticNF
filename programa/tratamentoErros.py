@@ -84,6 +84,29 @@ class ErroParseXML(ExcecaoNF):
             arquivo=arquivo
         )
 
+class SimuladorBravos:
+    def __init__(self, modo_teste=False):
+        self.modo_teste = modo_teste
+        
+    def conectar(self):
+        if self.modo_teste:
+            print("Conexão simulada com sucesso")
+            return True
+        else:
+            # Colocar a lógica real de conexão
+            pass
+    
+    def parse_xml(self, arquivo):
+        if self.modo_teste:
+            return{
+                'numero_nf': '12345',
+                'data_emissao': '2023-10-10',
+                'numero_nf': 1000.00
+            }
+        else:
+            # Colocar a lógica real de parse do XML
+            pass
+
 # Exemplo de uso
 def exemplo_uso():
     try:
