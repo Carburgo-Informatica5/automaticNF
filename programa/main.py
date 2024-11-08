@@ -68,14 +68,14 @@ def  parse_nota_fiscal  (xml_file_path):
             if data_emi is not None:
                 nota_fiscal_data["data_emi"] = {
                     "data_emissao": data_emi.findtext("dhEmi")
-                    # Tem que ver como pegar e converter a data
+                    # Pegar substring
                 }
 
             data_vali = root.find('.//ide')
             if data_vali is not None:
                 nota_fiscal_data["data_vali"] = {
                     "data_validade": data_vali.findtext("dhSaiEnt")
-                    # Tem que ver como pegar e converter a data
+                    # Pegar substring
                 }
                 
             modelo = root.find(".//ide")
@@ -88,7 +88,7 @@ def  parse_nota_fiscal  (xml_file_path):
             if chaveAcesso is not None:
                 nota_fiscal_data["chaveAcesso"] = {
                     "chave": chaveAcesso.findtext("Id")
-                    # Pegar apenas a numeração
+                    # Pegar substring
                 }
             
         # Extrair Produto
