@@ -50,4 +50,3 @@ class RegistradorSistema:
             status = evento["status"]
             contagem_status[status] =  contagem_status.get(status, 0) + 1
         return contagem_status
-
