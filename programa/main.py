@@ -9,12 +9,12 @@ import shutil
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from bravos import openBravos
+# from bravos import openBravos
 
-config = {"bravos_usr": "seu_usuario", "bravos_pswd": "sua_senha"}
-br = openBravos.infoBravos(config, m_queue=openBravos.faker())
+# config = {"bravos_usr": "seu_usuario", "bravos_pswd": "sua_senha"}
+# br = openBravos.infoBravos(config, m_queue=openBravos.faker())
 
-br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+# br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
 
 # Função para ler e extrair dados do arquivo XML
 def  parse_nota_fiscal  (xml_file_path):
@@ -31,6 +31,12 @@ def  parse_nota_fiscal  (xml_file_path):
     try: 
         tree = ET.parse(xml_file_path)
         root = tree.getroot()
+        print(ET.tostring(root, encoding='unicode'))
+        
+        namespaces = {
+            'ns0': 'http://www.portalfiscal.inf.br/nfe',
+            'ns1': 'http://www.w3.org/2000/09/xmldsig#'
+        }
         
         nota_fiscal_data = {
             "emitente": {},
@@ -43,72 +49,91 @@ def  parse_nota_fiscal  (xml_file_path):
             "modelo": {},
         }
         
-        # Extrair informações eminente e destinatario
-        eminente = root.find('.//emit')
-        if eminente is not None:
-            nota_fiscal_data["eminente"] = {
-                "cnpj": eminente.findtext("CNPJ"),
-                "nome": eminente.findtext("xNome")
+        # Extrair informações do emitente
+        emitente = root.find('.//ns0:emit', namespaces)
+        if emitente is not None:
+            nota_fiscal_data["emitente"] = {
+                "cnpj": emitente.findtext("ns0:CNPJ", namespaces=namespaces),
+                "nome": emitente.findtext("ns0:xNome", namespaces=namespaces)
             }
-            
-        destinatario = root.find('.//dest')
+        else:
+            print("Emitente não encontrado")
+
+        # Extrair informações do destinatário
+        destinatario = root.find('.//ns0:dest', namespaces)
         if destinatario is not None:
             nota_fiscal_data["destinatario"] = {
-                "cnpj":  destinatario.findtext("CNPJ"),
-                "nome": destinatario.findtext("xNome")
+                "cnpj": destinatario.findtext("ns0:CNPJ", namespaces=namespaces),
+                "nome": destinatario.findtext("ns0:xNome", namespaces=namespaces)
             }
-            
-            # Extrair infos para cadastro de notas
-            num_nota = root.find('.//ide')
-            if num_nota is not None:
-                nota_fiscal_data["num_nota"] = {
-                    "numero_nota": num_nota.findtext("nNF")
-                }
+        else:
+            print("Destinatário não encontrado")
 
-            data_emi = root.find('.//ide')
-            if data_emi is not None:
-                data_emissao = data_emi.findtext("dhEmi")
-                data_emissao_format = data_emissao[:10].replace("-", " ")
-                nota_fiscal_data["data_emi"] = {
-                    "data_emissao": f"{data_emissao_format[8:10]/{data_emissao_format[5:7]/{data_emissao_format[0:4]}}}"
-                }
-
-            data_vali = root.find('.//ide')
-            if data_vali is not None:
-                data_validade = data_vali.findtext("dVenc")
-                data_vali_format = data_validade[:10].replace("-", " ")
-                nota_fiscal_data["data_vali"] = {
-                    "data_validade": f"{data_vali_format[8:10]/{data_vali_format[5:7]/{data_vali_format[0:4]}}}"
-                }
-                
-            modelo = root.find(".//ide")
-            if modelo is not None:
-                nota_fiscal_data["modelo"] = {
-                    "modelo": modelo.findtext("mod")
-                }
-
-            chaveAcesso = root.find('.//infNFe') 
-            if chaveAcesso is not None:
-                chave_completa = chaveAcesso.findtext("Id")
-                nota_fiscal_data["chaveAcesso"] = {
-                    "chave": chave_completa[3:]
-                }
-            
-        # Extrair Produto
-        produtos = root.find('.//det')
-        for produto in produtos:
-            prod_data = {
-                "codigo": produto.findtext(".//cProd"),
-                "descricao": produto.findtext(".//xProd"),
-                "quantidade":  produto.findtext(".//qProd"),
-                "valor_unitario": produto.findtext(".//vUnid"),
-                "valor_total": produto.findtext(".//vProd")
+        # Extrair informações da nota
+        num_nota = root.find('.//ns0:ide', namespaces)
+        if num_nota is not None:
+            nota_fiscal_data["num_nota"] = {
+                "numero_nota": num_nota.findtext("ns0:nNF", namespaces=namespaces)
             }
-            
-            nota_fiscal_data["produtos"].append(prod_data)
-        
+        else:
+            print("Número da nota não encontrado")
+
+        # Extrair data de emissão
+        data_emi = num_nota.findtext("ns0:dhEmi", namespaces=namespaces)
+        data_emi_format = data_emi[:10].replace("-", " ")
+        if data_emi is not None:
+            nota_fiscal_data["data_emi"] = {
+                "data_emissao": f"{data_emi_format[8:10]}-{data_emi_format[5:7]}-{data_emi_format[0:4]}"
+            }
+        else:
+            print("Data de emissão não encontrada")
+
+        # Extrair data de validade
+        data_vali = num_nota.findtext("ns0:dhSaiEnt", namespaces=namespaces)
+        data_vali_format = data_vali[:10].replace("-", " ")
+        if data_vali is not None:
+            nota_fiscal_data["data_vali"] = {
+                "data_validade": f"{data_vali_format[8:10]}-{data_vali_format[5:7]}-{data_vali_format[0:4]}"
+            }
+        else:
+            print("Data de validade não encontrada")
+
+        # Extrair modelo
+        modelo = num_nota.findtext("ns0:mod", namespaces=namespaces)
+        if modelo is not None:
+            nota_fiscal_data["modelo"] = {
+                "modelo": modelo
+            }
+        else:
+            print("Modelo não encontrado")
+
+        # Extrair chave de acesso
+        chaveAcesso = root.find('.//ns0:infNFe', namespaces)
+        if chaveAcesso is not None:
+            chave_completa = chaveAcesso.get("Id")
+            nota_fiscal_data["chave_acesso"] = {
+                "chave": chave_completa[3:]  # Remove os 3 primeiros caracteres
+            }
+        else:
+            print("Chave de acesso não encontrada")
+
+        # Extrair produtos
+        produtos = root.findall('.//ns0:det', namespaces)
+        if produtos:
+            for produto in produtos:
+                prod_data = {
+                    "codigo": produto.findtext(".//ns0:cProd", namespaces=namespaces),
+                    "descricao": produto.findtext(".//ns0:xProd", namespaces=namespaces),
+                    "quantidade": produto.findtext(".//ns0:qCom", namespaces=namespaces),
+                    "valor_unitario": produto.findtext(".//ns0:vUnCom", namespaces=namespaces),
+                    "valor_total": produto.findtext(".//ns0:vProd", namespaces=namespaces)
+                }
+                nota_fiscal_data["produtos"].append(prod_data)
+        else:
+            print("Produtos não encontrados")
+
         return nota_fiscal_data
-    
+
     except ET.ParseError as e:
         print("Erro ao processar o XML:", e)
         return None
@@ -216,9 +241,9 @@ def enviar_relatorio_email(resultados):
         
         # Função para enviar o relatório por email
         
-from interface import interfaceMonitoramentoNF
-from tratamentoErros import tratadorErros
-from sistemaLogs import RegistradorSistema
+from programa.interface import interfaceMonitoramentoNF
+from programa.tratamentoErros import tratadorErros
+from programa.sistemaLogs import RegistradorSistema
 
 class SistemaNF:
     def __init__(self):
@@ -228,10 +253,10 @@ class SistemaNF:
         self.registrador = RegistradorSistema()
         self.br = None
 
-    def iniciar_bravos(self):
-        config = {"bravos_usr": "seu_usuario", "bravos_pswd": "sua_senha"}
-        self.br = openBravos.infoBravos(config, m_queue=openBravos.faker())
-        self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+    # def iniciar_bravos(self):
+    #     config = {"bravos_usr": "seu_usuario", "bravos_pswd": "sua_senha"}
+    #     self.br = openBravos.infoBravos(config, m_queue=openBravos.faker())
+    #     self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
 
     def processar_notas_fiscais(self, xml_folder):
         try:

@@ -1,0 +1,48 @@
+2024-11-11 09:36:53,888 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: unsupported operand type(s) for /: 'str' and 'set'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 24, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 86, in parse_nota_fiscal
+    "data_emissao": f"{data_emi_format[8:10]/{data_emi_format[5:7]/{data_emi_format[0:4]}}}"
+                                              ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'str' and 'set'
+
+2024-11-11 09:36:53,888 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: unsupported operand type(s) for /: 'str' and 'set'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 24, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 86, in parse_nota_fiscal
+    "data_emissao": f"{data_emi_format[8:10]/{data_emi_format[5:7]/{data_emi_format[0:4]}}}"
+                                              ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'str' and 'set'
+
+2024-11-11 09:39:47,124 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: unsupported operand type(s) for -: 'str' and 'set'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 24, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 86, in parse_nota_fiscal
+    "data_emissao": f"{data_emi_format[8:10]-{data_emi_format[5:7]-{data_emi_format[0:4]}}}"
+                                              ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for -: 'str' and 'set'
+
+2024-11-11 09:39:47,124 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: unsupported operand type(s) for -: 'str' and 'set'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 24, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 86, in parse_nota_fiscal
+    "data_emissao": f"{data_emi_format[8:10]-{data_emi_format[5:7]-{data_emi_format[0:4]}}}"
+                                              ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for -: 'str' and 'set'
+

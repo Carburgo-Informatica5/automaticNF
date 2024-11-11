@@ -2,8 +2,7 @@ from typing import Optional
 import logging
 import traceback
 from datetime import datetime
-
-#  excecoes.py
+import os
 
 from typing import Optional
 from datetime import datetime
@@ -124,7 +123,11 @@ def exemplo_uso():
         print(f"Detalhes: {e.detalhes}")
 
 class tratadorErros:
-    def __init__(self, arquivo_log: str = "logs/registro de erros.txt"):
+    def __init__(self, arquivo_log: str = "automaticNF/logs/registro_de_erros.txt"):
+        log_dir = os.path.dirname(arquivo_log)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        self.logger = self._configurar_logger(arquivo_log)
         self.logger = self._configurar_logger(arquivo_log)
         
     def _configurar_logger(self, arquivo_log: str) -> logging.Logger:
@@ -158,7 +161,7 @@ class tratadorErros:
         Retorna: dict com as informações do erro ou None 
         """
         info_erro = {
-            'timestamp': datetime.now().isoformat,
+            'timestamp': datetime.now().isoformat(),
             'tipo': type(erro).__name__,
             'mensagem': str(erro),
             'contexto': contexto,
@@ -166,10 +169,11 @@ class tratadorErros:
         }
         
         self.logger.error(
-            f"Erro em {contexto}:\n",
-            f"Tipo: {info_erro['tipo']}\n",
-            f"Mensagem: {info_erro['mensagem']}\n",
-            f"Traceback: {info_erro['traceback']}\n",
+            "Erro em %s:\nTipo: %s\nMensagem: %s\nTraceback: %s",
+            contexto,
+            info_erro['tipo'],
+            info_erro['mensagem'],
+            info_erro['traceback']
         )
         
         return info_erro

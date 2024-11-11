@@ -6,15 +6,10 @@ import queue
 import TKinterModernThemes as TKMT
 import tkinter.font as tkfont
 
-from tratamentoErros import SimuladorBravos, modo_teste,tratadorErros, ErrosBravosConexao, ErroParseXML
-
 class interfaceMonitoramentoNF(TKMT.ThemedTKinterFrame):
     def __init__(self):
         # Initialize with title, theme, and mode
         super().__init__("Monitoramento NF", "sun-valley", "dark")
-        
-        self.modo_teste = modo_teste
-        self.simulador = SimuladorBravos(modo_teste=self.modo_teste)
         
         self.fila_eventos = queue.Queue()
         self.configurar_interface()
@@ -103,5 +98,5 @@ class interfaceMonitoramentoNF(TKMT.ThemedTKinterFrame):
         self.rotulo_status.config(text="Relatório Gerado")
 
 if __name__ == "__main__":
-    app = interfaceMonitoramentoNF(modo_teste=True)
+    app = interfaceMonitoramentoNF()
     app.run()
