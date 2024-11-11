@@ -30,6 +30,17 @@
     "modelo": {
         "modelo": "55"
     },
-    "valor_total": "99.90",
-    "pagamento_parcelado": false
+    "valor_total": [
+        {
+            "data_venc": "2024-11-18",
+            "Valor_total": "99.90"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "nmr_parc": "001",
+            "data_venc": "2024-11-18",
+            "valor_parc": "99.90"
+        }
+    ]
 }

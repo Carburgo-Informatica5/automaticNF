@@ -29,8 +29,8 @@ def  parse_nota_fiscal  (xml_file_path):
     Returns:
         dict: Um dicionário com as informações extraídas da nota fiscal.
     """
-    
-    try: 
+    try:
+        # Lê o arquivo XML
         tree = ET.parse(xml_file_path)
         root = tree.getroot()
         
@@ -48,8 +48,8 @@ def  parse_nota_fiscal  (xml_file_path):
             "data_emi": {},''
             "data_vali": {},
             "modelo": {},
-            "valor_total": 0.0,
-            "pagamento_parcelado": False
+            "valor_total": [],
+            "pagamento_parcelado": [],
         }
         
         # Extrair informações do emitente
@@ -80,36 +80,38 @@ def  parse_nota_fiscal  (xml_file_path):
             }
         else:
             print("Número da nota não encontrado")
-        
-        # Extrair valor total
-        valor_total = root.find('.//ns0:fat', namespaces)
-        if valor_total is not None:
-            vLiq = valor_total.findtext("ns0:vLiq", namespaces=namespaces)
-            nota_fiscal_data["valor_total"] = (vLiq)
-        else:
-            print("Tag de total não encontrada")
             
+    # Extrair forma de pagamento
         forma_pagamento = root.findall('.//ns0:cobr', namespaces)
         if forma_pagamento is not None:
             for pagamento in forma_pagamento:
-                if pagamento.findtext("ns0:dup", namespaces=namespaces):
-                    nota_fiscal_data["pagamento_parcelado"] = True,
-                else: 
-                    nota_fiscal_data["pagamento_parcelado"] = False
-                    print("Pagamento não é parcelado")
-        
-        # parcela = nmr_parc = root.findtext('.//nDup'), data_venc = root.findtext('.//dVenc'), valor_parc = root.findtext('.//vDup')
-        # if parcela is not None:
-        #     for parcela in forma_pagamento:
-        #         if parcela.findtext("ns0:nDup", namespaces=namespaces):
-        #             nmr_parc = parcela.findtext("ns0:nDup", namespaces=namespaces)
-        #             data_venc = parcela.findtext("ns0:dVenc", namespaces=namespaces)    Ver o que fazer aqui
-        #             valor_parc = parcela.findtext("ns0:vDup", namespaces=namespaces)
-        #             nota_fiscal_data["pagamento_parcelado"] = {
-        #                 "nmr_parc": nmr_parc,
-        #                 "data_venc": data_venc,
-        #                 "valor_parc": valor_parc
-        #             }
+                parcelas = pagamento.findall("ns0:dup", namespaces=namespaces)
+
+                if parcelas:
+                    # Se existem parcelas, itere sobre elas
+                    for parcela in parcelas:
+                        nmr_parc = parcela.findtext("ns0:nDup", namespaces=namespaces)
+                        data_venc = parcela.findtext("ns0:dVenc", namespaces=namespaces)
+                        valor_parc = parcela.findtext("ns0:vDup", namespaces=namespaces)
+
+                        if nmr_parc is not None and data_venc is not None and valor_parc is not None:
+                                nota_fiscal_data["pagamento_parcelado"].append({
+                                "nmr_parc": nmr_parc,
+                                "data_venc": data_venc,
+                                "valor_parc": valor_parc
+                            })
+            else:
+                # Se não existem parcelas, verificar se há um pagamento único
+                valor_total = pagamento.findtext("ns0:fat/ns0:vLiq", namespaces=namespaces)
+                if valor_total is not None:
+                    # Tratar como pagamento único
+                    nota_fiscal_data["valor_total"].append({ # Pode ser considerado como a única parcela
+                        "data_venc": pagamento.findtext("ns0:dup/ns0:dVenc", namespaces=namespaces) or "N/A",  # Defina um valor padrão se não houver
+                        "Valor_total": valor_total
+                    })
+        else:
+            print("Forma de pagamento não encontrada")# Inicialização do dicionário nota_fiscal_data
+
 
         # Extrair data de emissão
         data_emi = num_nota.findtext("ns0:dhEmi", namespaces=namespaces)
@@ -165,11 +167,11 @@ def  parse_nota_fiscal  (xml_file_path):
             print("Produtos não encontrados")
 
         return nota_fiscal_data
-
     except ET.ParseError as e:
-        print("Erro ao processar o XML:", e)
+        print(f"Erro ao parsear o arquivo XML: {e}")
         return None
-    
+
+
 def processar_notas_fiscais(xml_folder):
     """
         Processa arquivos XML de notas fiscais, insere os dados no banco,

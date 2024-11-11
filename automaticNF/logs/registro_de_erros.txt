@@ -142,3 +142,27 @@ Traceback: Traceback (most recent call last):
                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 TypeError: 'bool' object is not callable
 
+2024-11-11 17:27:32,243 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: AttributeError
+Mensagem: 'bool' object has no attribute 'append'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\Caeta\OneDrive\햞ea de Trabalho\CARBURGO\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Caeta\OneDrive\햞ea de Trabalho\CARBURGO\automaticNF\programa\main.py", line 104, in parse_nota_fiscal
+    nota_fiscal_data["pagamento_parcelado"].append({
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'bool' object has no attribute 'append'
+
+2024-11-11 17:27:32,243 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: AttributeError
+Mensagem: 'bool' object has no attribute 'append'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\Caeta\OneDrive\햞ea de Trabalho\CARBURGO\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Caeta\OneDrive\햞ea de Trabalho\CARBURGO\automaticNF\programa\main.py", line 104, in parse_nota_fiscal
+    nota_fiscal_data["pagamento_parcelado"].append({
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'bool' object has no attribute 'append'
+

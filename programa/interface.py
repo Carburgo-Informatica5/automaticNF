@@ -101,6 +101,5 @@ class interfaceMonitoramentoNF(TKMT.ThemedTKinterFrame):
         self.rotulo_status.config(text="Relatório Gerado")
 
 if __name__ == "__main__":
-    root = tk.TK()
     app = interfaceMonitoramentoNF()
     app.run()
