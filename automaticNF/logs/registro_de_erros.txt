@@ -46,3 +46,99 @@ Traceback: Traceback (most recent call last):
                                               ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
 TypeError: unsupported operand type(s) for -: 'str' and 'set'
 
+2024-11-11 10:43:29,019 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: float() argument must be a string or a real number, not 'dict'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 87, in parse_nota_fiscal
+    nota_fiscal_data["valor_total"] = float(valor_total.findtext("ns0:vNF", namespaces))
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: float() argument must be a string or a real number, not 'dict'
+
+2024-11-11 10:43:29,019 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: float() argument must be a string or a real number, not 'dict'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 87, in parse_nota_fiscal
+    nota_fiscal_data["valor_total"] = float(valor_total.findtext("ns0:vNF", namespaces))
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: float() argument must be a string or a real number, not 'dict'
+
+2024-11-11 10:46:26,412 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: float() argument must be a string or a real number, not 'dict'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 90, in parse_nota_fiscal
+    nota_fiscal_data["valor_total"] = float(vNF)
+                                      ^^^^^^^^^^
+TypeError: float() argument must be a string or a real number, not 'dict'
+
+2024-11-11 10:46:26,412 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: float() argument must be a string or a real number, not 'dict'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 90, in parse_nota_fiscal
+    nota_fiscal_data["valor_total"] = float(vNF)
+                                      ^^^^^^^^^^
+TypeError: float() argument must be a string or a real number, not 'dict'
+
+2024-11-11 10:48:59,980 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: float() argument must be a string or a real number, not 'dict'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 89, in parse_nota_fiscal
+    nota_fiscal_data["valor_total"] = float(vNF)
+                                      ^^^^^^^^^^
+TypeError: float() argument must be a string or a real number, not 'dict'
+
+2024-11-11 10:48:59,980 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: float() argument must be a string or a real number, not 'dict'
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 89, in parse_nota_fiscal
+    nota_fiscal_data["valor_total"] = float(vNF)
+                                      ^^^^^^^^^^
+TypeError: float() argument must be a string or a real number, not 'dict'
+
+2024-11-11 11:19:03,896 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: 'bool' object is not callable
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 99, in parse_nota_fiscal
+    nota_fiscal_data["pagamento_parcelado"] = True (valor_parc, data_venc, nmr_parc)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'bool' object is not callable
+
+2024-11-11 11:19:03,896 - SistemaNF - ERROR - Erro em Teste Local:
+Tipo: TypeError
+Mensagem: 'bool' object is not callable
+Traceback: Traceback (most recent call last):
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\processar_xml.py", line 29, in testar_processamento_local
+    dados_nf = parse_nota_fiscal(xml_teste)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\VAS MTZ\Desktop\Caetano Apollo\automaticNF\programa\main.py", line 99, in parse_nota_fiscal
+    nota_fiscal_data["pagamento_parcelado"] = True (valor_parc, data_venc, nmr_parc)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'bool' object is not callable
+

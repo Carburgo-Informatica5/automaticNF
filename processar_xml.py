@@ -32,8 +32,7 @@ def testar_processamento_local():
                     # Salva os dados extraídos em um novo arquivo
                     salvar_dados_em_arquivo(dados_nf, f"dados_extraidos_{xml_file}.json")
         else:
-            print(f"Arquivo de teste não encontrado: {xml_teste}")
-        
+            print(f"Pasta de teste não encontrada: {pasta_xml_teste}")  # Mensagem corrigida
     except Exception as e:
         # Tratamento de erros genérico
         info_erro = tratador_erros.tratarErros(e, "Teste Local")

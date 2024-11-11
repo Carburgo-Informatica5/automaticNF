@@ -1,21 +1,35 @@
 # Sistema Automático de Processamento de Notas Fiscais
 
 ## Sumário
-1. [Descrição Geral](#descrição-geral)
-2. [Estrutura do Projeto](#estrutura-do-projeto)
-3. [Requisitos do Sistema](#requisitos-do-sistema)
-4. [Configuração e Instalação](#configuração-e-instalação)
-5. [Fluxo de Funcionamento](#fluxo-de-funcionamento)
-6. [Tratamento de Erros](#tratamento-de-erros)
-7. [Manutenção e Suporte](#manutenção-e-suporte)
-8. [Limitações Conhecidas](#limitações-conhecidas)
-9. [Considerações de Segurança](#considerações-de-segurança)
-10. [Futuras Melhorias](#futuras-melhorias)
-11. [Suporte e Contato](#suporte-e-contato)
+- [Sistema Automático de Processamento de Notas Fiscais](#sistema-automático-de-processamento-de-notas-fiscais)
+  - [Sumário](#sumário)
+  - [Descrição Geral](#descrição-geral)
+  - [Estrutura do Projeto](#estrutura-do-projeto)
+    - [Módulos Principais](#módulos-principais)
+      - [1. main.py](#1-mainpy)
+      - [2. infoBravos.py](#2-infobravospy)
+      - [3. interface.py](#3-interfacepy)
+      - [4. tratamentoErros.py](#4-tratamentoerrospy)
+  - [Requisitos do Sistema](#requisitos-do-sistema)
+    - [Requisitos de Software](#requisitos-de-software)
+  - [Configuração e Instalação](#configuração-e-instalação)
+  - [Fluxo de Funcionamento](#fluxo-de-funcionamento)
+  - [Tratamento de Erros](#tratamento-de-erros)
+  - [Manutenção e Suporte](#manutenção-e-suporte)
+    - [Logs do Sistema](#logs-do-sistema)
+    - [Backup](#backup)
+    - [Atualização](#atualização)
+  - [Limitações Conhecidas](#limitações-conhecidas)
+  - [Considerações de Segurança](#considerações-de-segurança)
+  - [Futuras Melhorias](#futuras-melhorias)
+  - [Suporte e Contato](#suporte-e-contato)
 
 ## Descrição Geral
 
 O Sistema Automático de Processamento de Notas Fiscais é uma solução desenvolvida para automatizar o processo de lançamento de notas fiscais no sistema Bravos. Este sistema realiza a leitura de arquivos XML de notas fiscais, extrai as informações relevantes e as insere automaticamente no sistema Bravos através de automação de interface.
+
+Atualização: O sistema agora inclui uma funcionalidade de tratamento de erros mais robusta, utilizando exceções personalizadas para diferentes tipos de erros que podem ocorrer durante o processamento de notas fiscais e a interação com o sistema Bravos.
+
 
 ## Estrutura do Projeto
 

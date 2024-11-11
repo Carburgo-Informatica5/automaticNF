@@ -6,6 +6,8 @@ import tkinter as tk
 import sys
 import os
 import shutil
+import time
+import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -31,7 +33,6 @@ def  parse_nota_fiscal  (xml_file_path):
     try: 
         tree = ET.parse(xml_file_path)
         root = tree.getroot()
-        print(ET.tostring(root, encoding='unicode'))
         
         namespaces = {
             'ns0': 'http://www.portalfiscal.inf.br/nfe',
@@ -47,6 +48,8 @@ def  parse_nota_fiscal  (xml_file_path):
             "data_emi": {},''
             "data_vali": {},
             "modelo": {},
+            "valor_total": 0.0,
+            "pagamento_parcelado": False
         }
         
         # Extrair informações do emitente
@@ -77,6 +80,36 @@ def  parse_nota_fiscal  (xml_file_path):
             }
         else:
             print("Número da nota não encontrado")
+        
+        # Extrair valor total
+        valor_total = root.find('.//ns0:fat', namespaces)
+        if valor_total is not None:
+            vLiq = valor_total.findtext("ns0:vLiq", namespaces=namespaces)
+            nota_fiscal_data["valor_total"] = (vLiq)
+        else:
+            print("Tag de total não encontrada")
+            
+        forma_pagamento = root.findall('.//ns0:cobr', namespaces)
+        if forma_pagamento is not None:
+            for pagamento in forma_pagamento:
+                if pagamento.findtext("ns0:dup", namespaces=namespaces):
+                    nota_fiscal_data["pagamento_parcelado"] = True,
+                else: 
+                    nota_fiscal_data["pagamento_parcelado"] = False
+                    print("Pagamento não é parcelado")
+        
+        # parcela = nmr_parc = root.findtext('.//nDup'), data_venc = root.findtext('.//dVenc'), valor_parc = root.findtext('.//vDup')
+        # if parcela is not None:
+        #     for parcela in forma_pagamento:
+        #         if parcela.findtext("ns0:nDup", namespaces=namespaces):
+        #             nmr_parc = parcela.findtext("ns0:nDup", namespaces=namespaces)
+        #             data_venc = parcela.findtext("ns0:dVenc", namespaces=namespaces)    Ver o que fazer aqui
+        #             valor_parc = parcela.findtext("ns0:vDup", namespaces=namespaces)
+        #             nota_fiscal_data["pagamento_parcelado"] = {
+        #                 "nmr_parc": nmr_parc,
+        #                 "data_venc": data_venc,
+        #                 "valor_parc": valor_parc
+        #             }
 
         # Extrair data de emissão
         data_emi = num_nota.findtext("ns0:dhEmi", namespaces=namespaces)
@@ -125,7 +158,6 @@ def  parse_nota_fiscal  (xml_file_path):
                     "codigo": produto.findtext(".//ns0:cProd", namespaces=namespaces),
                     "descricao": produto.findtext(".//ns0:xProd", namespaces=namespaces),
                     "quantidade": produto.findtext(".//ns0:qCom", namespaces=namespaces),
-                    "valor_unitario": produto.findtext(".//ns0:vUnCom", namespaces=namespaces),
                     "valor_total": produto.findtext(".//ns0:vProd", namespaces=namespaces)
                 }
                 nota_fiscal_data["produtos"].append(prod_data)
@@ -246,31 +278,42 @@ from programa.tratamentoErros import tratadorErros
 from programa.sistemaLogs import RegistradorSistema
 
 class SistemaNF:
-    def __init__(self):
+    def __init__(self, master):
         self.fila_eventos = queue.Queue()
-        self.interface = interfaceMonitoramentoNF()
+        self.interface = interfaceMonitoramentoNF(master)
         self.tratador_erros = tratadorErros()
         self.registrador = RegistradorSistema()
         self.br = None
+        self.processamento_pausado = False
 
     # def iniciar_bravos(self):
     #     config = {"bravos_usr": "seu_usuario", "bravos_pswd": "sua_senha"}
     #     self.br = openBravos.infoBravos(config, m_queue=openBravos.faker())
     #     self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
 
+    def pausar_processamento(self):
+        self.processamento_pausado = True
+        self.registrador.registrar("PAUSA", "Processamento de NFs pausado")
+        self.interface.rotulo_status.config(text="Processamento Pausado")
+    
+    def retomar_processamento(self):
+        self.processamento_pausado = False
+        self.registrador.registrar_evento("CONTINUAR", "Processamento de NFs retomado")
+        self.interface.rotulo_status.config(text="Processamento Retomado")
+    
     def processar_notas_fiscais(self, xml_folder):
         try:
             self.registrador.registrar_evento("INICIO", "Iniciando processamento de notas fiscais")
-            # Aqui você coloca a lógica de processamento das notas fiscais
-            # Use self.fila_eventos.put() para enviar atualizações para a interface
-            # Exemplo:
-            self.fila_eventos.put({"timestamp": "2023-05-20 10:00:00", "descricao": "Processando nota fiscal X"})
             
-            # Simula o processamento
-            # Substitua isso pela sua lógica real de processamento
-            import time
-            time.sleep(5)
-            
+            for xml_file in os.listdir(xml_folder):
+                if self.processamento_pausado:
+                    while self.processamento_pausado:
+                        time.sleep(1)
+                
+                if xml_file.endswith('.xml'):
+                    self.fila_eventos.put({"timestamp": datetime.now().isoformat(), "descricao": f"Processando {xml_file}"})
+                    
+                    self.fila_eventos.put({"timestamp": datetime.now().isoformat(), "descricao": f"Processamento de {xml_file} concluído"})
             self.registrador.registrar_evento("FIM", "Processamento de notas fiscais concluído")
         except Exception as e:
             self.tratador_erros.tratarErros(e, "Processamento de notas fiscais")
@@ -294,5 +337,6 @@ class SistemaNF:
             self.interface.update()  # Atualiza a interface
 
 if __name__ == "__main__":
+    root = tk.TK()
     sistema = SistemaNF()
     sistema.executar()

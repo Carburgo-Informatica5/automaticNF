@@ -14,6 +14,9 @@ class interfaceMonitoramentoNF(TKMT.ThemedTKinterFrame):
         self.fila_eventos = queue.Queue()
         self.configurar_interface()
         self.inicia_thread_atualizacao()
+        
+    def run(self):
+        self.master.mainloop()
 
     def update(self):
         self.master.update()
@@ -98,5 +101,6 @@ class interfaceMonitoramentoNF(TKMT.ThemedTKinterFrame):
         self.rotulo_status.config(text="Relatório Gerado")
 
 if __name__ == "__main__":
+    root = tk.TK()
     app = interfaceMonitoramentoNF()
     app.run()
