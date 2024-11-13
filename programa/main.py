@@ -123,6 +123,7 @@ def  parse_nota_fiscal  (xml_file_path):
         else:
             print("Data de emissão não encontrada")
 
+
         # Extrair data de validade
         data_vali = num_nota.findtext("ns0:dhSaiEnt", namespaces=namespaces)
         data_vali_format = data_vali[:10].replace("-", " ")
