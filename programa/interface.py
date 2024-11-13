@@ -89,15 +89,12 @@ class interfaceMonitoramentoNF(TKMT.ThemedTKinterFrame):
                 continue
 
     def pausar_processamento(self):
-        """Fazer a lógica para pausar o sistema"""
         self.rotulo_status.config(text="Processamento Pausado")
 
     def Retomar_processamento(self):
-        """Fazer a lógica para continuar o sistema"""
         self.rotulo_status.config(text="Processamento Retomado")
 
     def gerar_relatorio(self):
-        """Fazer a lógica para gerar o relatório"""
         self.rotulo_status.config(text="Relatório Gerado")
 
 if __name__ == "__main__":

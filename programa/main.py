@@ -10,13 +10,8 @@ import time
 import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from bravos import openBravos
 
-# from bravos import openBravos
-
-# config = {"bravos_usr": "seu_usuario", "bravos_pswd": "sua_senha"}
-# br = openBravos.infoBravos(config, m_queue=openBravos.faker())
-
-# br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
 
 # Função para ler e extrair dados do arquivo XML
 def  parse_nota_fiscal  (xml_file_path):
@@ -106,7 +101,7 @@ def  parse_nota_fiscal  (xml_file_path):
                 if valor_total is not None:
                     # Tratar como pagamento único
                     nota_fiscal_data["valor_total"].append({ # Pode ser considerado como a única parcela
-                        "data_venc": pagamento.findtext("ns0:dup/ns0:dVenc", namespaces=namespaces) or "N/A",  # Defina um valor padrão se não houver
+                        "data_venc": pagamento.findtext("ns0:dup/ns0:dVenc", namespaces=namespaces) or "N/A",
                         "Valor_total": valor_total
                     })
         else:
@@ -118,7 +113,7 @@ def  parse_nota_fiscal  (xml_file_path):
         data_emi_format = data_emi[:10].replace("-", " ")
         if data_emi is not None:
             nota_fiscal_data["data_emi"] = {
-                "data_emissao": f"{data_emi_format[8:10]}-{data_emi_format[5:7]}-{data_emi_format[0:4]}"
+                "data_emissao": f"{data_emi_format[8:10]}{data_emi_format[5:7]}{data_emi_format[0:4]}"
             }
         else:
             print("Data de emissão não encontrada")
@@ -129,7 +124,7 @@ def  parse_nota_fiscal  (xml_file_path):
         data_vali_format = data_vali[:10].replace("-", " ")
         if data_vali is not None:
             nota_fiscal_data["data_vali"] = {
-                "data_validade": f"{data_vali_format[8:10]}-{data_vali_format[5:7]}-{data_vali_format[0:4]}"
+                "data_validade": f"{data_vali_format[8:10]}{data_vali_format[5:7]}{data_vali_format[0:4]}"
             }
         else:
             print("Data de validade não encontrada")
@@ -161,7 +156,7 @@ def  parse_nota_fiscal  (xml_file_path):
                     "codigo": produto.findtext(".//ns0:cProd", namespaces=namespaces),
                     "descricao": produto.findtext(".//ns0:xProd", namespaces=namespaces),
                     "quantidade": produto.findtext(".//ns0:qCom", namespaces=namespaces),
-                    "valor_total": produto.findtext(".//ns0:vProd", namespaces=namespaces)
+                    "valor_total_prod": produto.findtext(".//ns0:vProd", namespaces=namespaces)
                 }
                 nota_fiscal_data["produtos"].append(prod_data)
         else:
@@ -253,6 +248,7 @@ def inserir_dados_no_bravos(dados_nf):
     Returns:
         bool: Retorna True se a inserção foi bem-sucedida, caso contrário, False.
     """
+    
     # Implementação do fluxo para inserir no Sistema Bravos via pyautogui
     try:
         # Exemplo básico (Substituir pelo caminho real para cada campo)
@@ -289,10 +285,10 @@ class SistemaNF:
         self.br = None
         self.processamento_pausado = False
 
-    # def iniciar_bravos(self):
-    #     config = {"bravos_usr": "seu_usuario", "bravos_pswd": "sua_senha"}
-    #     self.br = openBravos.infoBravos(config, m_queue=openBravos.faker())
-    #     self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+    def iniciar_bravos(self):
+        config = {"bravos_usr": "seu_usuario", "bravos_pswd": "sua_senha"}
+        self.br = openBravos.infoBravos(config, m_queue=openBravos.faker())
+        self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
 
     def pausar_processamento(self):
         self.processamento_pausado = True
@@ -340,6 +336,7 @@ class SistemaNF:
             self.interface.update()  # Atualiza a interface
 
 if __name__ == "__main__":
-    root = tk.TK()
+    root = tk.Tk()
     sistema = SistemaNF()
     sistema.executar()
+    root.mainloop()

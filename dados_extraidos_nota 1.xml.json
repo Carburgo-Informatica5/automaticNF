@@ -12,67 +12,67 @@
             "codigo": "745",
             "descricao": "MB. LGA 1700 H610M-HVS ASROCK DDR4 HDMI VGA",
             "quantidade": "1.0000",
-            "valor_total": "525.40"
+            "valor_total_prod": "525.40"
         },
         {
             "codigo": "2746",
             "descricao": "PROC. INTEL LGA 1700 i3-12100F 3.30Ghz 12 Ger. - BX8071512100F",
             "quantidade": "1.0000",
-            "valor_total": "645.70"
+            "valor_total_prod": "645.70"
         },
         {
             "codigo": "1127",
             "descricao": "MEM. DDR4  8GB 3200MHz CRUCIAL - CT8G4DFRA32A",
             "quantidade": "1.0000",
-            "valor_total": "159.99"
+            "valor_total_prod": "159.99"
         },
         {
             "codigo": "2570-1",
             "descricao": "SSD  240GB PATRIOT BURST - PBE240GS25SSDR - Preto",
             "quantidade": "1.0000",
-            "valor_total": "146.90"
+            "valor_total_prod": "146.90"
         },
         {
             "codigo": "3512",
             "descricao": "FONTE 350W ATX BIVOLT AUTOMATICA BLU350-EBAUT BLUECASE",
             "quantidade": "1.0000",
-            "valor_total": "99.90"
+            "valor_total_prod": "99.90"
         },
         {
             "codigo": "3440",
             "descricao": "VGA 1GB 64B DDR3 GT210 BLUECASE DVI HDMI VGA BP-G210-1GD3DBX",
             "quantidade": "1.0000",
-            "valor_total": "129.80"
+            "valor_total_prod": "129.80"
         },
         {
             "codigo": "698",
             "descricao": "WIN. 11 PRO FQC-10520 COEM",
             "quantidade": "1.0000",
-            "valor_total": "599.00"
+            "valor_total_prod": "599.00"
         },
         {
             "codigo": "2608-1",
             "descricao": "GAB MICRO ATX 1B. C3TECH MT- 34BK C/FTE 200W - Preto",
             "quantidade": "1.0000",
-            "valor_total": "122.20"
+            "valor_total_prod": "122.20"
         },
         {
             "codigo": "864",
             "descricao": "MOUSE USB LECOO M1102",
             "quantidade": "1.0000",
-            "valor_total": "25.80"
+            "valor_total_prod": "25.80"
         },
         {
             "codigo": "1651",
             "descricao": "MON. LED 18,5  AOC E970SWHNL / HDMI / VGA - Preto",
             "quantidade": "1.0000",
-            "valor_total": "58.40"
+            "valor_total_prod": "58.40"
         },
         {
             "codigo": "1938-1",
             "descricao": "MON. LED 18,5  AOC E970SWHNL / HDMI / VGA - Preto",
             "quantidade": "1.0000",
-            "valor_total": "504.20"
+            "valor_total_prod": "504.20"
         }
     ],
     "chave_acesso": {
@@ -82,10 +82,10 @@
         "numero_nota": "39216"
     },
     "data_emi": {
-        "data_emissao": "04-11-2024"
+        "data_emissao": "04112024"
     },
     "data_vali": {
-        "data_validade": "04-11-2024"
+        "data_validade": "04112024"
     },
     "modelo": {
         "modelo": "55"

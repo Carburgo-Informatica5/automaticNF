@@ -12,7 +12,7 @@
             "codigo": "3512",
             "descricao": "FONTE 350W ATX BIVOLT AUTOMATICA BLU350-EBAUT BLUECASE",
             "quantidade": "1.0000",
-            "valor_total": "99.90"
+            "valor_total_prod": "99.90"
         }
     ],
     "chave_acesso": {
@@ -22,10 +22,10 @@
         "numero_nota": "39207"
     },
     "data_emi": {
-        "data_emissao": "04-11-2024"
+        "data_emissao": "04112024"
     },
     "data_vali": {
-        "data_validade": "04-11-2024"
+        "data_validade": "04112024"
     },
     "modelo": {
         "modelo": "55"
