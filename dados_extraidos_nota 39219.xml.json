@@ -1,0 +1,52 @@
+{
+    "emitente": {
+        "cnpj": "15000312000172",
+        "nome": "MEGA COMERCIAL DE PRODUTOS ELETRONICOS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA - NH"
+    },
+    "produtos": [
+        {
+            "codigo": "789",
+            "descricao": "MOUSE WIR. LECOO 1200DPI - WS202 PRETO",
+            "quantidade": "2.0000",
+            "valor_total_prod": "79.00"
+        },
+        {
+            "codigo": "2570-1",
+            "descricao": "SSD  240GB PATRIOT BURST - PBE240GS25SSDR - Preto",
+            "quantidade": "1.0000",
+            "valor_total_prod": "146.90"
+        }
+    ],
+    "chave_acesso": {
+        "chave": "43241115000312000172550010000392191402085802"
+    },
+    "num_nota": {
+        "numero_nota": "39219"
+    },
+    "data_emi": {
+        "data_emissao": "04112024"
+    },
+    "data_vali": {
+        "data_validade": "04112024"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "data_venc": "2024-11-18",
+            "Valor_total": "225.90"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "nmr_parc": "001",
+            "data_venc": "2024-11-18",
+            "valor_parc": "225.90"
+        }
+    ]
+}

@@ -8,9 +8,10 @@ import os
 import shutil
 import time
 import datetime
+import pyautogui as gui
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from bravos import openBravos
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# from bravos import openBravos
 
 
 # Função para ler e extrair dados do arquivo XML
@@ -41,7 +42,7 @@ def parse_nota_fiscal(xml_file_path):
             "chave_acesso": {},
             "num_nota": {},
             "data_emi": {},
-            "" "data_vali": {},
+            "data_vali": {},
             "modelo": {},
             "valor_total": [],
             "pagamento_parcelado": [],
@@ -277,8 +278,8 @@ def inserir_dados_no_bravos(dados_nf):
 
     # Implementação do fluxo para inserir no Sistema Bravos via pyautogui
     try:
-        # Exemplo básico (Substituir pelo caminho real para cada campo)
-        # Inserir cada campo no Bravos
+        posicao_faturamento = gui.locateCenterOnScreen("./assets/faturamento.png")
+        gui.click(posicao_faturamento)
         return True
     except Exception as e:
         print("Erro ao inserir dados no Bravos:", e)
@@ -314,10 +315,10 @@ class SistemaNF:
         self.br = None
         self.processamento_pausado = False
 
-    def iniciar_bravos(self):
-        config = {"bravos_usr": "seu_usuario", "bravos_pswd": "sua_senha"}
-        self.br = openBravos.infoBravos(config, m_queue=openBravos.faker())
-        self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+    # def iniciar_bravos(self):
+    #     config = {"bravos_usr": "caetano.apollo", "bravos_pswd": "123"}
+    #     self.br = openBravos.infoBravos(config, m_queue=openBravos.faker())
+    #     self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
 
     def pausar_processamento(self):
         self.processamento_pausado = True
