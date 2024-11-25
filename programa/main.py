@@ -10,7 +10,36 @@ import time
 import datetime
 import pyautogui as gui
 
-# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from programa.interface import interfaceMonitoramentoNF
+from programa.tratamentoErros import tratadorErros
+from programa.sistemaLogs import RegistradorSistema
+
+
+class SistemaNF:
+    def __init__(self, master):
+        self.fila_eventos = queue.Queue()
+        self.interface = interfaceMonitoramentoNF(master)
+        self.tratador_erros = tratadorErros()
+        self.registrador = RegistradorSistema()
+        self.br = None
+        self.processamento_pausado = False
+
+    # def iniciar_bravos(self):
+    #     config = {"bravos_usr": "caetano.apollo", "bravos_pswd": "123"}
+    #     self.br = openBravos.infoBravos(config, m_queue=openBravos.faker())
+    #     self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+
+    def pausar_processamento(self):
+        self.processamento_pausado = True
+        self.registrador.registrar("PAUSA", "Processamento de NFs pausado")
+        self.interface.rotulo_status.config(text="Processamento Pausado")
+
+    def retomar_processamento(self):
+        self.processamento_pausado = False
+        self.registrador.registrar_evento("CONTINUAR", "Processamento de NFs retomado")
+        self.interface.rotulo_status.config(text="Processamento Retomado")
+
+    # sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # from bravos import openBravos
 
 
@@ -299,67 +328,6 @@ def enviar_relatorio_email(resultados):
         mensagem += f"Arquivo: {resultado['arquivo']}, Status: {resultado["status"]}, Detalhes: {resultado["detalhes"]}\n"
 
         # Função para enviar o relatório por email
-
-
-from programa.interface import interfaceMonitoramentoNF
-from programa.tratamentoErros import tratadorErros
-from programa.sistemaLogs import RegistradorSistema
-
-
-class SistemaNF:
-    def __init__(self, master):
-        self.fila_eventos = queue.Queue()
-        self.interface = interfaceMonitoramentoNF(master)
-        self.tratador_erros = tratadorErros()
-        self.registrador = RegistradorSistema()
-        self.br = None
-        self.processamento_pausado = False
-
-    # def iniciar_bravos(self):
-    #     config = {"bravos_usr": "caetano.apollo", "bravos_pswd": "123"}
-    #     self.br = openBravos.infoBravos(config, m_queue=openBravos.faker())
-    #     self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
-
-    def pausar_processamento(self):
-        self.processamento_pausado = True
-        self.registrador.registrar("PAUSA", "Processamento de NFs pausado")
-        self.interface.rotulo_status.config(text="Processamento Pausado")
-
-    def retomar_processamento(self):
-        self.processamento_pausado = False
-        self.registrador.registrar_evento("CONTINUAR", "Processamento de NFs retomado")
-        self.interface.rotulo_status.config(text="Processamento Retomado")
-
-    def processar_notas_fiscais(self, xml_folder):
-        try:
-            self.registrador.registrar_evento(
-                "INICIO", "Iniciando processamento de notas fiscais"
-            )
-
-            for xml_file in os.listdir(xml_folder):
-                if self.processamento_pausado:
-                    while self.processamento_pausado:
-                        time.sleep(1)
-
-                if xml_file.endswith(".xml"):
-                    self.fila_eventos.put(
-                        {
-                            "timestamp": datetime.now().isoformat(),
-                            "descricao": f"Processando {xml_file}",
-                        }
-                    )
-
-                    self.fila_eventos.put(
-                        {
-                            "timestamp": datetime.now().isoformat(),
-                            "descricao": f"Processamento de {xml_file} concluído",
-                        }
-                    )
-            self.registrador.registrar_evento(
-                "FIM", "Processamento de notas fiscais concluído"
-            )
-        except Exception as e:
-            self.tratador_erros.tratarErros(e, "Processamento de notas fiscais")
 
     def executar(self):
         threading.Thread(target=self.interface.run, daemon=True).start()

@@ -13,10 +13,9 @@ chave_acesso = "43241115000312000172550010000392161402085460"
 data_emi = "04112024"
 modelo = "55"
 valor_total = "2000"
-data_vali = "24112024"
+data_vali = "24122024"
 
 gui.PAUSE = 0.5
-
 data_atual = datetime.datetime.now()
 
 data_formatada = data_atual.strftime("%d%m%Y")
@@ -118,4 +117,19 @@ gui.write(data_vali)
 gui.press("tab", presses=4)
 gui.press(["enter", "tab", "tab", "tab", "enter"])
 gui.press("tab", presses=36)
+gui.press("enter")
+gui.moveTo(1150, 758)
+gui.click()
+gui.press("enter")
+gui.click()
+gui.press("enter")
+gui.click()
+gui.press("enter")
+gui.click()
+gui.press("enter")
+gui.click()
+gui.press("enter")
+gui.click()
+gui.press("enter")
+gui.click()
 gui.press("enter")
