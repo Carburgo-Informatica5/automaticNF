@@ -314,7 +314,6 @@ def inserir_dados_no_bravos(dados_nf):
         print("Erro ao inserir dados no Bravos:", e)
         return False
 
-
 # Função para enviar relatório para o email
 def enviar_relatorio_email(resultados):
     """
