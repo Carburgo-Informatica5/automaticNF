@@ -9,6 +9,7 @@ nmr_nota = "3921"
 serie = "1"
 contador = "0"
 nome_eminente = "MEGA COMERCIAL DE PRODUTOS ELETRONICOS LTDA"
+cnpj = "15000312000172"
 chave_acesso = "43241115000312000172550010000392161402085460"
 data_emi = "04112024"
 modelo = "55"
@@ -75,11 +76,12 @@ imagem_template_redimensionada = redimensionar_template(imagem_template, nova_la
 coordenadas = encontrar_template(imagem_tela, imagem_template_redimensionada)
 
 for (x, y) in coordenadas:
-    gui.moveTo(x + (imagem_template_redimensionada.shape[1] // 0.8), y + (imagem_template_redimensionada.shape[0] // 2), duration=0.5)
+    gui.moveTo(x + (imagem_template_redimensionada.shape[1] // 0.8), y + (imagem_template_redimensionada.shape[0] // 2), duration=0.1)
     gui.click()
-    gui.write(nome_eminente)
+    gui.press("tab", presses=7)
+    gui.press("enter")
+    gui.write(cnpj)
     gui.press("enter", presses=2)
-    gui.press("tab", presses=2)
     break
 gui.press("enter")
 

@@ -10,12 +10,12 @@ import time
 import datetime
 import pyautogui as gui
 
-from programa.interface import interfaceMonitoramentoNF
-from programa.tratamentoErros import tratadorErros
-from programa.sistemaLogs import RegistradorSistema
+from interface import interfaceMonitoramentoNF
+from tratamentoErros import tratadorErros
+from sistemaLogs import RegistradorSistema
 
 
-class SistemaNF:
+class SistemaNF():
     def __init__(self, master):
         self.fila_eventos = queue.Queue()
         self.interface = interfaceMonitoramentoNF(master)
@@ -354,6 +354,6 @@ def enviar_relatorio_email(resultados):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    sistema = SistemaNF()
+    sistema = SistemaNF(root)
     sistema.executar()
     root.mainloop()
