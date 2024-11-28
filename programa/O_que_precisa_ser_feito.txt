@@ -2,4 +2,4 @@
 2. ver com o Yuri como ele consegue utilizar o selenium(provavel que seja o AHK) para capturar campos que não é possível acessar.
 3. Se o Fornecedor/Cliente não estiver cadastrado o sistema deve cadastrar ele.
 4. O sistema deve ter um relatório de notas fiscais processadas e erros.
-5. O sistema vai achar o cliente pelo o seu código, deve ser feito pelas 2 mãozinhas (Capturar pelo campo de código somente os digitos)
+5. O sistema vai achar o cliente pelo o seu código, deve ser feito pelas 2 mãozinhas (Capturar pelo campo de código somente os digitos)       

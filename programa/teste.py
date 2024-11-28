@@ -1,8 +1,10 @@
 import pyautogui as gui
 import time
-import cv2
-import numpy as np
 import datetime
+import pygetwindow as gw
+import pytesseract
+from PIL import Image
+
 
 # Substituir pelas variaveis da nota
 nmr_nota = "3921"
@@ -23,22 +25,43 @@ data_formatada = data_atual.strftime("%d%m%Y")
 
 gui.alert("O código vai começar. Não utilize nada do computador até o código finalizar!")
 
-def captura_tela():
-    screenshot = gui.screenshot()
-    imagem = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
-    return imagem
+time.sleep(5)
 
-def redimensionar_template(imagem_template, largura, altura):
-    return cv2.resize(imagem_template, (largura, altura))
+# Localiza a janela do BRAVOS pelo título
+window = gw.getWindowsWithTitle('BRAVOS v5.17 Evolutivo')[0]  # Assumindo que é a única com "BRAVOS" no título
 
-def encontrar_template(imagem_tela, imagem_template, threshold=0.8):
-    img_gray = cv2.cvtColor(imagem_tela, cv2.COLOR_BGR2GRAY)
-    template_gray = cv2.cvtColor(imagem_template, cv2.COLOR_BGR2GRAY)
-    
-    resultado = cv2.matchTemplate(img_gray, template_gray, cv2.TM_CCOEFF_NORMED)
-    
-    locais = np.where(resultado >= threshold)
-    return zip(*locais[::-1])
+# Centraliza a janela se necessário
+window.activate()
+
+# Calcula a posição relativa do ícone na barra de ferramentas
+x, y = window.left + 275, window.top + 80  # Ajuste os offsets conforme necessário
+time.sleep(3)
+gui.moveTo(x, y, duration=0.5)
+gui.click()
+gui.press("tab", presses=19)
+gui.write(cnpj)
+gui.press("enter")
+
+# Caminho para o executável do Tesseract
+pytesseract.pytesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
+
+# Captura uma parte da tela onde estão os números
+x, y, width, height = 495, 314, 107, 21  # Ajuste conforme necessário
+screenshot = gui.screenshot(region=(x, y, width, height))
+
+# Aplica a binarização diretamente na imagem RGB (usando o canal vermelho, por exemplo)
+threshold_value = 100
+binary_image = screenshot.point(lambda x: 0 if x < threshold_value else 255, '1')
+
+# Salva a imagem binarizada (opcional, para ver o resultado)
+binary_image.save("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/programa/assets/numeros_binarizado.png")
+
+# Configuração para reconhecimento de apenas dígitos
+config = r'--psm 6 outputbase digits'
+
+# Executa o OCR na imagem binarizada
+numeros = pytesseract.image_to_string(binary_image, config=config)
+print(f"Números reconhecidos: {numeros.strip()}")
 
 # Acesso a notas fiscais de despesas
 time.sleep(5)
@@ -59,31 +82,6 @@ gui.press("tab")
 gui.press("down")
 gui.press("tab")
 gui.write(contador)
-
-imagem_tela = captura_tela()
-imagem_template = cv2.imread('C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/programa/assets/cliente_referencia.PNG')
-
-# Obter a resolução da tela
-resolucao_tela = gui.size()
-largura_tela, altura_tela = resolucao_tela
-
-# Redimensionar o template com base na resolução da tela
-nova_largura = int(imagem_template.shape[1] * (1920 / largura_tela))
-nova_altura = int(imagem_template.shape[0] * (1080 / altura_tela))  
-imagem_template_redimensionada = redimensionar_template(imagem_template, nova_largura, nova_altura)
-
-# Encontrar coordenadas do template redimensionado
-coordenadas = encontrar_template(imagem_tela, imagem_template_redimensionada)
-
-for (x, y) in coordenadas:
-    gui.moveTo(x + (imagem_template_redimensionada.shape[1] // 0.8), y + (imagem_template_redimensionada.shape[0] // 2), duration=0.1)
-    gui.click()
-    gui.press("tab", presses=7)
-    gui.press("enter")
-    gui.write(cnpj)
-    gui.press("enter", presses=2)
-    break
-gui.press("enter")
 
 gui.press("tab", presses=5)
 gui.write(data_formatada)
