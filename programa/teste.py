@@ -38,32 +38,37 @@ x, y = window.left + 275, window.top + 80  # Ajuste os offsets conforme necessá
 time.sleep(3)
 gui.moveTo(x, y, duration=0.5)
 gui.click()
+time.sleep(4)
 gui.press("tab", presses=19)
 gui.write(cnpj)
 gui.press("enter")
 
-# Caminho para o executável do Tesseract
-pytesseract.pytesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
+pytesseract.pytesseract_cmd = r'C:\Program Files\Tesseract-OCR/tesseract.exe'
 
-# Captura uma parte da tela onde estão os números
-x, y, width, height = 495, 314, 107, 21  # Ajuste conforme necessário
+nova_janela = gw.getActiveWindow()
+
+janela_left = nova_janela.left
+janela_top = nova_janela.top
+
+time.sleep(5)
+
+x, y, width, height = janela_left + 500, janela_top + 323, 120, 21  
+
 screenshot = gui.screenshot(region=(x, y, width, height))
 
-# Aplica a binarização diretamente na imagem RGB (usando o canal vermelho, por exemplo)
-threshold_value = 100
-binary_image = screenshot.point(lambda x: 0 if x < threshold_value else 255, '1')
+screenshot = screenshot.convert("L")  
+threshold = 150  
+screenshot = screenshot.point(lambda p: p > threshold and 255)  
 
-# Salva a imagem binarizada (opcional, para ver o resultado)
-binary_image.save("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/programa/assets/numeros_binarizado.png")
 
-# Configuração para reconhecimento de apenas dígitos
-config = r'--psm 6 outputbase digits'
+screenshot.save("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/programa/assets/numeros_capturados_binarizada.png")
 
-# Executa o OCR na imagem binarizada
-numeros = pytesseract.image_to_string(binary_image, config=config)
-print(f"Números reconhecidos: {numeros.strip()}")
+config = r'--psm 7 outputbase digits'
 
-# Acesso a notas fiscais de despesas
+
+cliente = pytesseract.image_to_string(screenshot, config=config)
+
+
 time.sleep(5)
 gui.press("alt")
 gui.press("right", presses=6)
@@ -82,6 +87,10 @@ gui.press("tab")
 gui.press("down")
 gui.press("tab")
 gui.write(contador)
+gui.press("tab")
+gui.write(cliente)
+gui.press("tab")
+gui.press("enter")
 
 gui.press("tab", presses=5)
 gui.write(data_formatada)
@@ -106,7 +115,7 @@ gui.write("1")
 gui.press("tab")
 gui.write(valor_total)
 gui.press("tab", presses=26)
-gui.write("Colocar a descrição da nota")
+gui.write("TESTE DANI LANÇAMENTO DE NOTA") # Variavel Relativa puxar pelo email
 gui.press(["tab", "enter"])
 gui.press("tab", presses=11)
 gui.press("left", presses=2)
@@ -133,3 +142,18 @@ gui.click()
 gui.press("enter")
 gui.click()
 gui.press("enter")
+gui.press("tab", presses=8)
+gui.write("1") # Aqui várialvel relativa Revenda centro de custo puxar email
+gui.press("tab", presses=3)
+gui.write("1") # Aqui várialvel relativa de centro de custo puxar email
+gui.press("tab", presses=2)
+gui.write("5148") # Aqui várialvel relativa de Origem puxar email
+gui.press("tab", presses=3)
+gui.write("100") # Aqui várialvel relativa de Percentual puxar email
+gui.press("tab")
+gui.moveTo(1202, 758)
+gui.click()
+gui.moveTo(1271, 758)
+gui.click()
+gui.press("tab", presses=3)
+# gui.press("enter")
