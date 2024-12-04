@@ -38,9 +38,9 @@ def extract_values(text):
         'origem': None,
         'descricao': None,
         'revenda_cc': None,
-        'cc': [],
+        'cc': None,
         'rateio': None,
-        'percentual': []
+        'percentual': None
     }
 
     lines = text.splitlines()
@@ -132,14 +132,21 @@ try:
             # Extrair valores
             valores_extraidos = extract_values(body)
 
-            # Exibir as variáveis extraídas
-            print(f"\nDepartamento = {valores_extraidos['departamento']}")
-            print(f"Origem = {valores_extraidos['origem']}")
-            print(f"Descrição = {valores_extraidos['descricao']}")
-            print(f"Revenda_CC = {valores_extraidos['revenda_cc']}")
-            print(f"CC = {valores_extraidos['cc']}")
-            print(f"Rateio = {valores_extraidos['rateio']}")
-            print(f"Percentual = {valores_extraidos['percentual']}")
+            # Atribuir valores às variáveis
+            departamento = valores_extraidos['departamento']
+            origem = valores_extraidos['origem']
+            descricao = valores_extraidos['descricao']
+            revenda_cc = valores_extraidos['revenda_cc']
+            cc = valores_extraidos['cc']
+            rateio = valores_extraidos['rateio']
+            percentual = valores_extraidos['percentual']
+            
+            print(f"Departamento: {departamento}")
+            print(f"Origem: {origem}")
+            print(f"Descrição: {descricao}")
+            print(f"CC: {cc}")
+            print(f"Rateio: {rateio}")
+            print(f"Percentual: {percentual}")
 
             break  # Para após encontrar o primeiro e-mail com o assunto desejado
 
