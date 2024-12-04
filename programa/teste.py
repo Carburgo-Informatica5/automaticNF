@@ -41,6 +41,7 @@ gui.click()
 time.sleep(4)
 gui.press("tab", presses=19)
 gui.write(cnpj)
+time.sleep(2)
 gui.press("enter")
 
 pytesseract.pytesseract_cmd = r'C:\Program Files\Tesseract-OCR/tesseract.exe'
@@ -60,14 +61,9 @@ screenshot = screenshot.convert("L")
 threshold = 150  
 screenshot = screenshot.point(lambda p: p > threshold and 255)  
 
-
-screenshot.save("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/programa/assets/numeros_capturados_binarizada.png")
-
 config = r'--psm 7 outputbase digits'
 
-
 cliente = pytesseract.image_to_string(screenshot, config=config)
-
 
 time.sleep(5)
 gui.press("alt")
@@ -156,4 +152,4 @@ gui.click()
 gui.moveTo(1271, 758)
 gui.click()
 gui.press("tab", presses=3)
-# gui.press("enter")
+# gui.press("enter") Se tirar do comentario ele grava a nota no sistema
