@@ -4,3 +4,4 @@
 4. Incluir no email o código de tributação do item.
 5. Incluir no email uma forma do sistema ler porcentagem e valor no rateio.
 6. procurar alguma forma de validadção para que o rateio não tenha divergencias
+7. Ver como posso pegar a posição de todas as coisas que estão com posição relativa ou absoluta

@@ -64,9 +64,6 @@ def extract_values(text):
             values['cc'] = line.split(":", 1)[1].strip()
         elif line.startswith("rateio:"):
             values['rateio'] = line.split(":", 1)[1].strip()
-        elif line.startswith("percentual:"):
-            percentual_values = line.split(":", 1)[1].strip()
-            values['percentual'] = line.split(":", 1)[1].strip()
 
     return values
 
@@ -145,14 +142,12 @@ try:
             revenda_cc = valores_extraidos['revenda_cc']
             cc = valores_extraidos['cc']
             rateio = valores_extraidos['rateio']
-            percentual = valores_extraidos['percentual']
             
             print(f"Departamento: {departamento}")
             print(f"Origem: {origem}")
             print(f"Descrição: {descricao}")
             print(f"CC: {cc}")
             print(f"Rateio: {rateio}")
-            print(f"Percentual: {percentual}")
 
             break  # Para após encontrar o primeiro e-mail com o assunto desejado
 
@@ -301,7 +296,7 @@ gui.write(cc) # Aqui várialvel relativa de centro de custo puxar email
 gui.press("tab", presses=2)
 gui.write(origem) # Aqui várialvel relativa de Origem puxar email
 gui.press("tab", presses=3)
-gui.write(percentual) # Aqui várialvel relativa de Percentual puxar email
+gui.write() # Aqui várialvel relativa de valores de rateio e porcentagem do valor da nota puxar email
 gui.press("tab")
 gui.moveTo(1202, 758)
 gui.click()
