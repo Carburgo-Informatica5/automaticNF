@@ -7,11 +7,15 @@ from PIL import Image
 import poplib
 from email import parser
 from email.header import decode_header
+
+import poplib
+from email import parser
+from email.header import decode_header
 import os
 
 # Configurações do servidor e credenciais
-HOST = 'mail.carburgo.com.br'  # Servidor POP3 corporativo
-PORT = 995                    # Porta segura (SSL)
+HOST = 'mail.carburgo.com.br'
+PORT = 995
 USERNAME = 'caetano.apollo@carburgo.com.br'
 PASSWORD = 'p@r!sA1856'
 
@@ -19,7 +23,7 @@ PASSWORD = 'p@r!sA1856'
 ASSUNTO_ALVO = 'Lançamentos notas fiscais DANI'
 
 # Diretório para salvar os anexos
-DIRECTORY = 'anexos'  # Pasta onde os anexos serão salvos
+DIRECTORY = 'anexos'
 
 def decode_header_value(header_value):
     """Função auxiliar para decodificar o header do e-mail."""
@@ -38,19 +42,25 @@ def decode_body(payload, charset):
         return payload.decode('ISO-8859-1', errors='ignore')
 
 def extract_values(text):
-    """Extrai os valores do corpo do e-mail."""
+    """Extrai os valores do corpo do e-mail, incluindo múltiplos centros de custo e seus respectivos valores."""
+    import re
+
     values = {
         'departamento': None,
         'origem': None,
         'descricao': None,
         'revenda_cc': None,
-        'cc': None,
+        'cc': [],
         'rateio': None,
-        'percentual': None
+        'cod_item': None
     }
 
+    # Dividir o texto em linhas novamente com espaços já normalizados
     lines = text.splitlines()
+
     for line in lines:
+        line = line.strip().lower()
+
         if line.startswith("departamento:"):
             values['departamento'] = line.split(":", 1)[1].strip()
         elif line.startswith("origem:"):
@@ -61,63 +71,53 @@ def extract_values(text):
             values['revenda_cc'] = line.split(":", 1)[1].strip()
         elif line.startswith("cc:"):
             cc_values = line.split(":", 1)[1].strip()
-            values['cc'] = line.split(":", 1)[1].strip()
+            if '-' in cc_values:
+                cc_items = re.split(r',\s*', cc_values)  # Separar por vírgula e remover espaços
+                for item in cc_items:
+                    if '-' in item:
+                        cc, valor = item.split('-')
+                        values['cc'].append((cc.strip(), valor.strip()))
+            else:
+                # Caso não tenha "- valor", assumimos 100%
+                values['cc'].append((cc_values.strip(), "100%"))
         elif line.startswith("rateio:"):
             values['rateio'] = line.split(":", 1)[1].strip()
+        elif line.startswith("código de tributação:"):
+            values['cod_item'] = line.split(":", 1)[1].strip()
 
     return values
 
 def save_attachment(part, directory):
     """Função para salvar o anexo em um diretório local com extensão .xml."""
     filename = decode_header_value(part.get_filename())
-    
     if not filename:
-        filename = 'untitled'
-    
-    # Garantir que a extensão seja .xml
+        filename = 'untitled.xml'
     if not filename.lower().endswith('.xml'):
         filename += '.xml'
-    
-    # Criar diretório, se não existir
     if not os.path.exists(directory):
         os.makedirs(directory)
-
     filepath = os.path.join(directory, filename)
-
     with open(filepath, 'wb') as f:
         f.write(part.get_payload(decode=True))
-
     print(f'Anexo salvo em: {filepath}')
 
 try:
     # Conectar ao servidor POP3 com SSL
     server = poplib.POP3_SSL(HOST, PORT)
-
-    # Fazer login
     server.user(USERNAME)
     server.pass_(PASSWORD)
 
-    # Obter o número de mensagens no servidor
     num_messages = len(server.list()[1])
     print(f'Você tem {num_messages} mensagem(s) no servidor.')
 
-    # Percorrer todas as mensagens
     for i in range(num_messages):
-        # Recuperar a mensagem (começando da mais recente)
         response, lines, octets = server.retr(i + 1)
-
-        # Decodificar a mensagem
         raw_message = b'\n'.join(lines).decode('utf-8', errors='ignore')
         email_message = parser.Parser().parsestr(raw_message)
-
-        # Decodificar o assunto
         subject = decode_header_value(email_message['subject'])
 
-        # Verificar se o assunto corresponde ao ASSUNTO_ALVO
         if subject == ASSUNTO_ALVO:
             print(f"\nE-mail encontrado com o assunto: {subject}")
-
-            # Obter o corpo do e-mail e anexos
             body = ""
             if email_message.is_multipart():
                 for part in email_message.walk():
@@ -125,33 +125,28 @@ try:
                     if content_type == "text/plain":
                         charset = part.get_content_charset()
                         body = decode_body(part.get_payload(decode=True), charset)
-                    else:  # Anexos
-                        if part.get('Content-Disposition') is not None:
-                            save_attachment(part, DIRECTORY)
+                    elif part.get('Content-Disposition'):
+                        save_attachment(part, DIRECTORY)
             else:
                 charset = email_message.get_content_charset()
                 body = decode_body(email_message.get_payload(decode=True), charset)
 
-            # Extrair valores
             valores_extraidos = extract_values(body)
 
-            # Atribuir valores às variáveis
             departamento = valores_extraidos['departamento']
             origem = valores_extraidos['origem']
             descricao = valores_extraidos['descricao']
             revenda_cc = valores_extraidos['revenda_cc']
+            cod_item = valores_extraidos['cod_item']
             cc = valores_extraidos['cc']
-            rateio = valores_extraidos['rateio']
-            
+
             print(f"Departamento: {departamento}")
             print(f"Origem: {origem}")
             print(f"Descrição: {descricao}")
-            print(f"CC: {cc}")
-            print(f"Rateio: {rateio}")
+            print(f"Revenda CC: {revenda_cc}")
+            print(f"Centros de Custo: {valores_extraidos['cc']}")
+            break
 
-            break  # Para após encontrar o primeiro e-mail com o assunto desejado
-
-    # Desconectar do servidor
     server.quit()
 
 except Exception as e:
@@ -190,6 +185,7 @@ x, y = window.left + 275, window.top + 80  # Ajuste os offsets conforme necessá
 time.sleep(3)
 gui.moveTo(x, y, duration=0.5)
 gui.click()
+time.sleep(5)
 gui.press("tab", presses=19)
 gui.write(cnpj)
 time.sleep(2)
@@ -256,7 +252,7 @@ gui.press("right", presses=2)
 gui.press("tab", presses=5)
 gui.press("enter")
 gui.press("tab", presses=4)
-gui.write("7") # variavel via email "Outros"
+gui.write(cod_item) # variavel via email "Outros"
 gui.press("tab", presses=10)
 gui.write("1")
 gui.press("tab")
@@ -292,11 +288,12 @@ gui.press("enter")
 gui.press("tab", presses=8)
 gui.write(revenda_cc) # Aqui várialvel relativa Revenda centro de custo puxar email
 gui.press("tab", presses=3)
-gui.write(cc) # Aqui várialvel relativa de centro de custo puxar email
-gui.press("tab", presses=2)
-gui.write(origem) # Aqui várialvel relativa de Origem puxar email
-gui.press("tab", presses=3)
-gui.write() # Aqui várialvel relativa de valores de rateio e porcentagem do valor da nota puxar email
+for cc, valor in valores_extraidos['cc']:
+    gui.write(cc)  # Escreve o Centro de Custo
+    gui.press("tab", presses=2)  # Avança para o próximo campo
+    gui.write(origem) # Aqui várialvel relativa de Origem puxar email
+    gui.press("tab", presses=2)  # Avança para a próxima entrada de centro de custo
+    gui.write(valor)  # Escreve o valor ou porcentagem
 gui.press("tab")
 gui.moveTo(1202, 758)
 gui.click()
