@@ -3,19 +3,14 @@ import time
 import datetime
 import pygetwindow as gw
 import pytesseract
-from PIL import Image
-import poplib
-from email import parser
-from email.header import decode_header
-
-import poplib
 from email import parser
 from email.header import decode_header
 import os
+import poplib
 
 # Configurações do servidor e credenciais
-HOST = 'mail.carburgo.com.br'
-PORT = 995
+HOST = 'mail.carburgo.com.br'  # Servidor POP3 corporativo
+PORT = 995                    # Porta segura (SSL)
 USERNAME = 'caetano.apollo@carburgo.com.br'
 PASSWORD = 'p@r!sA1856'
 
@@ -23,7 +18,9 @@ PASSWORD = 'p@r!sA1856'
 ASSUNTO_ALVO = 'Lançamentos notas fiscais DANI'
 
 # Diretório para salvar os anexos
-DIRECTORY = 'anexos'
+DIRECTORY = 'anexos'  # Pasta onde os anexos serão salvos
+
+# Funções auxiliares
 
 def decode_header_value(header_value):
     """Função auxiliar para decodificar o header do e-mail."""
@@ -42,25 +39,19 @@ def decode_body(payload, charset):
         return payload.decode('ISO-8859-1', errors='ignore')
 
 def extract_values(text):
-    """Extrai os valores do corpo do e-mail, incluindo múltiplos centros de custo e seus respectivos valores."""
-    import re
-
+    """Extrai os valores do corpo do e-mail."""
     values = {
         'departamento': None,
         'origem': None,
         'descricao': None,
         'revenda_cc': None,
-        'cc': [],
+        'cc': None,
         'rateio': None,
         'cod_item': None
     }
 
-    # Dividir o texto em linhas novamente com espaços já normalizados
     lines = text.splitlines()
-
     for line in lines:
-        line = line.strip().lower()
-
         if line.startswith("departamento:"):
             values['departamento'] = line.split(":", 1)[1].strip()
         elif line.startswith("origem:"):
@@ -70,54 +61,93 @@ def extract_values(text):
         elif line.startswith("revenda_cc:"):
             values['revenda_cc'] = line.split(":", 1)[1].strip()
         elif line.startswith("cc:"):
-            cc_values = line.split(":", 1)[1].strip()
-            if '-' in cc_values:
-                cc_items = re.split(r',\s*', cc_values)  # Separar por vírgula e remover espaços
-                for item in cc_items:
-                    if '-' in item:
-                        cc, valor = item.split('-')
-                        values['cc'].append((cc.strip(), valor.strip()))
-            else:
-                # Caso não tenha "- valor", assumimos 100%
-                values['cc'].append((cc_values.strip(), "100%"))
+            values['cc'] = line.split(":", 1)[1].strip()
         elif line.startswith("rateio:"):
             values['rateio'] = line.split(":", 1)[1].strip()
         elif line.startswith("código de tributação:"):
-            values['cod_item'] = line.split(":", 1)[1].strip()
+            values['código de tributação'] = line.split(":", 1)[1].strip()
 
     return values
 
 def save_attachment(part, directory):
     """Função para salvar o anexo em um diretório local com extensão .xml."""
     filename = decode_header_value(part.get_filename())
+    
     if not filename:
-        filename = 'untitled.xml'
+        filename = 'untitled'
+    
+    # Garantir que a extensão seja .xml
     if not filename.lower().endswith('.xml'):
         filename += '.xml'
+    
+    # Criar diretório, se não existir
     if not os.path.exists(directory):
         os.makedirs(directory)
+
     filepath = os.path.join(directory, filename)
+
     with open(filepath, 'wb') as f:
         f.write(part.get_payload(decode=True))
+
     print(f'Anexo salvo em: {filepath}')
+
+# Função para processar os centros de custo
+def processar_centros_de_custo(cc_texto):
+    """
+    Processa o texto extraído para identificar se é valor ou porcentagem e retorna
+    o formato adequado para o preenchimento.
+    """
+    centros_de_custo = []
+
+    # Divida os centros de custo por vírgulas
+    for item in cc_texto.split(','):
+        item = item.strip()
+
+        # Verifique se contém '%' indicando porcentagem
+        if '%' in item:
+            cc, porcentagem = item.split('-')
+            cc = cc.strip()
+            porcentagem = porcentagem.strip()
+            centros_de_custo.append((cc, None, porcentagem))  # Adiciona como porcentagem
+        else:
+            cc, valor = item.split('-')
+            cc = cc.strip()
+            valor = valor.strip()
+            centros_de_custo.append((cc, valor, None))  # Adiciona como valor monetário
+
+    return centros_de_custo
+
+# Código de automação
 
 try:
     # Conectar ao servidor POP3 com SSL
     server = poplib.POP3_SSL(HOST, PORT)
+
+    # Fazer login
     server.user(USERNAME)
     server.pass_(PASSWORD)
 
+    # Obter o número de mensagens no servidor
     num_messages = len(server.list()[1])
     print(f'Você tem {num_messages} mensagem(s) no servidor.')
 
+    # Percorrer todas as mensagens
     for i in range(num_messages):
+        # Recuperar a mensagem (começando da mais recente)
         response, lines, octets = server.retr(i + 1)
+
+        # Decodificar a mensagem
         raw_message = b'\n'.join(lines).decode('utf-8', errors='ignore')
         email_message = parser.Parser().parsestr(raw_message)
+
+        # Decodificar o assunto
         subject = decode_header_value(email_message['subject'])
 
+        # Verificar se o assunto corresponde ao ASSUNTO_ALVO
         if subject == ASSUNTO_ALVO:
             print(f"\nE-mail encontrado com o assunto: {subject}")
+
+            # Obter o corpo do e-mail e anexos
             body = ""
             if email_message.is_multipart():
                 for part in email_message.walk():
@@ -125,33 +155,65 @@ try:
                     if content_type == "text/plain":
                         charset = part.get_content_charset()
                         body = decode_body(part.get_payload(decode=True), charset)
-                    elif part.get('Content-Disposition'):
-                        save_attachment(part, DIRECTORY)
+                    else:  # Anexos
+                        if part.get('Content-Disposition') is not None:
+                            save_attachment(part, DIRECTORY)
             else:
                 charset = email_message.get_content_charset()
                 body = decode_body(email_message.get_payload(decode=True), charset)
 
+            # Extrair valores
             valores_extraidos = extract_values(body)
 
+            # Atribuir valores às variáveis
             departamento = valores_extraidos['departamento']
             origem = valores_extraidos['origem']
             descricao = valores_extraidos['descricao']
             revenda_cc = valores_extraidos['revenda_cc']
-            cod_item = valores_extraidos['cod_item']
-            cc = valores_extraidos['cc']
+            cc_texto = valores_extraidos['cc']
+            rateio = valores_extraidos['rateio']
+            cod_item = valores_extraidos['código de tributação']
 
             print(f"Departamento: {departamento}")
             print(f"Origem: {origem}")
             print(f"Descrição: {descricao}")
             print(f"Revenda CC: {revenda_cc}")
-            print(f"Centros de Custo: {valores_extraidos['cc']}")
-            break
+            print(f"Centros de Custo: {cc_texto}")
+            print(f"Rateio: {rateio}")
+            print(f"Código de Tributação: {cod_item}")
 
+            # Processar centros de custo
+            centros_de_custo = processar_centros_de_custo(cc_texto)
+            
+            # Lançar os centros de custo
+            for idx, (cc, valor, porcentagem) in enumerate(centros_de_custo):
+                # Se não for o primeiro centro de custo, clique para adicionar um novo
+                if idx > 0:
+                    gui.click(1126, 758)  # Clica para adicionar novo centro de custo
+                    time.sleep(1)  # Espera o sistema carregar o novo centro de custo
+                    gui.write(revenda_cc) # Aqui várialvel relativa Revenda centro de custo puxar email
+                    gui.press("tab", presses=3)
+                    gui.write(cc)
+                    gui.press("tab", presses=2)
+                    gui.write(origem) # Aqui várialvel relativa de Origem puxar email
+                    gui.press("tab", presses=2)
+                
+                # Preenche o valor ou porcentagem conforme o caso
+                if valor is not None:
+                    print(f"Centro de Custo: {cc}, Valor: {valor}")
+                    gui.write(valor)  # Preenche o campo de valor
+                if porcentagem is not None:
+                    print(f"Centro de Custo: {cc}, Porcentagem: {porcentagem}")
+                    gui.write(porcentagem)  # Preenche o campo de porcentagem
+                gui.press("tab")  # Avança para o próximo campo, se necessário
+
+            break  # Para após encontrar o primeiro e-mail com o assunto desejado
+
+    # Desconectar do servidor
     server.quit()
 
 except Exception as e:
     print('Erro:', e)
-
 
 # Substituir pelas variaveis da nota
 nmr_nota = "3921"
@@ -288,14 +350,19 @@ gui.press("enter")
 gui.press("tab", presses=8)
 gui.write(revenda_cc) # Aqui várialvel relativa Revenda centro de custo puxar email
 gui.press("tab", presses=3)
-for cc, valor in valores_extraidos['cc']:
-    gui.write(cc)  # Escreve o Centro de Custo
-    gui.press("tab", presses=2)  # Avança para o próximo campo
-    gui.write(origem) # Aqui várialvel relativa de Origem puxar email
-    gui.press("tab", presses=2)  # Avança para a próxima entrada de centro de custo
-    gui.write(valor)  # Escreve o valor ou porcentagem
+gui.write(cc)
+gui.press("tab", presses=2)
+gui.write(origem) # Aqui várialvel relativa de Origem puxar email
+gui.press("tab", presses=2)
+for cc, valor, porcentagem in centros_de_custo:
+    gui.press("tab")
+    if valor:
+        gui.write(valor)  # Preenche o campo de valor
+    if porcentagem:
+        gui.write(porcentagem)  # Preenche o campo de porcentagem
+    gui.press("tab")
+    gui.moveTo(1202, 758)  
 gui.press("tab")
-gui.moveTo(1202, 758)
 gui.click()
 gui.moveTo(1271, 758)
 gui.click()
