@@ -6,11 +6,18 @@ import xml.etree.ElementTree as ET
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def salvar_dados_em_arquivo(dados_nf, nome_arquivo):
+def salvar_dados_em_arquivo(dados_nf, nome_arquivo, pasta_destino="NOTA EM JSON"):
     """Salva os dados da nota fiscal em um arquivo JSON."""
-    with open(nome_arquivo, "w", encoding="utf-8") as f:
+    
+    nome_arquivo = os.path.splitext(nome_arquivo)[0]
+    nome_arquivo = f"dados_nota_{nome_arquivo}.json"
+    
+    caminho_completo = os.path.join(pasta_destino, nome_arquivo)
+    os.makedirs(pasta_destino, exist_ok=True)
+    
+    with open(caminho_completo, "w", encoding="utf-8") as f:
         json.dump(dados_nf, f, ensure_ascii=False, indent=4)
-    print(f"Dados salvos em: {nome_arquivo}")
+    print(f"Dados salvos em: {caminho_completo}")
 
 def parse_nota_fiscal(xml_file_path):
     """
@@ -35,7 +42,6 @@ def parse_nota_fiscal(xml_file_path):
         nota_fiscal_data = {
             "eminente": {},
             "destinatario": {},
-            "produtos": [],
             "chave_acesso": {},
             "num_nota": {},
             "data_emi": {},
@@ -87,32 +93,27 @@ def parse_nota_fiscal(xml_file_path):
                         data_venc = parcela.findtext("ns0:dVenc", namespaces=namespaces)
                         valor_parc = parcela.findtext("ns0:vDup", namespaces=namespaces)
 
-                        if (
-                            nmr_parc is not None
-                            and data_venc is not None
-                            and valor_parc is not None
-                        ):
-                            nota_fiscal_data["pagamento_parcelado"].append(
-                                {
-                                    "nmr_parc": nmr_parc,
-                                    "data_venc": data_venc,
-                                    "valor_parc": valor_parc,
-                                }
-                            )
+                if nmr_parc is not None and data_venc is not None and valor_parc is not None:
+                    data_venc_format = data_venc[:10].replace("-", " ")
+                    nota_fiscal_data["pagamento_parcelado"].append(
+                        {
+                            "nmr_parc": nmr_parc,
+                            "data_venc": f"{data_venc_format[8:10]}{data_venc_format[5:7]}{data_venc_format[0:4]}",
+                            "valor_parc": valor_parc,
+                        }
+                    )
             else:
                 # Se não existem parcelas, verificar se há um pagamento único
-                valor_total = pagamento.findtext(
-                    "ns0:fat/ns0:vLiq", namespaces=namespaces
-                )
-                if valor_total is not None:
+                valor_total = pagamento.findtext("ns0:fat/ns0:vLiq", namespaces=namespaces)
+                data_venc = pagamento.findtext("ns0:dup/ns0:dVenc", namespaces=namespaces)
+
+                if valor_total is not None and data_venc is not None:
+                    data_venc_format = data_venc[:10].replace("-", " ")
                     # Tratar como pagamento único
                     nota_fiscal_data["valor_total"].append(
-                        {  # Pode ser considerado como a única parcela
-                            "data_venc": pagamento.findtext(
-                                "ns0:dup/ns0:dVenc", namespaces=namespaces
-                            )
-                            or "N/A",
-                            "Valor_total": valor_total,
+                        {
+                            "valor_total": valor_total,
+                            "data_venc": f"{data_venc_format[8:10]}{data_venc_format[5:7]}{data_venc_format[0:4]}"
                         }
                     )
         else:
@@ -157,29 +158,9 @@ def parse_nota_fiscal(xml_file_path):
         else:
             print("Chave de acesso não encontrada")
 
-        # Extrair produtos
-        produtos = root.findall(".//ns0:det", namespaces)
-        if produtos:
-            for produto in produtos:
-                prod_data = {
-                    "codigo": produto.findtext(".//ns0:cProd", namespaces=namespaces),
-                    "descricao": produto.findtext(
-                        ".//ns0:xProd", namespaces=namespaces
-                    ),
-                    "quantidade": produto.findtext(
-                        ".//ns0:qCom", namespaces=namespaces
-                    ),
-                    "valor_total_prod": produto.findtext(
-                        ".//ns0:vProd", namespaces=namespaces
-                    ),
-                }
-                nota_fiscal_data["produtos"].append(prod_data)
-        else:
-            print("Produtos não encontrados")
-
         return nota_fiscal_data
     except ET.ParseError as e:
-        print(f"Erro ao parsear o arquivo XML: {e}")
+        print(f"Erro ao parsear o arquivo XML: '{xml_file_path}': {e}")
         return None
 
 
@@ -195,14 +176,12 @@ def testar_processamento_local():
                 if xml_file.endswith(".xml"):  # Verifica se o arquivo é um XML
                     xml_teste = os.path.join(pasta_xml_teste, xml_file)
                     dados_nf = parse_nota_fiscal(xml_teste)
-
-                    # Salva os dados extraídos em um novo arquivo
-                    salvar_dados_em_arquivo(
-                        dados_nf, f"dados_extraidos_{xml_file}.json"
-                    )
+                    
+                    if dados_nf:
+                        salvar_dados_em_arquivo(dados_nf, xml_file[:-4])
         else:
             print(
-                f"Pasta de teste não encontrada: {pasta_xml_teste}"
+                f"Pasta não encontrada: {pasta_xml_teste}"
             )  # Mensagem corrigida
     except Exception as e:
         # Tratamento de erros genérico

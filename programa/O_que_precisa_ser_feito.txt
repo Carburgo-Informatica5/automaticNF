@@ -1,4 +1,0 @@
-2. Se o Fornecedor/Cliente não estiver cadastrado o sistema deve cadastrar ele,  ver com a Bianca.
-3. O sistema deve ter um relatório de notas fiscais processadas e erros.
-6. procurar alguma forma de validadção para que o rateio não tenha divergencias
-7. Ver como posso pegar a posição de todas as coisas que estão com posição relativa ou absoluta
