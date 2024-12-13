@@ -149,7 +149,7 @@ class bravos:
         print("")
 
     def __find_login(self, timeout_lenght) -> window.Win32Window:
-        TIMEOUT_LENGHT_UPDATE = 240
+        TIMEOUT_LENGHT_UPDATE = 250
         start_time = time.time()
         while True:
             if time.time() - start_time > timeout_lenght:

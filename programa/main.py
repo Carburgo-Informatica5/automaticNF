@@ -91,47 +91,42 @@ def save_attachment(part, directory):
     dados_nf = parse_nota_fiscal(filepath)
     if dados_nf:
         salvar_dados_em_arquivo(dados_nf, filename, "NOTA EM JSON")
-def processar_centros_de_custo(cc_texto):
+def processar_centros_de_custo(cc_texto, valor_total):
     """
     Processa o texto extraído para identificar se é valor ou porcentagem e retorna
     o formato adequado para o preenchimento.
     """
     centros_de_custo = []
+    total_porcentagem = 0.0
+    total_calculado = 0.0
+
     # Divida os centros de custo por vírgulas
     for item in cc_texto.split(","):
         item = item.strip()  # Remove espaços extras no início e no final
-        # Verifique se contém '%' indicando porcentagem
-        if "%" in item:
-            # A separação entre centro de custo e porcentagem deve ser feita com '-'
-            try:
-                # Remove os espaços ao redor do hífen antes de separar
-                cc, porcentagem = [x.strip() for x in item.split("-")]
-                # Verifica se a porcentagem está no formato correto
-                if porcentagem.replace("%", "").strip().isnumeric():
-                    centros_de_custo.append(
-                        (cc, None, porcentagem)
-                    )  # Adiciona como porcentagem
-                else:
-                    print(f"Formato de porcentagem inválido: {porcentagem}")
-            except ValueError:
-                print(f"Erro ao processar centro de custo com porcentagem: {item}")
-        else:
-            try:
-                # Remove os espaços ao redor do hífen antes de separar
-                cc, valor = [x.strip() for x in item.split("-")]
-                # Verifica se o valor está no formato correto (numérico)
-                if valor.replace(".", "", 1).isdigit():
-                    centros_de_custo.append(
-                        (cc, valor, None)
-                    )  # Adiciona como valor monetário
-                else:
-                    print(f"Formato de valor inválido: {valor}")
-            except ValueError:
-                print(f"Erro ao processar centro de custo com valor: {item}")
-    logging('processou o centro de custo')
-    return centros_de_custo
+        try:
+            cc, valor = [x.strip() for x in item.split("-")]
+            if "%" in valor:
+                porcentagem = float(valor.replace("%", ""))
+                total_porcentagem += porcentagem
+                valor_calculado = round((valor_total * porcentagem) / 100, 2)
+                total_calculado += valor_calculado
+                centros_de_custo.append((cc, valor_calculado))
+            else:
+                valor_num = float(valor.replace(",", "."))
+                total_calculado += valor_num
+                centros_de_custo.append((cc, valor_num))
+        except ValueError:
+            print(f"Erro ao processar centro de custo: {item}")
 
+    if round(total_porcentagem, 2) != 100.0:
+        raise ValueError("Rateio não fecha 100%!")
+
+    if round(total_calculado, 2) != round(valor_total, 2):
+        raise ValueError("Valores calculados não correspondem ao total da nota!")
+
+    return centros_de_custo
 dados_centros_de_custo = []
+logging.info(f"Loop centro de custo: {dados_centros_de_custo}")
 
 try:
     server = poplib.POP3_SSL(HOST, PORT)
@@ -195,8 +190,8 @@ nmr_nota = dados_nota_fiscal['num_nota']['numero_nota']
 data_emi = dados_nota_fiscal['data_emi']['data_emissao']
 data_venc = dados_nota_fiscal['valor_total'][0]['data_venc']
 modelo = dados_nota_fiscal['modelo']['modelo']
-valor_total = str(dados_nota_fiscal['valor_total'][0]['valor_total'])
-print(valor_total)
+valor_total = str(dados_nota_fiscal['valor_total'][0]['valor_total']).replace('.', ',')
+
 
 logging.info('Dados da nota fiscal carregados')
 
@@ -304,6 +299,7 @@ class SistemaNF:
             gui.press("tab", presses=10)
             gui.write("1")
             gui.press("tab")
+            logging.info(f"Valor total: {valor_total}")
             gui.write(valor_total)
             gui.press("tab", presses=26)
             gui.write(descricao)  # Variavel Relativa puxar pelo email
@@ -344,13 +340,13 @@ class SistemaNF:
                 gui.press("tab", presses=2)
                 if valor:
                     gui.write(valor)
+                    gui.press("f2", interval=2)                  
+                    gui.press("f3")                  
                     gui.press("tab", presses=3)
-                    gui.press(["f2", "f3"])
                 elif porcentagem:
                     gui.press("tab")
                     gui.write(porcentagem)
                     gui.press("tab", presses=3)
-                    gui.press(["f2", "f3"])
                 gui.press("tab", presses=19)
             gui.press("tab", presses=3)
             gui.press("enter")
