@@ -1,9 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
-import threading
-import queue
 import sys
-import shutil
 import time
 import datetime
 import pyautogui as gui
@@ -33,7 +30,7 @@ PORT = 995  # Porta segura (SSL)
 USERNAME = "caetano.apollo@carburgo.com.br"
 PASSWORD = "p@r!sA1856"
 # Assunto alvo para busca
-ASSUNTO_ALVO = "Lançamentos notas ficais DANI"
+ASSUNTO_ALVO = "Lançamentos notas fiscais DANI"
 # Diretório para salvar os anexos
 DIRECTORY = "anexos"  # Pasta onde os anexos serão salvos
 
@@ -122,133 +119,132 @@ def processar_centros_de_custo(cc_texto, valor_total):
 
     return centros_de_custo
 
-
-
 try:
-    server = poplib.POP3_SSL(HOST, PORT)
-    server.user(USERNAME)
-    server.pass_(PASSWORD)
-    num_messages = len(server.list()[1])
-    print(f"Conectado ao servidor POP3. Número de mensagens: {num_messages}")
-    
-    pasta_notas = "C:/Users/VAS MTZ/Desktop/Caetano Apollo/NOTA EM JSON"
+    while True:
+        server = poplib.POP3_SSL(HOST, PORT)
+        server.user(USERNAME)
+        server.pass_(PASSWORD)
+        num_messages = len(server.list()[1])
+        print(f"Conectado ao servidor POP3. Número de mensagens: {num_messages}")
 
-    if not os.path.exists(pasta_notas):
-        os.makedirs(pasta_notas)
+        pasta_notas = "C:/Users/VAS MTZ/Desktop/Caetano Apollo/NOTA EM JSON"
+
+        if not os.path.exists(pasta_notas):
+            os.makedirs(pasta_notas)
 
 
-    for arquivo in os.listdir(pasta_notas):
-        if arquivo.endswith(".json"):
-            caminho_completo = os.path.join(pasta_notas, arquivo)
-            with open(caminho_completo, "r") as json_file:
-                dados_nota_fiscal = json.load(json_file)
-    
-    def save_attachment(part, directory):
-        filename = decode_header_value(part.get_filename())
-        if not filename:
-            filename = "untitled.xml"
-        elif not filename.lower().endswith(".xml"):
-            filename += ".xml"
+        for arquivo in os.listdir(pasta_notas):
+            if arquivo.endswith(".json"):
+                caminho_completo = os.path.join(pasta_notas, arquivo)
+                with open(caminho_completo, "r") as json_file:
+                    dados_nota_fiscal = json.load(json_file)
 
-        content_type = part.get_content_type()
-        print(f"Tipo de conteúdo do anexo: {content_type}")
+        def save_attachment(part, directory):
+            filename = decode_header_value(part.get_filename())
+            if not filename:
+                filename = "untitled.xml"
+            elif not filename.lower().endswith(".xml"):
+                filename += ".xml"
 
-        if not content_type == "application/xml" and not filename.endswith(".xml"):
-            print(f"O anexo não é um arquivo XML: {filename}")
-            return
+            content_type = part.get_content_type()
+            print(f"Tipo de conteúdo do anexo: {content_type}")
 
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        filepath = os.path.join(directory, filename)
+            if not content_type == "application/xml" and not filename.endswith(".xml"):
+                print(f"O anexo não é um arquivo XML: {filename}")
+                return
 
-        print(f"Salvando anexo em: {filepath}")
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filepath = os.path.join(directory, filename)
 
-        with open(filepath, "wb") as f:
-            f.write(part.get_payload(decode=True))
+            print(f"Salvando anexo em: {filepath}")
 
-        logging.info(f"Anexo salvo em: {filepath}")
+            with open(filepath, "wb") as f:
+                f.write(part.get_payload(decode=True))
 
-        dados_nota_fiscal = parse_nota_fiscal(filepath)
-        if dados_nota_fiscal:
-            salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
-            return dados_nota_fiscal
-    
-    # Dentro do código principal
-    dados_nota_fiscal = None  # Certifique-se de inicializar a variável aqui
+            logging.info(f"Anexo salvo em: {filepath}")
 
-    # Dentro do loop de leitura dos emails
-    for i in range(num_messages):
-        response, lines, octets = server.retr(i + 1)
-        raw_message = b"\n".join(lines).decode("utf-8", errors="ignore")
-        email_message = parser.Parser().parsestr(raw_message)
-        subject = decode_header_value(email_message["subject"])
+            dados_nota_fiscal = parse_nota_fiscal(filepath)
+            if dados_nota_fiscal:
+                salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
+                return dados_nota_fiscal
 
-        print(f"Verificando e-mail com assunto: {subject}")
+        # Dentro do código principal
+        dados_nota_fiscal = None  # Certifique-se de inicializar a variável aqui
 
-        if subject == ASSUNTO_ALVO:
-            print(f"E-mail encontrado com o assunto: {subject}")
+        # Dentro do loop de leitura dos emails
+        for i in range(num_messages):
+            response, lines, octets = server.retr(i + 1)
+            raw_message = b"\n".join(lines).decode("utf-8", errors="ignore")
+            email_message = parser.Parser().parsestr(raw_message)
+            subject = decode_header_value(email_message["subject"])
 
-            if email_message.is_multipart():
-                for part in email_message.walk():
-                    content_type = part.get_content_type()
-                    if content_type == "text/plain":
-                        charset = part.get_content_charset()
-                        body = decode_body(part.get_payload(decode=True), charset)
-                    elif part.get("Content-Disposition") is not None:
-                        dados_nota_fiscal = save_attachment(part, DIRECTORY)
-                        if dados_nota_fiscal:  # Se o processamento da nota fiscal for bem-sucedido
-                            break
+            print(f"Verificando e-mail com assunto: {subject}")
+
+            if subject == ASSUNTO_ALVO:
+                print(f"E-mail encontrado com o assunto: {subject}")
+
+                if email_message.is_multipart():
+                    for part in email_message.walk():
+                        content_type = part.get_content_type()
+                        if content_type == "text/plain":
+                            charset = part.get_content_charset()
+                            body = decode_body(part.get_payload(decode=True), charset)
+                        elif part.get("Content-Disposition") is not None:
+                            dados_nota_fiscal = save_attachment(part, DIRECTORY)
+                            if dados_nota_fiscal:  # Se o processamento da nota fiscal for bem-sucedido
+                                break
+                else:
+                    charset = email_message.get_content_charset()
+                    body = decode_body(email_message.get_payload(decode=True), charset)
+
+                if dados_nota_fiscal is not None:  # Verifique se dados_nota_fiscal foi preenchido
+                    valores_extraidos = extract_values(body)
+                    departamento = valores_extraidos["departamento"]
+                    origem = valores_extraidos["origem"]
+                    descricao = valores_extraidos["descricao"]
+                    revenda_cc = valores_extraidos["revenda_cc"]
+                    cc_texto = valores_extraidos["cc"]
+                    logging.info(f"Texto de centros de custo extraído: {cc_texto}")
+                    rateio = valores_extraidos["rateio"]
+                    cod_item = valores_extraidos["cod_item"]
+                    valor_total = str(dados_nota_fiscal["valor_total"][0]["valor_total"]).replace(".", ",")
+                    dados_centros_de_custo = processar_centros_de_custo(
+                        cc_texto, float(valor_total.replace(",", "."))
+                    )
+                    logging.info(f"Dados dos centros de custo: {dados_centros_de_custo}")
+                    break
+                else:
+                    logging.error("Não foi possível processar os dados da nota fiscal")
             else:
-                charset = email_message.get_content_charset()
-                body = decode_body(email_message.get_payload(decode=True), charset)
+                logging.info(f"E-mail com assunto diferente: {subject}")
 
-            if dados_nota_fiscal is not None:  # Verifique se dados_nota_fiscal foi preenchido
-                valores_extraidos = extract_values(body)
-                departamento = valores_extraidos["departamento"]
-                origem = valores_extraidos["origem"]
-                descricao = valores_extraidos["descricao"]
-                revenda_cc = valores_extraidos["revenda_cc"]
-                cc_texto = valores_extraidos["cc"]
-                logging.info(f"Texto de centros de custo extraído: {cc_texto}")
-                rateio = valores_extraidos["rateio"]
-                cod_item = valores_extraidos["cod_item"]
-                valor_total = str(dados_nota_fiscal["valor_total"][0]["valor_total"]).replace(".", ",")
-                dados_centros_de_custo = processar_centros_de_custo(
-                    cc_texto, float(valor_total.replace(",", "."))
-                )
-                logging.info(f"Dados dos centros de custo: {dados_centros_de_custo}")
-                break
-            else:
-                logging.error("Não foi possível processar os dados da nota fiscal")
+        # Continuar o código abaixo, verificando se dados_nota_fiscal foi carregado corretamente
+        if dados_nota_fiscal is not None:
+            try:
+                nome_eminente = dados_nota_fiscal["eminente"]["nome"]
+                cnpj_eminente = dados_nota_fiscal["eminente"]["cnpj"]
+
+                nome_dest = dados_nota_fiscal["destinatario"]["nome"]
+                cnpj_dest = dados_nota_fiscal["destinatario"]["cnpj"]
+
+                chave_acesso = dados_nota_fiscal["chave_acesso"]["chave"]
+                nmr_nota = dados_nota_fiscal["num_nota"]["numero_nota"]
+                data_emi = dados_nota_fiscal["data_emi"]["data_emissao"]
+                data_venc = dados_nota_fiscal["valor_total"][0]["data_venc"]
+                modelo = dados_nota_fiscal["modelo"]["modelo"]
+
+                logging.info("Dados da nota fiscal carregados")
+
+            except KeyError as e:
+                logging.error(f"Erro ao acessar dados da nota fiscal: {e}")
         else:
-            logging.info(f"E-mail com assunto diferente: {subject}")
-
-    # Continuar o código abaixo, verificando se dados_nota_fiscal foi carregado corretamente
-    if dados_nota_fiscal is not None:
-        try:
-            nome_eminente = dados_nota_fiscal["eminente"]["nome"]
-            cnpj_eminente = dados_nota_fiscal["eminente"]["cnpj"]
-
-            nome_dest = dados_nota_fiscal["destinatario"]["nome"]
-            cnpj_dest = dados_nota_fiscal["destinatario"]["cnpj"]
-
-            chave_acesso = dados_nota_fiscal["chave_acesso"]["chave"]
-            nmr_nota = dados_nota_fiscal["num_nota"]["numero_nota"]
-            data_emi = dados_nota_fiscal["data_emi"]["data_emissao"]
-            data_venc = dados_nota_fiscal["valor_total"][0]["data_venc"]
-            modelo = dados_nota_fiscal["modelo"]["modelo"]
-
-            logging.info("Dados da nota fiscal carregados")
-
-        except KeyError as e:
-            logging.error(f"Erro ao acessar dados da nota fiscal: {e}")
-    else:
-        logging.error("dados_nota_fiscal não foi carregado.")
-        server.quit()
+            logging.error("dados_nota_fiscal não foi carregado.")
+            server.quit()
 except Exception as e:
-    print(f"Erro: {e}")
+        print(f"Erro: {e}")
 
-    logging.info("Carregando dados da nota fiscal")
+logging.info("Carregando dados da nota fiscal")
 
 nome_eminente = dados_nota_fiscal["eminente"]["nome"]
 cnpj_eminente = dados_nota_fiscal["eminente"]["cnpj"]
