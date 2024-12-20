@@ -1,16 +1,16 @@
 # importando bibliotecas 
 import pyautogui as gui
-import sqlite3
+import oracledb
 
-cnpj_dest = "91667618000165"
+cnpj_emit = "91667618000165"
 
 # Conexão com o banco
-conn = sqlite3.connect('banco de dados.db')
+conn = oracledb.connect('banco de dados.db')
 cursor = conn.cursor()
 
 # Consulta no banco de dados
 query = "SELECT empresa, revenda FROM ger_revenda WHERE cnpj=?"
-cursor.execute(query, (cnpj_dest))
+cursor.execute(query, (cnpj_emit))
 result = cursor.fetchone()
 
 if result:
