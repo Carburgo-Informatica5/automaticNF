@@ -206,6 +206,7 @@ for _ in iter(int, 1):
                     sistema = SistemaNF()
                     sistema.executar_automacao_gui()
                     server.dele(i + 1)
+                    server.quit()
                     break
                 else:
                     logging.error("Não foi possível processar os dados da nota fiscal")
