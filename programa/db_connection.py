@@ -9,14 +9,11 @@ def load_db_config():
         return yaml.safe_load(file)
 
 def connect_to_db(db_config):
-    def check_port(port):
-        return port if port else "1521"
-    
     if db_config["db_clt"]:
         oracledb.init_oracle_client(lib_dir=db_config["db_clt"])
         
     connection = oracledb.connect(
-        f'{db_config["db_user"]}/{db_config["db_pswd"]}@{db_config["db_host"]}:{check_port(db_config["db_port"])}/{db_config["db_name"]}'
+        f'{db_config["db_user"]}/{db_config["db_pswd"]}@{db_config["db_ip"]}:{db_config["db_port"]}/{db_config["db_name"]}'
     )
     return connection
 

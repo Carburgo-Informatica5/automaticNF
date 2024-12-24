@@ -82,6 +82,31 @@ def extract_values(text):
             values["cod_item"] = line.split(":", 1)[1].strip()
     return values
 
+def save_attachment(part, directory):
+    filename = decode_header_value(part.get_filename())
+    if not filename:
+        filename = "untitled.xml"
+    elif not filename.lower().endswith(".xml"):
+        filename += ".xml"
+    content_type = part.get_content_type()
+    logging.info(f"Tipo de conteúdo do anexo: {content_type}")
+    if not content_type == "application/xml" and not filename.endswith(".xml"):
+        logging.info(f"O anexo não é um arquivo XML: {filename}")
+        return
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    filepath = os.path.join(directory, filename)
+    logging.info(f"Salvando anexo em: {filepath}")
+    with open(filepath, "wb") as f:
+        f.write(part.get_payload(decode=True))
+    logging.info(f"Anexo salvo em: {filepath}")
+    dados_nota_fiscal = parse_nota_fiscal(filepath)
+    if dados_nota_fiscal:
+        salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
+        return dados_nota_fiscal
+    else:
+        logging.error("Erro ao processar o XML da nota fiscal")
+        return None
 
 def processar_centros_de_custo(cc_texto, valor_total):
     """
@@ -91,7 +116,7 @@ def processar_centros_de_custo(cc_texto, valor_total):
     centros_de_custo = []
     total_calculado = 0.0
 
-    # Divida os centros de cuso por vírgulas
+    # Divida os centros de custo por vírgulas
     for item in cc_texto.split(","):
         item = item.strip()
         try:
@@ -107,10 +132,14 @@ def processar_centros_de_custo(cc_texto, valor_total):
         except ValueError:
             print(f"Erro ao processar centro de custo: {item}")
 
+    # Log para verificar os valores calculados
+    logging.info(f"Total calculado: {total_calculado}, Valor total esperado: {valor_total}")
+
     # Ajuste final para compensar arredondamentos
     diferenca = round(valor_total - total_calculado, 2)
 
-    if abs(diferenca) > 0.01:
+    if abs(diferenca) > 0.02:
+        logging.error(f"Diferença de cálculo muito grande! Diferença: {diferenca}")
         raise ValueError("Erro: Diferença de cálculo muito grande!")
 
     if abs(diferenca) > 0:
@@ -119,10 +148,6 @@ def processar_centros_de_custo(cc_texto, valor_total):
         centros_de_custo[-1] = (ultimo_cc, round(ultimo_valor + diferenca, 2))
 
     return centros_de_custo
-
-
-dados_nota_fiscal = None
-
 
 def verificar_emails():
     try:
@@ -146,38 +171,11 @@ def verificar_emails():
                 with open(caminho_completo, "r") as json_file:
                     dados_nota_fiscal = json.load(json_file)
                     dados_extraidos.append(dados_nota_fiscal)
-                    logging.info(
-                        f"Dados da nota fiscal carregados: {dados_nota_fiscal}"
-                    )
+                    logging.info(f"Dados da nota fiscal carregados: {dados_nota_fiscal}")
 
         if not dados_extraidos:
             logging.info("Nenhum dado extraído encontrado")
-            return None
 
-        def save_attachment(part, directory):
-            filename = decode_header_value(part.get_filename())
-            if not filename:
-                filename = "untitled.xml"
-            elif not filename.lower().endswith(".xml"):
-                filename += ".xml"
-            content_type = part.get_content_type()
-            print(f"Tipo de conteúdo do anexo: {content_type}")
-            if not content_type == "application/xml" and not filename.endswith(".xml"):
-                print(f"O anexo não é um arquivo XML: {filename}")
-                return
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filepath = os.path.join(directory, filename)
-            print(f"Salvando anexo em: {filepath}")
-            with open(filepath, "wb") as f:
-                f.write(part.get_payload(decode=True))
-            logging.info(f"Anexo salvo em: {filepath}")
-            dados_nota_fiscal = parse_nota_fiscal(filepath)
-            if dados_nota_fiscal:
-                salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
-                return dados_nota_fiscal
-
-        # Dentro do loop de leitura dos e-mails
         for i in range(num_messages):
             response, lines, octets = server.retr(i + 1)
             raw_message = b"\n".join(lines).decode("utf-8", errors="ignore")
@@ -191,22 +189,18 @@ def verificar_emails():
                 if email_message.is_multipart():
                     for part in email_message.walk():
                         content_type = part.get_content_type()
+                        logging.info(f"Parte do e-mail com tipo de conteúdo: {content_type}")
                         if content_type == "text/plain":
                             charset = part.get_content_charset()
                             body = decode_body(part.get_payload(decode=True), charset)
                         elif part.get("Content-Disposition") is not None:
+                            logging.info("Encontrado anexo no e-mail")
                             dados_nota_fiscal = save_attachment(part, DIRECTORY)
-                            if (
-                                dados_nota_fiscal
-                            ):  # Se o processamento da nota fiscal for bem-sucedido
-                                break
                 else:
                     charset = email_message.get_content_charset()
                     body = decode_body(email_message.get_payload(decode=True), charset)
 
-                if (
-                    dados_nota_fiscal is not None
-                ):  # Verifique se dados_nota_fiscal foi preenchido
+                if dados_nota_fiscal is not None:
                     valores_extraidos = extract_values(body)
                     departamento = valores_extraidos["departamento"]
                     origem = valores_extraidos["origem"]
@@ -216,15 +210,9 @@ def verificar_emails():
                     logging.info(f"Texto de centros de custo extraído: {cc_texto}")
                     rateio = valores_extraidos["rateio"]
                     cod_item = valores_extraidos["cod_item"]
-                    valor_total = str(
-                        dados_nota_fiscal["valor_total"][0]["valor_total"]
-                    ).replace(".", ",")
-                    dados_centros_de_custo = processar_centros_de_custo(
-                        cc_texto, float(valor_total.replace(",", "."))
-                    )
-                    logging.info(
-                        f"Dados dos centros de custo: {dados_centros_de_custo}"
-                    )
+                    valor_total = str(dados_nota_fiscal["valor_total"][0]["valor_total"]).replace(".", ",")
+                    dados_centros_de_custo = processar_centros_de_custo(cc_texto, float(valor_total.replace(",", ".")))
+                    logging.info(f"Dados dos centros de custo: {dados_centros_de_custo}")
 
                     dados_email = {
                         "departamento": departamento,
@@ -241,13 +229,13 @@ def verificar_emails():
                         "data_venc": dados_nota_fiscal["valor_total"][0]["data_venc"],
                         "chave_acesso": dados_nota_fiscal["chave_acesso"],
                         "modelo": dados_nota_fiscal["modelo"],
+                        "destinatario": dados_nota_fiscal["destinatario"],
+                        "rateio": rateio,
                     }
                     dados_extraidos.append(dados_email)
                     logging.info(f"Dados extraídos do email: {dados_email}")
 
-                    with open(
-                        os.path.join(NOTAS_PROCESSADAS, f"email_{i}.eml"), "w"
-                    ) as f:
+                    with open(os.path.join(NOTAS_PROCESSADAS, f"email_{i}.eml"), "w") as f:
                         f.write(raw_message)
                     server.dele(i + 1)
                     break
@@ -265,6 +253,8 @@ def verificar_emails():
         return None
 
 
+dados_nota_fiscal = None
+
 logging.info("Carregando dados da nota fiscal")
 if dados_nota_fiscal is not None:
     nome_eminente = dados_nota_fiscal["eminente"]["nome"]
@@ -276,27 +266,8 @@ if dados_nota_fiscal is not None:
     data_emi = dados_nota_fiscal["data_emi"]["data_emissao"]
     data_venc = dados_nota_fiscal["valor_total"][0]["data_venc"]
     modelo = dados_nota_fiscal["modelo"]["modelo"]
-
-result = revenda(cnpj_dest)
-if result:
-    empresa, revenda = result
-    logging.info(f"Empresa: {empresa}, Revenda: {revenda}")
-
-    gui.alert("Teste de código")
-
-    # Acessando o menu
-    gui.press("alt")
-    gui.press("right")
-    gui.press("down")
-    gui.press("enter")
-    gui.press("down", presses=2)
-
-    gui.press(str(empresa), presses=int(revenda))
 else:
-    logging.error("Erro, CNPJ não encontrado")
-
-logging.info("Dados da nota fiscal carregados")
-
+    logging.error("Dados da nota fiscal não foram carregados")
 
 class SistemaNF:
     logging.info("Entrou na classe do Sistema")
@@ -320,6 +291,7 @@ class SistemaNF:
         data_venc,
         chave_acesso,
         modelo,
+        rateio,
     ):
         logging.info("Entrou na parte da automação")
         try:
@@ -331,16 +303,9 @@ class SistemaNF:
             )
             time.sleep(3)
             # Localiza a janela do BRAVOS pelo título
-            window = gw.getWindowsWithTitle("BRAVOS v5.17 Evolutivo")[
-                0
-            ]  # Assumindo que é a única com "BRAVOS" no título
-            # Centraliza a janela se necessário
+            window = gw.getWindowsWithTitle("BRAVOS v5.17 Evolutivo")[0]
             window.activate()
-            # Calcula a posição relativa do ícone na barra de ferramentas
-            x, y = (
-                window.left + 275,
-                window.top + 80,
-            )  # Ajuste os offsets conforme necessário
+            x, y = window.left + 275, window.top + 80
             time.sleep(3)
             gui.moveTo(x, y, duration=0.5)
             gui.click()
@@ -349,9 +314,7 @@ class SistemaNF:
             gui.write(cnpj_eminente)
             time.sleep(2)
             gui.press("enter")
-            pytesseract.pytesseract_cmd = (
-                r"C:\Program Files\Tesseract-OCR/tesseract.exe"
-            )
+            pytesseract.pytesseract_cmd = r"C:\Program Files\Tesseract-OCR/tesseract.exe"
             nova_janela = gw.getActiveWindow()
             janela_left = nova_janela.left
             janela_top = nova_janela.top
@@ -371,7 +334,6 @@ class SistemaNF:
             gui.press("down", presses=2)
             gui.press("enter")
             time.sleep(5)
-            # Preenche campos de nmr da nota, série, transação, contador e cliente
             gui.press("tab")
             gui.write(nmr_nota)
             gui.press("tab")
@@ -401,14 +363,14 @@ class SistemaNF:
             gui.press("tab", presses=5)
             gui.press("enter")
             gui.press("tab", presses=4)
-            gui.write(cod_item)  # variavel via email "Outros"
+            gui.write(cod_item)
             gui.press("tab", presses=10)
             gui.write("1")
             gui.press("tab")
             logging.info(f"Valor total: {valor_total}")
             gui.write(valor_total)
             gui.press("tab", presses=26)
-            gui.write(descricao)  # Variavel Relativa puxar pelo email
+            gui.write(descricao)
             gui.press(["tab", "enter"])
             gui.press("tab", presses=11)
             gui.press("left", presses=2)
@@ -418,53 +380,42 @@ class SistemaNF:
             gui.write(data_venc)
             gui.press("tab", presses=4)
             gui.press(["enter", "tab", "tab", "tab", "enter"])
-            gui.press("tab", presses=36)
-            gui.press("enter")
-            gui.hotkey("ctrl", "del")
-            gui.press("enter")
-            gui.hotkey("ctrl", "del")
-            gui.press("enter")
-            gui.hotkey("ctrl", "del")
-            gui.press("enter")
-            gui.hotkey("ctrl", "del")
-            gui.press("enter")
-            gui.hotkey("ctrl", "del")
-            gui.press("enter")
-            gui.hotkey("ctrl", "del")
-            gui.press("enter")
-            gui.hotkey("ctrl", "del")
-            gui.press("enter")
-            gui.press("tab", presses=8)
-            logging.info("Pressionou o tab corretamente")
-            for i, (cc, valor) in enumerate(dados_centros_de_custo):
-                logging.info("Lançando centro de custo")
-                gui.write(revenda_cc)
-                gui.press("tab", presses=3)
-                gui.write(cc)
-                gui.press("tab", presses=2)
-                gui.write(origem)
-                gui.press("tab", presses=2)
-                gui.write(f"{valor:.2f}".replace(".", ","))
-                gui.press("f2", interval=2)
-                gui.press("f3")
-                if i == len(dados_centros_de_custo) - 1:
-                    gui.press("esc", presses=2)
-                    logging.info("Último centro de custo salvo e encerrado.")
-                else:
-                    # Avança para o próximo centro de custo
+            if rateio.lower() == "sim":
+                gui.press("tab", presses=36)
+                gui.press("enter")
+                gui.press("tab", presses=8)
+                logging.info("Pressionou o tab corretamente")
+                total_rateio = 0
+                for i, (cc, valor) in enumerate(dados_centros_de_custo):
+                    logging.info("Lançando centro de custo")
+                    gui.write(revenda_cc)
                     gui.press("tab", presses=3)
-            gui.press("tab", presses=3)
-            gui.press("enter")
+                    gui.write(cc)
+                    gui.press("tab", presses=2)
+                    gui.write(origem)
+                    gui.press("tab", presses=2)
+                    if i == len(dados_centros_de_custo) - 1:
+                        valor = valor_total - total_rateio
+                    else:
+                        total_rateio += valor
+                    gui.write(f"{valor:.2f}".replace(".", ","))
+                    gui.press("f2", interval=2)
+                    gui.press("f3")
+                    if i == len(dados_centros_de_custo) - 1:
+                        gui.press("esc", presses=2)
+                        logging.info("Último centro de custo salvo e encerrado.")
+                    else:
+                        gui.press("tab", presses=3)
+                gui.press("tab", presses=3)
+                gui.press("enter")
         except Exception as e:
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
-        except Exception as e:
-            print(f"Erro durante a automação: {e}")
 
 
 if __name__ == "__main__":
     while True:
-        logging.info("Iniciando o Programa")
+        logging.info("Iniciando a automação")
         dados_extraidos = verificar_emails()
         if dados_extraidos is not None:
             for dados in dados_extraidos:
@@ -478,9 +429,10 @@ if __name__ == "__main__":
                     cod_item = dados.get("cod_item")
                     valor_total = dados.get("valor_total")
                     dados_centros_de_custo = dados.get("dados_centros_de_custo")
+                    rateio = dados.get("rateio")
 
                     # Extraindo dados adicionais necessários
-                    if "eminente" in dados:
+                    if "eminente" in dados and "num_nota" in dados and "data_emi" in dados and "data_venc" in dados and "chave_acesso" in dados and "modelo" in dados and "destinatario" in dados:
                         cnpj_eminente = dados["eminente"]["cnpj"]
                         nmr_nota = dados["num_nota"]["numero_nota"]
                         data_emi = dados["data_emi"]["data_emissao"]
@@ -489,10 +441,28 @@ if __name__ == "__main__":
                         modelo = dados["modelo"]["modelo"]
                         cnpj_dest = dados["destinatario"]["cnpj"]
                     else:
-                        logging.error(
-                            "Dados da nota fiscal não foram carregados corretamente"
-                        )
+                        logging.error("Dados da nota fiscal não foram carregados corretamente")
                         continue
+
+                    # Executando a parte de revenda primeiro
+                    if cnpj_dest:
+                        result = revenda(cnpj_dest)
+                        if result:
+                            empresa, revenda = result
+                            logging.info(f"Empresa: {empresa}, Revenda: {revenda}")
+                            
+                            # Acessando o menu
+                            gui.press("alt")
+                            gui.press("right")
+                            gui.press("down")
+                            gui.press("enter")
+                            gui.press("down", presses=2)
+
+                            gui.press(str(empresa), presses=int(revenda))
+                            gui.press("enter")
+                            time.sleep(5)
+                        else:
+                            logging.error("Erro, CNPJ não encontrado")
 
                     # Adicionando logs para verificar os dados extraídos
                     logging.info(f"Departamento: {departamento}")
@@ -502,33 +472,13 @@ if __name__ == "__main__":
                     logging.info(f"CC: {cc}")
                     logging.info(f"Código do Item: {cod_item}")
                     logging.info(f"Valor Total: {valor_total}")
-                    logging.info(
-                        f"Dados dos Centros de Custo: {dados_centros_de_custo}"
-                    )
+                    logging.info(f"Dados dos Centros de Custo: {dados_centros_de_custo}")
                     logging.info(f"CNPJ Eminente: {cnpj_eminente}")
                     logging.info(f"Número da Nota: {nmr_nota}")
                     logging.info(f"Data de Emissão: {data_emi}")
                     logging.info(f"Data de Vencimento: {data_venc}")
                     logging.info(f"Chave de Acesso: {chave_acesso}")
                     logging.info(f"Modelo: {modelo}")
-
-                    result = revenda(cnpj_dest)
-                    if result:
-                        empresa, revenda = result
-                        logging.info(f"Empresa: {empresa}, Revenda: {revenda}")
-
-                        gui.alert("Teste de código")
-
-                        # Acessando o menu
-                        gui.press("alt")
-                        gui.press("right")
-                        gui.press("down")
-                        gui.press("enter")
-                        gui.press("down", presses=2)
-
-                        gui.press(str(empresa), presses=int(revenda))
-                    else:
-                        logging.error("Erro, CNPJ não encontrado")
 
                     if (
                         departamento
@@ -556,11 +506,10 @@ if __name__ == "__main__":
                             data_venc,
                             chave_acesso,
                             modelo,
+                            rateio
                         )
                 else:
-                    logging.info(
-                        "Dados da nota fiscal não são usados para automação GUI"
-                    )
+                    logging.info("Dados da nota fiscal não são usados para automação GUI")
         else:
             logging.info("Nenhum dado extraído, automação não será executada")
         logging.info("Esperando antes da nova verificação...")

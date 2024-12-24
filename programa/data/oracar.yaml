@@ -2,5 +2,5 @@ db_clt: "C:\\oracle\\instantclient_19_23"
 db_user: "cnp"
 db_pswd: "ninguemsabe"
 db_ip: "10.40.100.254"
-db_port: None
+db_port: 1521  
 db_name: "ORACAR"
