@@ -1,0 +1,27 @@
+# endereço de email a ser utilizado
+from: "dani@carburgo.com.br"
+
+# senha do usuario
+pswd: "p@r!sA1856"
+
+# endereço do servidor de SMTP
+smtp_sv: "mail.carburgo.com.br"
+
+# porta do servidor de SMTP
+smtp_prt: 587
+
+# assunto do email
+# strftime é aplicado sobre. Ex: "Dani - %Y" -> "Dani - 2024"
+subject: "Erro no sistema de lancamento de notas fiscais - (%B %d, %Y - %H:%M)"
+
+# recipiente
+# str/list[str]
+to: ""
+
+# diretorio para backup local de emails
+# caminho
+spool: "C:\\automaticNF\\.spool\\logs"
+
+# CSS do email
+# caminho
+style: "C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/programa/data/style.css"

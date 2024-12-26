@@ -1,0 +1,2 @@
+Remove-Item ("C:\Users\{0}\AppData\Local\Programs\Python\Python312\Lib\site-packages\DANImail" -f $env:username) -force -recurse
+copy-item ("{0}\DANImail" -f $PSScriptRoot) ("C:\Users\{0}\AppData\Local\Programs\Python\Python312\Lib\site-packages\DANImail" -f $env:username) -force -recurse

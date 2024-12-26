@@ -1,0 +1,63 @@
+.code_block {
+  background-color: rgb(33, 44, 56);
+  padding: 2%;
+  margin: 3%;
+  font-family: monospace;
+  border-radius: 25px;
+  border-width: 1%;
+  border-style: solid;
+  box-shadow: 10px 10px;
+}
+
+.green {
+    color: rgb(199, 243, 156);
+    border-color: rgb(49, 127, 95);
+}
+
+.red {
+    color: rgb(255, 139, 139);
+    border-color: rgb(122, 43, 43);
+}
+
+code {
+    display: block;
+    white-space: pre-wrap;
+}
+
+p {
+    white-space: pre-wrap;
+}
+
+pre {
+    white-space: pre-wrap;
+}
+
+img {
+    display: block;
+    margin: auto;
+    max-width: 75vw;
+    border-color: inherit;
+    border-radius: 10px;
+    border-width: 1%;
+    border-style: solid;    
+    box-shadow: 10px 10px;
+}
+
+table, td, th {
+    border-collapse: collapse;
+    border-width: 1%;
+    border-style: solid;
+    
+    border-color: rgb(49, 127, 95);
+    color: rgb(199, 243, 156);
+    box-shadow: 10px 10px rgb(199, 243, 156);
+    background-color: rgb(33, 44, 56);
+
+    padding: 6px;
+}
+
+th {
+    color: white;
+    font-weight: bolder;
+    background-color: rgb(49, 127, 95);
+}

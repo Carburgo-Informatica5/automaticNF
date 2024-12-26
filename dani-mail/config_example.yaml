@@ -1,0 +1,31 @@
+# endereço de email a ser utilizado
+from: ""
+
+# senha do usuario
+pswd: ""
+
+# endereço do servidor de SMTP
+smtp_sv: ""
+
+# porta do servidor de SMTP
+smtp_prt: 587
+
+# assunto do email
+# strftime é aplicado sobre. Ex: "Dani - %Y" -> "Dani - 2024"
+subject: ""
+
+# recipiente
+# str/list[str]
+to: ""
+
+# diretorio para backup local de emails
+# caminho
+spool: ""
+
+# CSS do email
+# caminho
+style: ""
+
+# HTML usado como prefixo para todos os emails
+# caminho
+signature: ""
