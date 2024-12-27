@@ -54,10 +54,12 @@ def decode_body(payload, charset):
     except (UnicodeDecodeError, LookupError):
         return payload.decode("ISO-8859-1", errors="ignore")
 
+
 config_path = os.path.join(current_dir, "config.yaml")
 with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 dani = Queue(config)
+
 
 def extract_values(text):
     values = {
@@ -90,10 +92,9 @@ def extract_values(text):
 def save_attachment(part, directory):
     filename = decode_header_value(part.get_filename())
     if not filename:
-        return None
+        filename = "untitled.xml"
     elif not filename.lower().endswith(".xml"):
-        logging.info(f"O anexo não é um arquivo XML: {filename}")
-        return None
+        filename += ".xml"
     content_type = part.get_content_type()
     logging.info(f"Tipo de conteúdo do anexo: {content_type}")
     if not content_type == "application/xml" and not filename.endswith(".xml"):
@@ -106,16 +107,12 @@ def save_attachment(part, directory):
     with open(filepath, "wb") as f:
         f.write(part.get_payload(decode=True))
     logging.info(f"Anexo salvo em: {filepath}")
-    try:
-        dados_nota_fiscal = parse_nota_fiscal(filepath)
-        if dados_nota_fiscal:
-            salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
-            return dados_nota_fiscal
-        else:
-            logging.error("Erro ao processar o XML da nota fiscal")
-            return None
-    except Exception as e:
-        logging.error(f"Erro ao processar o XML da nota fiscal: {e}")
+    dados_nota_fiscal = parse_nota_fiscal(filepath)
+    if dados_nota_fiscal:
+        salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
+        return dados_nota_fiscal
+    else:
+        logging.error(f"Erro ao parsear o XML da nota fiscal: {filepath}")
         return None
 
 def processar_centros_de_custo(cc_texto, valor_total):
@@ -126,11 +123,13 @@ def processar_centros_de_custo(cc_texto, valor_total):
     centros_de_custo = []
     total_calculado = 0.0
 
-    # Divida os centros de custo por vírgulas
+    # Divida os centros de cuso por vírgulas
     for item in cc_texto.split(","):
         item = item.strip()
         try:
+            item = item.replace("\u2013", "-")
             cc, valor = [x.strip() for x in item.split("-")]
+            logging.info(f"Processando centro de custo: {cc}, valor: {valor}")
             if "%" in valor:
                 porcentagem = float(valor.replace("%", ""))
                 valor_calculado = round((valor_total * porcentagem) / 100, 2)
@@ -140,10 +139,12 @@ def processar_centros_de_custo(cc_texto, valor_total):
             total_calculado += valor_calculado
             centros_de_custo.append((cc, valor_calculado))
         except ValueError:
-            print(f"Erro ao processar centro de custo: {item}")
+            logging.error(f"Erro ao processar centro de custo: {item}")
 
     # Log para verificar os valores calculados
-    logging.info(f"Total calculado: {total_calculado}, Valor total esperado: {valor_total}")
+    logging.info(
+        f"Total calculado: {total_calculado}, Valor total esperado: {valor_total}"
+    )
 
     # Ajuste final para compensar arredondamentos
     diferenca = round(valor_total - total_calculado, 2)
@@ -159,7 +160,9 @@ def processar_centros_de_custo(cc_texto, valor_total):
             centros_de_custo[-1] = (ultimo_cc, round(ultimo_valor + diferenca, 2))
         else:
             logging.error("Nenhum centro de custo encontrado para aplicar a diferença")
-            raise ValueError("Erro: Nenhum centro de custo encontrado para aplicar a diferença")
+            raise ValueError(
+                "Erro: Nenhum centro de custo encontrado para aplicar a diferença"
+            )
 
     return centros_de_custo
 
@@ -171,25 +174,13 @@ def verificar_emails():
         num_messages = len(server.list()[1])
         logging.info(f"Conectado ao servidor POP3. Número de mensagens: {num_messages}")
 
-        pasta_notas = "C:/Users/VAS MTZ/Desktop/Caetano Apollo/NOTA EM JSON"
-        if not os.path.exists(pasta_notas):
-            os.makedirs(pasta_notas)
+        if not os.path.exists(DIRECTORY):
+            os.makedirs(DIRECTORY)
 
         if not os.path.exists(NOTAS_PROCESSADAS):
             os.makedirs(NOTAS_PROCESSADAS)
 
         dados_extraidos = []
-        for arquivo in os.listdir(pasta_notas):
-            if arquivo.endswith(".json"):
-                caminho_completo = os.path.join(pasta_notas, arquivo)
-                with open(caminho_completo, "r") as json_file:
-                    dados_nota_fiscal = json.load(json_file)
-                    dados_extraidos.append(dados_nota_fiscal)
-                    logging.info(f"Dados da nota fiscal carregados: {dados_nota_fiscal}")
-
-        if not dados_extraidos:
-            logging.info("Nenhum dado extraído encontrado")
-
         for i in range(num_messages):
             response, lines, octets = server.retr(i + 1)
             raw_message = b"\n".join(lines).decode("utf-8", errors="ignore")
@@ -266,6 +257,22 @@ def verificar_emails():
 
         server.quit()
 
+        # Carregar dados das notas fiscais processadas
+        pasta_notas = "C:/Users/VAS MTZ/Desktop/Caetano Apollo/NOTA EM JSON"
+        if not os.path.exists(pasta_notas):
+            os.makedirs(pasta_notas)
+
+        for arquivo in os.listdir(pasta_notas):
+            if arquivo.endswith(".json"):
+                caminho_completo = os.path.join(pasta_notas, arquivo)
+                with open(caminho_completo, "r") as json_file:
+                    dados_nota_fiscal = json.load(json_file)
+                    dados_extraidos.append(dados_nota_fiscal)
+                    logging.info(f"Dados da nota fiscal carregados: {dados_nota_fiscal}")
+
+        if not dados_extraidos:
+            logging.info("Nenhum dado extraído encontrado")
+
         logging.info(f"Dados extraídos: {dados_extraidos}")
         return dados_extraidos
     except Exception as e:
@@ -273,10 +280,11 @@ def verificar_emails():
         enviar_email_erro(dani, "caetano.apollo@carburgo.com.br", f"Erro ao verificar emails: {e}")
         return None
 
+
 def enviar_email_erro(dani, destinatario, erro):
     config["to"] = destinatario
     dani = Queue(config)
-    
+
     mensagem = (
         dani.make_message()
         .set_color("red")
@@ -284,6 +292,22 @@ def enviar_email_erro(dani, destinatario, erro):
         .add_text(str(erro), tag="pre")
     )
     dani.push(mensagem).flush()
+
+
+def enviar_mensagem_sucesso(dani, destinatario, numero_nota):
+    config["to"] = destinatario
+    dani = Queue(config)
+
+    mensagem = (
+        dani.make_message()
+        .set_color("green")
+        .add_text(
+            f"Nota lançada com sucesso número da nota: {numero_nota}", tag="h1",
+        )
+        .add_text("Acesse o sistema para verificar o lançamento.", tag="pre")
+    )
+    dani.push(mensagem).flush()
+
 
 dados_nota_fiscal = None
 
@@ -300,6 +324,7 @@ if dados_nota_fiscal is not None:
     modelo = dados_nota_fiscal["modelo"]["modelo"]
 else:
     logging.error("Dados da nota fiscal não foram carregados")
+
 
 class SistemaNF:
     logging.info("Entrou na classe do Sistema")
@@ -348,7 +373,9 @@ class SistemaNF:
             gui.write(cnpj_eminente)
             time.sleep(2)
             gui.press("enter")
-            pytesseract.pytesseract_cmd = r"C:\Program Files\Tesseract-OCR/tesseract.exe"
+            pytesseract.pytesseract_cmd = (
+                r"C:\Program Files\Tesseract-OCR/tesseract.exe"
+            )
             nova_janela = gw.getActiveWindow()
             janela_left = nova_janela.left
             janela_top = nova_janela.top
@@ -561,6 +588,8 @@ if __name__ == "__main__":
                                 modelo,
                                 rateio
                             )
+                            # Enviar mensagem de sucesso após a execução bem-sucedida
+                            enviar_mensagem_sucesso(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), nmr_nota)
                         except Exception as e:
                             enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e)
                     else:
