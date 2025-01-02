@@ -15,8 +15,8 @@ class faker:
 
 
 config = {
-    "bravos_usr": "caetano.apollo",
-    "bravos_pswd": "904200",
+    "bravos_usr": "dani",
+    "bravos_pswd": "p@r!sA1856",
 }
 br = infoBravos.bravos(config, m_queue=faker())
 br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")

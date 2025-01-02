@@ -164,7 +164,7 @@ def parse_nota_fiscal(xml_file_path):
         return None
 
 
-def testar_processamento_local():
+def processamento():
     # Configurações de teste
     pasta_xml_teste = "anexos"
 
@@ -189,4 +189,4 @@ def testar_processamento_local():
 
 
 if __name__ == "__main__":
-    testar_processamento_local()
+    processamento()

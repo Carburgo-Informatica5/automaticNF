@@ -11,6 +11,7 @@ from email.header import decode_header
 import poplib
 import json
 import logging
+import unicodedata
 
 from processar_xml import *
 from db_connection import *
@@ -21,7 +22,7 @@ logging.basicConfig(
 )
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(current_dir, ".."))
+sys.path.append("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/bravos")
 
 from bravos import openBravos
 
@@ -29,14 +30,14 @@ logging.info("Iniciando o Programa")
 
 HOST = "mail.carburgo.com.br"  # Servidor POP3 corporativo
 PORT = 995  # Porta segura (SSL)
-USERNAME = "caetano.apollo@carburgo.com.br"
+USERNAME = "dani@carburgo.com.br"
 PASSWORD = "p@r!sA1856"
 # Assunto alvo para busca
-ASSUNTO_ALVO = "Lançamentos notas fiscais DANI"
+ASSUNTO_ALVO = "lançamentos notas fiscais DANI"
 # Diretório para salvar os anexos
-DIRECTORY = "anexos"  # Pasta onde os anexos serão salvos
+DIRECTORY = os.path.join(current_dir, "anexos")  # Pasta onde os anexos serão salvos
 # Pasta local para mover as notas processadas
-NOTAS_PROCESSADAS = "notas_processadas"
+NOTAS_PROCESSADAS = os.path.join(current_dir, "notas_processadas")
 
 
 def decode_header_value(header_value):
@@ -45,6 +46,11 @@ def decode_header_value(header_value):
         return decoded.decode(encoding if encoding else "utf-8", errors="ignore")
     return decoded
 
+def normalize_text(text):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    ).lower()
 
 def decode_body(payload, charset):
     if charset is None:
@@ -123,7 +129,11 @@ def processar_centros_de_custo(cc_texto, valor_total):
     centros_de_custo = []
     total_calculado = 0.0
 
-    # Divida os centros de cuso por vírgulas
+    # Verifica se o texto do centro de custo contém apenas um número
+    if cc_texto.strip().isdigit():
+        cc_texto = f"{cc_texto.strip()}-100%"
+
+    # Divida os centros de custo por vírgulas
     for item in cc_texto.split(","):
         item = item.strip()
         try:
@@ -189,7 +199,10 @@ def verificar_emails():
             sender = decode_header_value(email_message["from"])
             logging.info(f"Verificando e-mail com assunto: {subject}")
 
-            if subject == ASSUNTO_ALVO:
+            normalized_subject = normalize_text(subject)
+            normalized_assunto_alvo = normalize_text(ASSUNTO_ALVO)
+
+            if normalized_subject == normalized_assunto_alvo:
                 logging.info(f"E-mail encontrado com o assunto: {subject}")
 
                 if email_message.is_multipart():
@@ -243,7 +256,6 @@ def verificar_emails():
 
                                     with open(os.path.join(NOTAS_PROCESSADAS, f"email_{i}.eml"), "w") as f:
                                         f.write(raw_message)
-                                    server.dele(i + 1)
                                     break
                                 except Exception as e:
                                     logging.error(f"Erro ao processar o e-mail: {e}")
@@ -258,7 +270,7 @@ def verificar_emails():
         server.quit()
 
         # Carregar dados das notas fiscais processadas
-        pasta_notas = "C:/Users/VAS MTZ/Desktop/Caetano Apollo/NOTA EM JSON"
+        pasta_notas = os.path.join(current_dir, "NOTA EM JSON")
         if not os.path.exists(pasta_notas):
             os.makedirs(pasta_notas)
 
@@ -355,9 +367,6 @@ class SistemaNF:
             gui.PAUSE = 0.5
             data_atual = datetime.datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
-            gui.alert(
-                "O código vai começar. Não utilize nada do computador até o código finalizar!"
-            )
             time.sleep(3)
             # Localiza a janela do BRAVOS pelo título
             window = gw.getWindowsWithTitle("BRAVOS v5.17 Evolutivo")[0]
