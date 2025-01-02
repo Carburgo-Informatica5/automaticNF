@@ -201,73 +201,78 @@ def verificar_emails():
 
             normalized_subject = normalize_text(subject)
             normalized_assunto_alvo = normalize_text(ASSUNTO_ALVO)
+            
+            if not subject:
+                logging.error("Assunto do e-mail está vazio.")
+                continue
+            
+        if normalized_subject == normalized_assunto_alvo:
+            logging.info(f"E-mail encontrado com o assunto: {subject}")
 
-            if normalized_subject == normalized_assunto_alvo:
-                logging.info(f"E-mail encontrado com o assunto: {subject}")
-
-                if email_message.is_multipart():
-                    for part in email_message.walk():
-                        content_type = part.get_content_type()
-                        logging.info(f"Parte do e-mail com tipo de conteúdo: {content_type}")
-                        if content_type == "text/plain":
-                            charset = part.get_content_charset()
-                            body = decode_body(part.get_payload(decode=True), charset)
-                        elif part.get("Content-Disposition") is not None:
-                            logging.info("Encontrado anexo no e-mail")
-                            dados_nota_fiscal = save_attachment(part, DIRECTORY)
-                            if dados_nota_fiscal:
-                                try:
-                                    valores_extraidos = extract_values(body)
-                                    departamento = valores_extraidos["departamento"]
-                                    origem = valores_extraidos["origem"]
-                                    descricao = valores_extraidos["descricao"]
-                                    revenda_cc = valores_extraidos["revenda_cc"]
-                                    cc_texto = valores_extraidos["cc"]
-                                    logging.info(f"Texto de centros de custo extraído: {cc_texto}")
-                                    rateio = valores_extraidos["rateio"]
-                                    cod_item = valores_extraidos["cod_item"]
-                                    if not dados_nota_fiscal["valor_total"]:
-                                        raise ValueError("Valor total não encontrado na nota fiscal")
-                                    valor_total = str(dados_nota_fiscal["valor_total"][0]["valor_total"]).replace(".", ",")
-                                    dados_centros_de_custo = processar_centros_de_custo(cc_texto, float(valor_total.replace(",", ".")))
-                                    logging.info(f"Dados dos centros de custo: {dados_centros_de_custo}")
-
-                                    dados_email = {
-                                        "departamento": departamento,
-                                        "origem": origem,
-                                        "descricao": descricao,
-                                        "revenda_cc": revenda_cc,
-                                        "cc": cc_texto,
-                                        "cod_item": cod_item,
-                                        "valor_total": valor_total,
-                                        "dados_centros_de_custo": dados_centros_de_custo,
-                                        "eminente": dados_nota_fiscal["eminente"],
-                                        "num_nota": dados_nota_fiscal["num_nota"],
-                                        "data_emi": dados_nota_fiscal["data_emi"],
-                                        "data_venc": dados_nota_fiscal["valor_total"][0]["data_venc"],
-                                        "chave_acesso": dados_nota_fiscal["chave_acesso"],
-                                        "modelo": dados_nota_fiscal["modelo"],
-                                        "destinatario": dados_nota_fiscal["destinatario"],
-                                        "rateio": rateio,
-                                        "sender": sender,
-                                    }
-                                    dados_extraidos.append(dados_email)
-                                    logging.info(f"Dados extraídos do email: {dados_email}")
-
-                                    with open(os.path.join(NOTAS_PROCESSADAS, f"email_{i}.eml"), "w") as f:
-                                        f.write(raw_message)
-                                    break
-                                except Exception as e:
-                                    logging.error(f"Erro ao processar o e-mail: {e}")
-                                    enviar_email_erro(dani, sender, f"Erro ao processar o e-mail: {e}")
+            if email_message.is_multipart():
+                for part in email_message.walk():
+                    content_type = part.get_content_type()
+                    logging.info(f"Parte do e-mail com tipo de conteúdo: {content_type}")
+                    if content_type == "text/plain":
+                        charset = part.get_content_charset()
+                        body = decode_body(part.get_payload(decode=True), charset)
+                    elif part.get("Content-Disposition") is not None:
+                        logging.info("Encontrado anexo no e-mail")
+                        dados_nota_fiscal = save_attachment(part, DIRECTORY)
+                        if dados_nota_fiscal:
+                            try:
+                                valores_extraidos = extract_values(body)
+                                departamento = valores_extraidos["departamento"]
+                                origem = valores_extraidos["origem"]
+                                descricao = valores_extraidos["descricao"]
+                                revenda_cc = valores_extraidos["revenda_cc"]
+                                cc_texto = valores_extraidos["cc"]
+                                logging.info(f"Texto de centros de custo extraído: {cc_texto}")
+                                rateio = valores_extraidos["rateio"]
+                                cod_item = valores_extraidos["cod_item"]
+                                if not dados_nota_fiscal["valor_total"]:
+                                    raise ValueError("Valor total não encontrado na nota fiscal")
+                                valor_total = str(dados_nota_fiscal["valor_total"][0]["valor_total"]).replace(".", ",")
+                                dados_centros_de_custo = processar_centros_de_custo(cc_texto, float(valor_total.replace(",", ".")))
+                                logging.info(f"Dados dos centros de custo: {dados_centros_de_custo}")
+                                dados_email = {
+                                    "departamento": departamento,
+                                    "origem": origem,
+                                    "descricao": descricao,
+                                    "revenda_cc": revenda_cc,
+                                    "cc": cc_texto,
+                                    "cod_item": cod_item,
+                                    "valor_total": valor_total,
+                                    "dados_centros_de_custo": dados_centros_de_custo,
+                                    "eminente": dados_nota_fiscal["eminente"],
+                                    "num_nota": dados_nota_fiscal["num_nota"],
+                                    "data_emi": dados_nota_fiscal["data_emi"],
+                                    "data_venc": dados_nota_fiscal["data_venc"],
+                                    "chave_acesso": dados_nota_fiscal["chave_acesso"],
+                                    "modelo": dados_nota_fiscal["modelo"],
+                                    "destinatario": dados_nota_fiscal["destinatario"],
+                                    "rateio": rateio,
+                                    "sender": sender,
+                                }
+                                dados_extraidos.append(dados_email)
+                                logging.info(f"Dados extraídos do email: {dados_email}")
+                                with open(os.path.join(NOTAS_PROCESSADAS, f"email_{i}.eml"), "w") as f:
+                                    f.write(raw_message)
+                                break
+                            except Exception as e:
+                                logging.error(f"Erro ao processar o e-mail: {e}")
+                                enviar_email_erro(dani, sender, f"Erro ao processar o e-mail: {e}")
                             else:
                                 logging.error("Erro ao processar o XML da nota fiscal")
                                 enviar_email_erro(dani, sender, "Erro ao processar o XML da nota fiscal")
-                else:
-                    charset = email_message.get_content_charset()
-                    body = decode_body(email_message.get_payload(decode=True), charset)
+                        else:
+                            logging.error("Erro ao salvar ou processar o anexo")
+                            enviar_email_erro(dani, sender, "Erro ao salvar ou processar o anexo")
+            else:
+                charset = email_message.get_content_charset()
+                body = decode_body(email_message.get_payload(decode=True), charset)
 
-        server.quit()
+                server.quit()
 
         # Carregar dados das notas fiscais processadas
         pasta_notas = os.path.join(current_dir, "NOTA EM JSON")

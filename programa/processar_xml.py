@@ -8,16 +8,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def salvar_dados_em_arquivo(dados_nf, nome_arquivo, pasta_destino="NOTA EM JSON"):
     """Salva os dados da nota fiscal em um arquivo JSON."""
-    
+
     nome_arquivo = os.path.splitext(nome_arquivo)[0]
     nome_arquivo = f"dados_nota_{nome_arquivo}.json"
-    
+
     caminho_completo = os.path.join(pasta_destino, nome_arquivo)
     os.makedirs(pasta_destino, exist_ok=True)
-    
+
     with open(caminho_completo, "w", encoding="utf-8") as f:
         json.dump(dados_nf, f, ensure_ascii=False, indent=4)
     print(f"Dados salvos em: {caminho_completo}")
+
 
 def parse_nota_fiscal(xml_file_path):
     """
@@ -34,10 +35,7 @@ def parse_nota_fiscal(xml_file_path):
         tree = ET.parse(xml_file_path)
         root = tree.getroot()
 
-        namespaces = {
-            "ns0": "http://www.portalfiscal.inf.br/nfe",
-            "ns1": "http://www.w3.org/2000/09/xmldsig#",
-        }
+        namespaces = {"ns": "http://www.portalfiscal.inf.br/nfe"}
 
         nota_fiscal_data = {
             "eminente": {},
@@ -45,126 +43,76 @@ def parse_nota_fiscal(xml_file_path):
             "chave_acesso": {},
             "num_nota": {},
             "data_emi": {},
-            "data_vali": {},
+            "data_venc": {},
             "modelo": {},
-            "valor_total": [],
-            "pagamento_parcelado": [],
+            "valor_total": []
         }
 
         # Extrair informações do emitente
-        emitente = root.find(".//ns0:emit", namespaces)
+        emitente = root.find(".//ns:emit", namespaces)
         if emitente is not None:
             nota_fiscal_data["eminente"] = {
-                "cnpj": emitente.findtext("ns0:CNPJ", namespaces=namespaces),
-                "nome": emitente.findtext("ns0:xNome", namespaces=namespaces),
+                "cnpj": emitente.findtext("ns:CNPJ", namespaces=namespaces),
+                "nome": emitente.findtext("ns:xNome", namespaces=namespaces),
             }
-        else:
-            print("Emitente não encontrado")
 
         # Extrair informações do destinatário
-        destinatario = root.find(".//ns0:dest", namespaces)
+        destinatario = root.find(".//ns:dest", namespaces)
         if destinatario is not None:
             nota_fiscal_data["destinatario"] = {
-                "cnpj": destinatario.findtext("ns0:CNPJ", namespaces=namespaces),
-                "nome": destinatario.findtext("ns0:xNome", namespaces=namespaces),
+                "cnpj": destinatario.findtext("ns:CNPJ", namespaces=namespaces),
+                "nome": destinatario.findtext("ns:xNome", namespaces=namespaces),
             }
-        else:
-            print("Destinatário não encontrado")
 
         # Extrair informações da nota
-        num_nota = root.find(".//ns0:ide", namespaces)
+        num_nota = root.find(".//ns:ide", namespaces)
         if num_nota is not None:
             nota_fiscal_data["num_nota"] = {
-                "numero_nota": num_nota.findtext("ns0:nNF", namespaces=namespaces)
+                "numero_nota": num_nota.findtext("ns:nNF", namespaces=namespaces)
             }
-        else:
-            print("Número da nota não encontrado")
 
-        # Extrair forma de pagamento
-        forma_pagamento = root.findall(".//ns0:cobr", namespaces)
-        if forma_pagamento is not None:
-            for pagamento in forma_pagamento:
-                parcelas = pagamento.findall("ns0:dup", namespaces=namespaces)
-
-                if parcelas:
-                    # Se existem parcelas, itere sobre elas
-                    for parcela in parcelas:
-                        nmr_parc = parcela.findtext("ns0:nDup", namespaces=namespaces)
-                        data_venc = parcela.findtext("ns0:dVenc", namespaces=namespaces)
-                        valor_parc = parcela.findtext("ns0:vDup", namespaces=namespaces)
-
-                if nmr_parc is not None and data_venc is not None and valor_parc is not None:
-                    data_venc_format = data_venc[:10].replace("-", " ")
-                    nota_fiscal_data["pagamento_parcelado"].append(
-                        {
-                            "nmr_parc": nmr_parc,
-                            "data_venc": f"{data_venc_format[8:10]}{data_venc_format[5:7]}{data_venc_format[0:4]}",
-                            "valor_parc": valor_parc,
-                        }
-                    )
+            data_emi = num_nota.findtext("ns:dhEmi", namespaces=namespaces)
+            if data_emi:
+                data_emi_format = data_emi[:10].replace("-", "")
+                nota_fiscal_data["data_emi"] = {"data_emissao": data_emi_format}
             else:
-                # Se não existem parcelas, verificar se há um pagamento único
-                valor_total = pagamento.findtext("ns0:fat/ns0:vLiq", namespaces=namespaces)
-                data_venc = pagamento.findtext("ns0:dup/ns0:dVenc", namespaces=namespaces)
+                nota_fiscal_data["data_emi"] = {"data_emissao": None}
 
-                if valor_total is not None and data_venc is not None:
-                    data_venc_format = data_venc[:10].replace("-", " ")
-                    # Tratar como pagamento único
-                    nota_fiscal_data["valor_total"].append(
-                        {
-                            "valor_total": valor_total,
-                            "data_venc": f"{data_venc_format[8:10]}{data_venc_format[5:7]}{data_venc_format[0:4]}"
-                        }
-                    )
-        else:
-            print(
-                "Forma de pagamento não encontrada"
-            )  # Inicialização do dicionário nota_fiscal_data
+            modelo = num_nota.findtext("ns:mod", namespaces=namespaces)
+            if modelo:
+                nota_fiscal_data["modelo"] = {"modelo": modelo}
 
-        # Extrair data de emissão
-        data_emi = num_nota.findtext("ns0:dhEmi", namespaces=namespaces)
-        data_emi_format = data_emi[:10].replace("-", " ")
-        if data_emi is not None:
-            nota_fiscal_data["data_emi"] = {
-                "data_emissao": f"{data_emi_format[8:10]}{data_emi_format[5:7]}{data_emi_format[0:4]}"
-            }
-        else:
-            print("Data de emissão não encontrada")
+        # Extrair valor total
+        total = root.find(".//ns:ICMSTot", namespaces)
+        if total is not None:
+            valor_total = total.findtext("ns:vNF", namespaces=namespaces)
+            if valor_total:
+                nota_fiscal_data["valor_total"].append({
+                    "valor_total": valor_total
+                })
 
-        # Extrair data de validade
-        data_vali = num_nota.findtext("ns0:dhSaiEnt", namespaces=namespaces)
-        data_vali_format = data_vali[:10].replace("-", " ")
-        if data_vali is not None:
-            nota_fiscal_data["data_vali"] = {
-                "data_validade": f"{data_vali_format[8:10]}{data_vali_format[5:7]}{data_vali_format[0:4]}"
-            }
-        else:
-            print("Data de validade não encontrada")
-
-        # Extrair modelo
-        modelo = num_nota.findtext("ns0:mod", namespaces=namespaces)
-        if modelo is not None:
-            nota_fiscal_data["modelo"] = {"modelo": modelo}
-        else:
-            print("Modelo não encontrado")
+        # Extrair data de vencimento
+        data_venc = root.find(".//ns:cobr/ns:dup/ns:dVenc", namespaces=namespaces)
+        if data_venc is not None:
+            data_venc_format = data_venc.text.replace("-", "")
+            nota_fiscal_data["data_venc"] = {"data_venc": data_venc_format}
 
         # Extrair chave de acesso
-        chaveAcesso = root.find(".//ns0:infNFe", namespaces)
-        if chaveAcesso is not None:
+        chaveAcesso = root.find(".//ns:infNFe", namespaces)
+        if chaveAcesso is not None and chaveAcesso.get("Id") is not None:
             chave_completa = chaveAcesso.get("Id")
-            nota_fiscal_data["chave_acesso"] = {
-                "chave": chave_completa[3:]  # Remove os 3 primeiros caracteres
-            }
+            nota_fiscal_data["chave_acesso"] = {"chave": chave_completa[3:]}
         else:
-            print("Chave de acesso não encontrada")
+            nota_fiscal_data["chave_acesso"] = {"chave": None}
 
         return nota_fiscal_data
+
     except ET.ParseError as e:
         print(f"Erro ao parsear o arquivo XML: '{xml_file_path}': {e}")
         return None
 
 
-def processamento():
+def testar_processamento_local():
     # Configurações de teste
     pasta_xml_teste = "anexos"
 
@@ -173,20 +121,17 @@ def processamento():
         if os.path.exists(pasta_xml_teste):
             # Itera sobre todos os arquivos na pasta
             for xml_file in os.listdir(pasta_xml_teste):
-                if xml_file.endswith(".xml"):  # Verifica se o arquivo é um XML
-                    xml_teste = os.path.join(pasta_xml_teste, xml_file)
-                    dados_nf = parse_nota_fiscal(xml_teste)
-                    
+                if xml_file.endswith(".xml"):
+                    dados_nf = parse_nota_fiscal(os.path.join(pasta_xml_teste, xml_file))
                     if dados_nf:
-                        salvar_dados_em_arquivo(dados_nf, xml_file[:-4])
+                        salvar_dados_em_arquivo(dados_nf, xml_file)
+                    else:
+                        print(f"Erro ao processar o arquivo: {xml_file}")
         else:
-            print(
-                f"Pasta não encontrada: {pasta_xml_teste}"
-            )  # Mensagem corrigida
+            print(f"Pasta não encontrada: {pasta_xml_teste}")
     except Exception as e:
-        # Tratamento de erros genérico
-        print("Erro durante o teste:")
+        print(f"Erro durante o teste: {e}")
 
 
 if __name__ == "__main__":
-    processamento()
+    testar_processamento_local()

@@ -1,12 +1,12 @@
 .code_block {
-  background-color: rgb(33, 44, 56);
-  padding: 2%;
-  margin: 3%;
-  font-family: monospace;
-  border-radius: 25px;
-  border-width: 1%;
-  border-style: solid;
-  box-shadow: 10px 10px;
+    background-color: rgb(33, 44, 56);
+    padding: 2%;
+    margin: 3%;
+    font-family: monospace;
+    border-radius: 25px;
+    border-width: 1%;
+    border-style: solid;
+    box-shadow: 10px 10px;
 }
 
 .green {
@@ -39,15 +39,17 @@ img {
     border-color: inherit;
     border-radius: 10px;
     border-width: 1%;
-    border-style: solid;    
+    border-style: solid;
     box-shadow: 10px 10px;
 }
 
-table, td, th {
+table,
+td,
+th {
     border-collapse: collapse;
     border-width: 1%;
     border-style: solid;
-    
+
     border-color: rgb(49, 127, 95);
     color: rgb(199, 243, 156);
     box-shadow: 10px 10px rgb(199, 243, 156);
