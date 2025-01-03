@@ -12,6 +12,7 @@ import poplib
 import json
 import logging
 import unicodedata
+import re
 
 from processar_xml import *
 from db_connection import *
@@ -35,7 +36,7 @@ PASSWORD = "p@r!sA1856"
 # Assunto alvo para busca
 ASSUNTO_ALVO = "lançamentos notas fiscais DANI"
 # Diretório para salvar os anexos
-DIRECTORY = os.path.join(current_dir, "anexos")  # Pasta onde os anexos serão salvos
+DIRECTORY = os.path.join(current_dir, "anexos")  
 # Pasta local para mover as notas processadas
 NOTAS_PROCESSADAS = os.path.join(current_dir, "notas_processadas")
 
@@ -77,7 +78,7 @@ def extract_values(text):
         "rateio": None,
         "cod_item": None,
     }
-    lines = text.splitlines()
+    lines = text.lower().splitlines()
     for line in lines:
         if line.startswith("departamento:"):
             values["departamento"] = line.split(":", 1)[1].strip()
@@ -100,7 +101,8 @@ def save_attachment(part, directory):
     if not filename:
         filename = "untitled.xml"
     elif not filename.lower().endswith(".xml"):
-        filename += ".xml"
+        logging.info(f"Ignorando anexo não XML: {filename}")
+        return None  # Ignorar anexos que não são XML
     content_type = part.get_content_type()
     logging.info(f"Tipo de conteúdo do anexo: {content_type}")
     if not content_type == "application/xml" and not filename.endswith(".xml"):
@@ -129,6 +131,9 @@ def processar_centros_de_custo(cc_texto, valor_total):
     centros_de_custo = []
     total_calculado = 0.0
 
+    # Substituir todos os tipos de traços por um traço padrão
+    cc_texto = re.sub(r'[\u2013\u2014-]+', '-', cc_texto)
+
     # Verifica se o texto do centro de custo contém apenas um número
     if cc_texto.strip().isdigit():
         cc_texto = f"{cc_texto.strip()}-100%"
@@ -137,7 +142,6 @@ def processar_centros_de_custo(cc_texto, valor_total):
     for item in cc_texto.split(","):
         item = item.strip()
         try:
-            item = item.replace("\u2013", "-")
             cc, valor = [x.strip() for x in item.split("-")]
             logging.info(f"Processando centro de custo: {cc}, valor: {valor}")
             if "%" in valor:
@@ -337,7 +341,7 @@ if dados_nota_fiscal is not None:
     chave_acesso = dados_nota_fiscal["chave_acesso"]["chave"]
     nmr_nota = dados_nota_fiscal["num_nota"]["numero_nota"]
     data_emi = dados_nota_fiscal["data_emi"]["data_emissao"]
-    data_venc = dados_nota_fiscal["valor_total"][0]["data_venc"]
+    data_venc = dados_nota_fiscal["data_venc"]["data_venc"]
     modelo = dados_nota_fiscal["modelo"]["modelo"]
 else:
     logging.error("Dados da nota fiscal não foram carregados")
@@ -402,6 +406,7 @@ class SistemaNF:
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
             time.sleep(5)
+            gui.hotkey("ctrl", "f4")
             gui.press("alt")
             gui.press("right", presses=6)
             gui.press("down", presses=4)
@@ -477,7 +482,7 @@ class SistemaNF:
                     gui.press("f2", interval=2)
                     gui.press("f3")
                     if i == len(dados_centros_de_custo) - 1:
-                        gui.press("esc", presses=2)
+                        gui.press("esc", presses=3)
                         logging.info("Último centro de custo salvo e encerrado.")
                     else:
                         gui.press("tab", presses=3)
@@ -512,7 +517,7 @@ if __name__ == "__main__":
                             cnpj_eminente = dados["eminente"]["cnpj"]
                             nmr_nota = dados["num_nota"]["numero_nota"]
                             data_emi = dados["data_emi"]["data_emissao"]
-                            data_venc = dados["data_venc"]
+                            data_venc = dados["data_venc"]["data_venc"]
                             chave_acesso = dados["chave_acesso"]["chave"]
                             modelo = dados["modelo"]["modelo"]
                             cnpj_dest = dados["destinatario"]["cnpj"]

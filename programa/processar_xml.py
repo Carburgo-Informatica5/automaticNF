@@ -2,6 +2,7 @@ import os
 import json
 import sys
 import xml.etree.ElementTree as ET
+import re
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -72,8 +73,9 @@ def parse_nota_fiscal(xml_file_path):
             }
 
             data_emi = num_nota.findtext("ns:dhEmi", namespaces=namespaces)
-            if data_emi:
+            if data_emi is not None:
                 data_emi_format = data_emi[:10].replace("-", "")
+                data_emi_format = data_emi_format[6:] + data_emi_format[4:6] + data_emi_format[:4]  # Inverte a data
                 nota_fiscal_data["data_emi"] = {"data_emissao": data_emi_format}
             else:
                 nota_fiscal_data["data_emi"] = {"data_emissao": None}
@@ -95,6 +97,7 @@ def parse_nota_fiscal(xml_file_path):
         data_venc = root.find(".//ns:cobr/ns:dup/ns:dVenc", namespaces=namespaces)
         if data_venc is not None:
             data_venc_format = data_venc.text.replace("-", "")
+            data_venc_format = data_venc_format[6:] + data_venc_format[4:6] + data_venc_format[:4]  # Inverte a data
             nota_fiscal_data["data_venc"] = {"data_venc": data_venc_format}
 
         # Extrair chave de acesso
@@ -104,6 +107,17 @@ def parse_nota_fiscal(xml_file_path):
             nota_fiscal_data["chave_acesso"] = {"chave": chave_completa[3:]}
         else:
             nota_fiscal_data["chave_acesso"] = {"chave": None}
+
+        # Extrair informações adicionais de data e dias
+        inf_adic = root.find(".//ns:infAdic/ns:infCpl", namespaces)
+        if inf_adic is not None:
+            inf_adic_text = inf_adic.text
+            data_adicional = re.search(r'\d{4}-\d{2}-\d{2}', inf_adic_text)
+            dias_adicional = re.search(r'\d+ dias', inf_adic_text)
+            if data_adicional:
+                nota_fiscal_data["data_adicional"] = {"data": data_adicional.group()}
+            if dias_adicional:
+                nota_fiscal_data["dias_adicional"] = {"dias": dias_adicional.group()}
 
         return nota_fiscal_data
 
