@@ -73,7 +73,6 @@ def extract_values(text):
         "departamento": None,
         "origem": None,
         "descricao": None,
-        "revenda_cc": None,
         "cc": None,
         "rateio": None,
         "cod_item": None,
@@ -86,99 +85,14 @@ def extract_values(text):
             values["origem"] = line.split(":", 1)[1].strip()
         elif line.startswith("descrição:"):
             values["descricao"] = line.split(":", 1)[1].strip()
-        elif line.startswith("revenda_cc:"):
-            values["revenda_cc"] = line.split(":", 1)[1].strip()
         elif line.startswith("cc:"):
             values["cc"] = line.split(":", 1)[1].strip()
+            logging.info(f"CC extraído: {values['cc']}")
         elif line.startswith("rateio:"):
             values["rateio"] = line.split(":", 1)[1].strip()
         elif line.startswith("código de tributação:"):
             values["cod_item"] = line.split(":", 1)[1].strip()
     return values
-
-def save_attachment(part, directory):
-    filename = decode_header_value(part.get_filename())
-    if not filename:
-        filename = "untitled.xml"
-    elif not filename.lower().endswith(".xml"):
-        logging.info(f"Ignorando anexo não XML: {filename}")
-        return None  # Ignorar anexos que não são XML
-    content_type = part.get_content_type()
-    logging.info(f"Tipo de conteúdo do anexo: {content_type}")
-    if not content_type == "application/xml" and not filename.endswith(".xml"):
-        logging.info(f"O anexo não é um arquivo XML: {filename}")
-        return None
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    filepath = os.path.join(directory, filename)
-    logging.info(f"Salvando anexo em: {filepath}")
-    with open(filepath, "wb") as f:
-        f.write(part.get_payload(decode=True))
-    logging.info(f"Anexo salvo em: {filepath}")
-    dados_nota_fiscal = parse_nota_fiscal(filepath)
-    if dados_nota_fiscal:
-        salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
-        return dados_nota_fiscal
-    else:
-        logging.error(f"Erro ao parsear o XML da nota fiscal: {filepath}")
-        return None
-
-def processar_centros_de_custo(cc_texto, valor_total):
-    """
-    Processa o texto extraído para identificar se é valor ou porcentagem e retorna
-    o formato adequado para o preenchimento.
-    """
-    centros_de_custo = []
-    total_calculado = 0.0
-
-    # Substituir todos os tipos de traços por um traço padrão
-    cc_texto = re.sub(r'[\u2013\u2014-]+', '-', cc_texto)
-
-    # Verifica se o texto do centro de custo contém apenas um número
-    if cc_texto.strip().isdigit():
-        cc_texto = f"{cc_texto.strip()}-100%"
-
-    # Divida os centros de custo por vírgulas
-    for item in cc_texto.split(","):
-        item = item.strip()
-        try:
-            cc, valor = [x.strip() for x in item.split("-")]
-            logging.info(f"Processando centro de custo: {cc}, valor: {valor}")
-            if "%" in valor:
-                porcentagem = float(valor.replace("%", ""))
-                valor_calculado = round((valor_total * porcentagem) / 100, 2)
-            else:
-                valor_calculado = float(valor.replace(",", "."))
-
-            total_calculado += valor_calculado
-            centros_de_custo.append((cc, valor_calculado))
-        except ValueError:
-            logging.error(f"Erro ao processar centro de custo: {item}")
-
-    # Log para verificar os valores calculados
-    logging.info(
-        f"Total calculado: {total_calculado}, Valor total esperado: {valor_total}"
-    )
-
-    # Ajuste final para compensar arredondamentos
-    diferenca = round(valor_total - total_calculado, 2)
-
-    if abs(diferenca) > 0.02:
-        logging.error(f"Diferença de cálculo muito grande! Diferença: {diferenca}")
-        raise ValueError("Erro: Diferença de cálculo muito grande!")
-
-    if abs(diferenca) > 0:
-        # Aplica a diferença ao último centro de custo
-        if centros_de_custo:
-            ultimo_cc, ultimo_valor = centros_de_custo[-1]
-            centros_de_custo[-1] = (ultimo_cc, round(ultimo_valor + diferenca, 2))
-        else:
-            logging.error("Nenhum centro de custo encontrado para aplicar a diferença")
-            raise ValueError(
-                "Erro: Nenhum centro de custo encontrado para aplicar a diferença"
-            )
-
-    return centros_de_custo
 
 def verificar_emails():
     try:
@@ -229,7 +143,6 @@ def verificar_emails():
                                 departamento = valores_extraidos["departamento"]
                                 origem = valores_extraidos["origem"]
                                 descricao = valores_extraidos["descricao"]
-                                revenda_cc = valores_extraidos["revenda_cc"]
                                 cc_texto = valores_extraidos["cc"]
                                 logging.info(f"Texto de centros de custo extraído: {cc_texto}")
                                 rateio = valores_extraidos["rateio"]
@@ -243,7 +156,6 @@ def verificar_emails():
                                     "departamento": departamento,
                                     "origem": origem,
                                     "descricao": descricao,
-                                    "revenda_cc": revenda_cc,
                                     "cc": cc_texto,
                                     "cod_item": cod_item,
                                     "valor_total": valor_total,
@@ -298,9 +210,79 @@ def verificar_emails():
         return dados_extraidos
     except Exception as e:
         logging.error(f"Erro ao verificar emails: {e}")
-        enviar_email_erro(dani, "caetano.apollo@carburgo.com.br", f"Erro ao verificar emails: {e}")
+        enviar_email_erro(dani, sender, "caetano.apollo@carburgo.com.br", f"Erro ao verificar emails: {e}")
         return None
 
+def save_attachment(part, directory):
+    filename = decode_header_value(part.get_filename())
+    if not filename:
+        filename = "untitled.xml"
+    elif not filename.lower().endswith(".xml"):
+        logging.info(f"Ignorando anexo não XML: {filename}")
+        return None  # Ignorar anexos que não são XML
+    content_type = part.get_content_type()
+    logging.info(f"Tipo de conteúdo do anexo: {content_type}")
+    if not content_type == "application/xml" and not filename.endswith(".xml"):
+        logging.info(f"O anexo não é um arquivo XML: {filename}")
+        return None
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    filepath = os.path.join(directory, filename)
+    logging.info(f"Salvando anexo em: {filepath}")
+    with open(filepath, "wb") as f:
+        f.write(part.get_payload(decode=True))
+    logging.info(f"Anexo salvo em: {filepath}")
+    dados_nota_fiscal = parse_nota_fiscal(filepath)
+    if dados_nota_fiscal:
+        salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
+        return dados_nota_fiscal
+    else:
+        logging.error(f"Erro ao parsear o XML da nota fiscal: {filepath}")
+        return None
+
+def processar_centros_de_custo(cc_texto, valor_total):
+    valor_total = float(valor_total)
+    centros_de_custo = []
+    total_calculado = 0.0
+
+    cc_texto = re.sub(r'[\u2013\u2014-]+', '-', cc_texto)
+
+    if cc_texto.strip().isdigit():
+        cc_texto = f"{cc_texto.strip()}-100%"
+
+    itens = [item.strip() for item in cc_texto.split(",")]
+
+    for i, item in enumerate(itens):
+        try:
+            cc, valor = [x.strip() for x in item.split("-")]
+            logging.info(f"Processando centro de custo: {cc}, valor: {valor}")
+            if "%" in valor:
+                porcentagem = float(valor.replace("%", ""))
+                valor_calculado = round((valor_total * porcentagem) / 100, 2)
+            else:
+                valor_calculado = float(valor.replace(",", "."))
+
+            total_calculado += valor_calculado
+            centros_de_custo.append((cc, valor_calculado))  # Mantém valor como float temporariamente
+        except ValueError:
+            logging.error(f"Erro ao processar centro de custo: {item}")
+
+    diferenca = round(valor_total - total_calculado, 2)
+
+    if abs(diferenca) > 0:
+        if centros_de_custo:
+            ultimo_cc, ultimo_valor = centros_de_custo[-1]
+            # Converte o último valor para float, se necessário
+            if isinstance(ultimo_valor, str):
+                ultimo_valor = float(ultimo_valor.replace(",", "."))
+            diferenca_float = ultimo_valor + diferenca  # Soma corretamente
+            diferenca_str = f"{diferenca_float:.2f}".replace(".", ",")  # Converte para string
+            centros_de_custo[-1] = (ultimo_cc, diferenca_str)
+        else:
+            logging.error("Nenhum centro de custo encontrado para aplicar a diferença")
+            raise ValueError("Erro: Nenhum centro de custo encontrado para aplicar a diferença")
+
+    return centros_de_custo
 
 def enviar_email_erro(dani, destinatario, erro):
     config["to"] = destinatario
@@ -312,8 +294,15 @@ def enviar_email_erro(dani, destinatario, erro):
         .add_text("Erro durante lançamento de nota fiscal", tag="h1")
         .add_text(str(erro), tag="pre")
     )
-    dani.push(mensagem).flush()
 
+    mensagem_assinatura = (
+        dani.make_message()
+        .set_color("green")
+        .add_text("DANI", tag="h1")
+        .add_text("Email enviado automaticamente pelo sistema DANI", tag="p")
+        .add_text("Em caso de dúvidas entrar em contato com caetano.apollo@carburgo.com.br", tag="p")
+    )
+    dani.push(mensagem).push(mensagem_assinatura).flush()
 
 def enviar_mensagem_sucesso(dani, destinatario, numero_nota):
     config["to"] = destinatario
@@ -322,12 +311,18 @@ def enviar_mensagem_sucesso(dani, destinatario, numero_nota):
     mensagem = (
         dani.make_message()
         .set_color("green")
-        .add_text(
-            f"Nota lançada com sucesso número da nota: {numero_nota}", tag="h1",
-        )
+        .add_text(f"Nota lançada com sucesso número da nota: {numero_nota}", tag="h1")
         .add_text("Acesse o sistema para verificar o lançamento.", tag="pre")
     )
-    dani.push(mensagem).flush()
+
+    mensagem_assinatura = (
+        dani.make_message()
+        .set_color("green")
+        .add_text("DANI", tag="h1")
+        .add_text("Email enviado automaticamente pelo sistema DANI", tag="p")
+        .add_text("Em caso de dúvidas entrar em contato com caetano.apollo@carburgo.com.br", tag="p")
+    )
+    dani.push(mensagem).push(mensagem_assinatura).flush()
 
 
 dados_nota_fiscal = None
@@ -358,7 +353,6 @@ class SistemaNF:
         departamento,
         origem,
         descricao,
-        revenda_cc,
         cc,
         cod_item,
         valor_total,
@@ -468,20 +462,21 @@ class SistemaNF:
                 total_rateio = 0
                 for i, (cc, valor) in enumerate(dados_centros_de_custo):
                     logging.info("Lançando centro de custo")
-                    gui.write(revenda_cc)
+                    gui.write(str(revenda))
                     gui.press("tab", presses=3)
                     gui.write(cc)
                     gui.press("tab", presses=2)
                     gui.write(origem)
                     gui.press("tab", presses=2)
                     if i == len(dados_centros_de_custo) - 1:
-                        valor = valor_total - total_rateio
+                        valor = float(valor_total.replace(",", ".")) - total_rateio
                     else:
-                        total_rateio += valor
+                        total_rateio += float(valor)
                     gui.write(f"{valor:.2f}".replace(".", ","))
                     gui.press("f2", interval=2)
                     gui.press("f3")
                     if i == len(dados_centros_de_custo) - 1:
+                        gui.press("f2", interval=2)
                         gui.press("esc", presses=3)
                         logging.info("Último centro de custo salvo e encerrado.")
                     else:
@@ -489,6 +484,7 @@ class SistemaNF:
             gui.press("tab", presses=3)
             gui.press("enter")
         except Exception as e:
+            enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e)
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
 
@@ -505,7 +501,6 @@ if __name__ == "__main__":
                         departamento = dados.get("departamento")
                         origem = dados.get("origem")
                         descricao = dados.get("descricao")
-                        revenda_cc = dados.get("revenda_cc")
                         cc = dados.get("cc")
                         cod_item = dados.get("cod_item")
                         valor_total = dados.get("valor_total")
@@ -528,7 +523,7 @@ if __name__ == "__main__":
 
                         # Verificação de campos obrigatórios
                         campos_obrigatorios = [
-                            departamento, origem, descricao, revenda_cc, cc, cod_item, valor_total, dados_centros_de_custo
+                            departamento, origem, descricao, cc, cod_item, valor_total, dados_centros_de_custo
                         ]
                         if not all(campos_obrigatorios):
                             mensagem_erro = "Faltando campos obrigatórios para o lançamento:\n"
@@ -538,12 +533,10 @@ if __name__ == "__main__":
                                 mensagem_erro += "- Origem\n"
                             if not descricao:
                                 mensagem_erro += "- Descrição\n"
-                            if not revenda_cc:
-                                mensagem_erro += "- Revenda CC\n"
                             if not cc:
                                 mensagem_erro += "- CC\n"
                             if not cod_item:
-                                mensagem_erro += "- Código do Item\n"
+                                mensagem_erro += "- Código de tributação do item\n"
                             if not valor_total:
                                 mensagem_erro += "- Valor Total\n"
                             if not dados_centros_de_custo:
@@ -570,13 +563,13 @@ if __name__ == "__main__":
                                 gui.press("enter")
                                 time.sleep(5)
                             else:
+                                enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), "Erro, CNPJ do destinatário não encontrado")
                                 logging.error("Erro, CNPJ não encontrado")
 
                         # Adicionando logs para verificar os dados extraídos
                         logging.info(f"Departamento: {departamento}")
                         logging.info(f"Origem: {origem}")
                         logging.info(f"Descrição: {descricao}")
-                        logging.info(f"Revenda CC: {revenda_cc}")
                         logging.info(f"CC: {cc}")
                         logging.info(f"Código do Item: {cod_item}")
                         logging.info(f"Valor Total: {valor_total}")
@@ -594,7 +587,6 @@ if __name__ == "__main__":
                                 departamento,
                                 origem,
                                 descricao,
-                                revenda_cc,
                                 cc,
                                 cod_item,
                                 valor_total,
@@ -617,6 +609,6 @@ if __name__ == "__main__":
                 logging.info("Nenhum dado extraído, automação não será executada")
         except Exception as e:
             logging.error(f"Erro durante a automação: {e}")
-            enviar_email_erro(dani, "caetano.apollo@carburgo.com.br", e)
+            enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e)
         logging.info("Esperando antes da nova verificação...")
         time.sleep(30)
