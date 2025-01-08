@@ -429,7 +429,8 @@ class SistemaNF:
             gui.press("tab", presses=2)
             gui.write(origem)
             gui.press("tab", presses=19)
-            gui.write(chave_acesso)
+            if modelo == "55":
+                gui.write(chave_acesso)
             gui.press("tab")
             gui.write(modelo)
             gui.press("tab", presses=18)
