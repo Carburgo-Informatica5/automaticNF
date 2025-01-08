@@ -13,9 +13,7 @@
   - [Requisitos do Sistema](#requisitos-do-sistema)
     - [Requisitos de Software](#requisitos-de-software)
   - [Fluxo de Funcionamento](#fluxo-de-funcionamento)
-  - [Tratamento de Erros](#tratamento-de-erros)
   - [Manutenção e Suporte](#manutenção-e-suporte)
-    - [Logs do Sistema](#logs-do-sistema)
     - [Backup](#backup)
     - [Atualização](#atualização)
   - [Limitações Conhecidas](#limitações-conhecidas)
@@ -101,25 +99,7 @@ Atualização: O sistema agora inclui uma funcionalidade de tratamento de erros 
    - Os dados extraídos são validados.
    - O sistema navega pelo Bravos e insere os dados automaticamente.
 
-3. **Monitoramento**
-   - Logs são registrados para cada operação.
-   - Erros são tratados e registrados.
-   - Relatórios podem ser gerados ao final do processamento.
-
-## Tratamento de Erros
-
-O sistema utiliza um mecanismo robusto de tratamento de erros:
-
-- **Logs Detalhados**: Todos os erros são registrados com timestamp, tipo, mensagem e traceback.
-- **Recuperação Automática**: O sistema tenta recuperar-se de erros não críticos.
-- **Notificações**: Erros críticos são exibidos na interface e registrados nos logs.
-- **Exceções Personalizadas**: Facilitam a identificação e tratamento de erros específicos.
-
 ## Manutenção e Suporte
-
-### Logs do Sistema
-- **Localização**: `/logs/registro de erros.txt`
-- **Formato**: `[Data/Hora] - [Tipo] - [Mensagem] - [Detalhes]`
 
 ### Backup
 - Recomenda-se realizar backup diário dos arquivos processados.
