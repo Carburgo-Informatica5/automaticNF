@@ -160,7 +160,7 @@ def verificar_emails():
                                     "cod_item": cod_item,
                                     "valor_total": valor_total,
                                     "dados_centros_de_custo": dados_centros_de_custo,
-                                    "eminente": dados_nota_fiscal["eminente"],
+                                    "emitente": dados_nota_fiscal["emitente"],
                                     "num_nota": dados_nota_fiscal["num_nota"],
                                     "data_emi": dados_nota_fiscal["data_emi"],
                                     "data_venc": dados_nota_fiscal["data_venc"],
@@ -329,8 +329,8 @@ dados_nota_fiscal = None
 
 logging.info("Carregando dados da nota fiscal")
 if dados_nota_fiscal is not None:
-    nome_eminente = dados_nota_fiscal["eminente"]["nome"]
-    cnpj_eminente = dados_nota_fiscal["eminente"]["cnpj"]
+    nome_emitente = dados_nota_fiscal["emitente"]["nome"]
+    cnpj_emitente = dados_nota_fiscal["emitente"]["cnpj"]
     nome_dest = dados_nota_fiscal["destinatario"]["nome"]
     cnpj_dest = dados_nota_fiscal["destinatario"]["cnpj"]
     chave_acesso = dados_nota_fiscal["chave_acesso"]["chave"]
@@ -357,7 +357,7 @@ class SistemaNF:
         cod_item,
         valor_total,
         dados_centros_de_custo,
-        cnpj_eminente,
+        cnpj_emitente,
         nmr_nota,
         data_emi,
         data_venc,
@@ -382,7 +382,7 @@ class SistemaNF:
             gui.click()
             time.sleep(15)
             gui.press("tab", presses=19)
-            gui.write(cnpj_eminente)
+            gui.write(cnpj_emitente)
             time.sleep(2)
             gui.press("enter")
             pytesseract.pytesseract_cmd = (
@@ -508,8 +508,8 @@ if __name__ == "__main__":
                         rateio = dados.get("rateio")
 
                         # Extraindo dados adicionais necessários
-                        if "eminente" in dados and "num_nota" in dados and "data_emi" in dados and "data_venc" in dados and "chave_acesso" in dados and "modelo" in dados and "destinatario" in dados:
-                            cnpj_eminente = dados["eminente"]["cnpj"]
+                        if "emitente" in dados and "num_nota" in dados and "data_emi" in dados and "data_venc" in dados and "chave_acesso" in dados and "modelo" in dados and "destinatario" in dados:
+                            cnpj_emitente = dados["emitente"]["cnpj"]
                             nmr_nota = dados["num_nota"]["numero_nota"]
                             data_emi = dados["data_emi"]["data_emissao"]
                             data_venc = dados["data_venc"]["data_venc"]
@@ -574,7 +574,7 @@ if __name__ == "__main__":
                         logging.info(f"Código do Item: {cod_item}")
                         logging.info(f"Valor Total: {valor_total}")
                         logging.info(f"Dados dos Centros de Custo: {dados_centros_de_custo}")
-                        logging.info(f"CNPJ Eminente: {cnpj_eminente}")
+                        logging.info(f"CNPJ Eminente: {cnpj_emitente}")
                         logging.info(f"Número da Nota: {nmr_nota}")
                         logging.info(f"Data de Emissão: {data_emi}")
                         logging.info(f"Data de Vencimento: {data_venc}")
@@ -591,7 +591,7 @@ if __name__ == "__main__":
                                 cod_item,
                                 valor_total,
                                 dados_centros_de_custo,
-                                cnpj_eminente,
+                                cnpj_emitente,
                                 nmr_nota,
                                 data_emi,
                                 data_venc,

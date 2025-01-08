@@ -39,7 +39,7 @@ def parse_nota_fiscal(xml_file_path):
         namespaces = {"ns": "http://www.portalfiscal.inf.br/nfe"}
 
         nota_fiscal_data = {
-            "eminente": {},
+            "emitente": {},
             "destinatario": {},
             "chave_acesso": {},
             "num_nota": {},
