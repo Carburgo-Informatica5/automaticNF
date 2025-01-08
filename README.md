@@ -6,13 +6,12 @@
   - [Descrição Geral](#descrição-geral)
   - [Estrutura do Projeto](#estrutura-do-projeto)
     - [Módulos Principais](#módulos-principais)
-      - [1. main.py](#1-mainpy)
-      - [2. infoBravos.py](#2-infobravospy)
-      - [3. interface.py](#3-interfacepy)
-      - [4. tratamentoErros.py](#4-tratamentoerrospy)
+      - [1. `automaticNF/programa/main.py`](#1-automaticnfprogramamainpy)
+      - [2. `automaticNF/programa/DANImail.py`](#2-automaticnfprogramadanimailpy)
+      - [3. `automaticNF/programa/db_connection.py`](#3-automaticnfprogramadb_connectionpy)
+      - [4. `automaticNF/programa/processar_xml.py`](#4-automaticnfprogramaprocessar_xmlpy)
   - [Requisitos do Sistema](#requisitos-do-sistema)
     - [Requisitos de Software](#requisitos-de-software)
-  - [Configuração e Instalação](#configuração-e-instalação)
   - [Fluxo de Funcionamento](#fluxo-de-funcionamento)
   - [Tratamento de Erros](#tratamento-de-erros)
   - [Manutenção e Suporte](#manutenção-e-suporte)
@@ -30,46 +29,48 @@ O Sistema Automático de Processamento de Notas Fiscais é uma solução desenvo
 
 Atualização: O sistema agora inclui uma funcionalidade de tratamento de erros mais robusta, utilizando exceções personalizadas para diferentes tipos de erros que podem ocorrer durante o processamento de notas fiscais e a interação com o sistema Bravos.
 
-
 ## Estrutura do Projeto
 
 ### Módulos Principais
 
-#### 1. main.py
+#### 1. [`automaticNF/programa/main.py`](automaticNF/programa/main.py)
 - **Função**: Módulo principal que coordena todas as operações do sistema.
 - **Classe Principal**: `SistemaNF`
 - **Funções Principais**:
-  - `parse_nota_fiscal(xml_file_path)`: Realiza o parsing dos arquivos XML.
-  - `processar_notas_fiscais(xml_folder)`: Coordena o processamento em lote das notas.
-  - `inserir_dados_no_bravos(dados_nf)`: Gerencia a inserção dos dados no sistema Bravos.
+  - `verificar_emails()`: Verifica e processa emails com notas fiscais anexadas.
+  - `extract_values(text)`: Extrai valores do corpo do email.
+  - `save_attachment(part, directory)`: Salva anexos de emails.
+  - `processar_centros_de_custo(cc_texto, valor_total)`: Processa centros de custo.
+  - `enviar_email_erro(dani, destinatario, erro)`: Envia email de erro.
+  - `enviar_mensagem_sucesso(dani, destinatario, numero_nota)`: Envia email de sucesso.
 
-#### 2. infoBravos.py
-- **Função**: Responsável pela interação com o sistema Bravos.
-- **Classe Principal**: `bravos`
-- **Métodos Principais**:
-  - `acquire_bravos(exec)`: Inicia o sistema Bravos e realiza o login.
-  - `upload(dealers)`: Realiza o upload das informações para o Bravos.
-  - `kill_warning(timeout_lenght)`: Trata janelas de aviso do Bravos.
-
-#### 3. interface.py
-- **Função**: Implementa a interface gráfica do sistema.
-- **Classe Principal**: `interfaceMonitoramentoNF`
-- **Métodos Principais**:
-  - `configurar_interface()`: Configura os elementos da interface gráfica.
-  - `atualizar_interface()`: Atualiza a interface com novos eventos.
-  - `pausar_processamento()`: Pausa o processamento de notas.
-  - `Retomar_processamento()`: Retoma o processamento de notas.
-  - `gerar_relatorio()`: Gera um relatório do processamento.
-
-#### 4. tratamentoErros.py
-- **Função**: Sistema de tratamento de exceções personalizado.
+#### 2. [`automaticNF/programa/DANImail.py`](automaticNF/programa/DANImail.py)
+- **Função**: Gerencia a criação e envio de emails.
 - **Classes Principais**:
-  - `ExcecaoNF`: Classe base para exceções customizadas.
-  - `ErrosBravosConexao`: Trata erros de conexão com o Bravos.
-  - `ErroParseXML`: Trata erros na leitura de arquivos XML.
-- **Classe Auxiliar**: `tratadorErros`
-  - Configura o sistema de logging.
-  - Processa e registra os erros ocorridos.
+  - `Message`: Cria mensagens de email.
+  - `Queue`: Gerencia a fila de emails a serem enviados.
+- **Métodos Principais**:
+  - `Message.set_color(color)`: Define a cor da mensagem.
+  - `Message.add_text(content, tag, tag_end)`: Adiciona texto à mensagem.
+  - `Message.add_img(img)`: Adiciona imagem à mensagem.
+  - `Queue.sendto_queue(message_bundle, screenshot, is_info)`: Envia mensagem para a fila.
+  - `Queue.make_message(message)`: Cria uma nova mensagem.
+  - `Queue.push(message, at)`: Adiciona mensagem à fila.
+  - `Queue.flush()`: Envia todas as mensagens na fila.
+
+#### 3. [`automaticNF/programa/db_connection.py`](automaticNF/programa/db_connection.py)
+- **Função**: Gerencia a conexão com o banco de dados Oracle.
+- **Funções Principais**:
+  - `load_db_config()`: Carrega a configuração do banco de dados.
+  - `connect_to_db(db_config)`: Conecta ao banco de dados.
+  - `revenda(cnpj)`: Consulta informações de revenda no banco de dados.
+
+#### 4. [`automaticNF/programa/processar_xml.py`](automaticNF/programa/processar_xml.py)
+- **Função**: Processa arquivos XML de notas fiscais.
+- **Funções Principais**:
+  - `salvar_dados_em_arquivo(dados_nf, nome_arquivo, pasta_destino)`: Salva dados da nota fiscal em um arquivo JSON.
+  - `parse_nota_fiscal(xml_file_path)`: Lê e extrai informações de um arquivo XML de nota fiscal.
+  - `testar_processamento_local()`: Testa o processamento de arquivos XML localmente.
 
 ## Requisitos do Sistema
 
@@ -79,43 +80,31 @@ Atualização: O sistema agora inclui uma funcionalidade de tratamento de erros 
 - Bibliotecas Python:
   - pyautogui
   - pygetwindow
+  - unidecode
+  - pyyaml
+  - pyperclip
   - tkinter
-  - xml.etree.ElementTree
-  - yaml
+  - xml
+  - queue
+  - threading
   - TKinterModernThemes
-
-## Configuração e Instalação
-
-1. Clone o repositório do projeto:
-'''git clone [URL_DO_REPOSITORIO]'''
-
-2. Navegue até o diretório do projeto:
-'''cd [NOME_DO_DIRETORIO]'''
-
-3. Instale as dependências necessárias:
-'''pip install -r requirements.txt'''
-
-4. Execute o sistema:
-'''python main.py'''
 
 ## Fluxo de Funcionamento
 
 1. **Inicialização**
-- O sistema carrega as configurações do arquivo `config.yaml`.
-- A interface gráfica é inicializada.
-- O sistema tenta estabelecer conexão com o Bravos.
+   - O sistema carrega as configurações do arquivo `config.yaml`.
+   - O sistema tenta estabelecer conexão com o Bravos.
 
 2. **Processamento de Notas**
-- O sistema busca arquivos XML no diretório especificado.
-- Cada arquivo XML é lido e suas informações são extraídas.
-- Os dados extraídos são validados.
-- O sistema navega pelo Bravos e insere os dados automaticamente.
+   - O sistema busca arquivos XML no diretório especificado.
+   - Cada arquivo XML é lido e suas informações são extraídas.
+   - Os dados extraídos são validados.
+   - O sistema navega pelo Bravos e insere os dados automaticamente.
 
 3. **Monitoramento**
-- A interface gráfica exibe o progresso em tempo real.
-- Logs são registrados para cada operação.
-- Erros são tratados e registrados.
-- Relatórios podem ser gerados ao final do processamento.
+   - Logs são registrados para cada operação.
+   - Erros são tratados e registrados.
+   - Relatórios podem ser gerados ao final do processamento.
 
 ## Tratamento de Erros
 
@@ -154,6 +143,7 @@ O sistema utiliza um mecanismo robusto de tratamento de erros:
 - Mantenha o sistema operacional e todas as dependências atualizadas.
 
 ## Futuras Melhorias
+- Adicionar funcionalidades de relatórios.
 
 ## Suporte e Contato
 
