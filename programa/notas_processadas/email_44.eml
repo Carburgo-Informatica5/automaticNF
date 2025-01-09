@@ -1,41 +1,42 @@
 Return-Path: <caetano.apollo@carburgo.com.br>
 Received: from mail.carburgo.com.br (LHLO mail.carburgo.com.br)
- (192.168.118.5) by mail.carburgo.com.br with LMTP; Thu, 9 Jan 2025 08:35:08
+ (192.168.118.5) by mail.carburgo.com.br with LMTP; Thu, 9 Jan 2025 08:22:22
  -0300 (BRT)
 Received: from mail.carburgo.com.br (localhost [127.0.0.1])
-	by mail.carburgo.com.br (Postfix) with ESMTPS id 3317461990;
-	Thu,  9 Jan 2025 08:35:08 -0300 (-03)
+	by mail.carburgo.com.br (Postfix) with ESMTPS id 64A461773CB;
+	Thu,  9 Jan 2025 08:22:22 -0300 (-03)
 Received: from mail.carburgo.com.br (localhost [127.0.0.1])
-	by mail.carburgo.com.br (Postfix) with ESMTPS id 2546456520;
-	Thu,  9 Jan 2025 08:35:08 -0300 (-03)
+	by mail.carburgo.com.br (Postfix) with ESMTPS id 574E01773FA;
+	Thu,  9 Jan 2025 08:22:22 -0300 (-03)
 Received: from [211.0.170.5] (unknown [177.53.50.14])
-	by mail.carburgo.com.br (Postfix) with ESMTPSA id 007C51286FA
-	for <dani@carburgo.com.br>; Thu,  9 Jan 2025 08:35:07 -0300 (-03)
-Content-Type: multipart/mixed; boundary="------------sCMO9FU2A5HC0xmE4abDflNB"
-Message-ID: <6950e083-05f6-4421-b039-423a365f404c@carburgo.com.br>
-Date: Thu, 9 Jan 2025 08:35:03 -0300
+	by mail.carburgo.com.br (Postfix) with ESMTPSA id 322541773CB
+	for <dani@carburgo.com.br>; Thu,  9 Jan 2025 08:22:22 -0300 (-03)
+Content-Type: multipart/mixed; boundary="------------n9o9n2HxvTw6UYseQt0sQJeX"
+Message-ID: <5dbf10da-24fe-4e45-8b46-a04a198570e3@carburgo.com.br>
+Date: Thu, 9 Jan 2025 08:22:16 -0300
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
+Content-Language: pt-BR
+To: dani@carburgo.com.br
 From: Caetano Apollo da Silveira <caetano.apollo@carburgo.com.br>
 Subject: =?UTF-8?Q?lan=C3=A7amentos_notas_fiscais_dani?=
-To: dani@carburgo.com.br
-Content-Language: pt-BR
 
 This is a multi-part message in MIME format.
---------------sCMO9FU2A5HC0xmE4abDflNB
+--------------n9o9n2HxvTw6UYseQt0sQJeX
 Content-Type: multipart/alternative;
- boundary="------------fXC70F3j1IXfyPJUrPctTkdB"
+ boundary="------------BMCjYnFcfnMeAZvv6cL7bQBD"
 
---------------fXC70F3j1IXfyPJUrPctTkdB
+--------------BMCjYnFcfnMeAZvv6cL7bQBD
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 
 departamento: 9
 origem: 5149
-descrição: Teste do sistema de logs
-código de tributação: 7
+descrição: Teste de lançamento
 cc: 1
-rateio: não
+rateio: sim
+
+código de tributação: 7
 
 -- 
 Assinatura email Carburgo
@@ -49,22 +50,24 @@ Assinatura email Carburgo
 caetano.apollo@carburgo.com.br
 (51) 3594-9255 <tel:5135949255>
 www.carburgo.com.br <https://www.carburgo.com.br>
---------------fXC70F3j1IXfyPJUrPctTkdB
+--------------BMCjYnFcfnMeAZvv6cL7bQBD
 Content-Type: text/html; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 <!DOCTYPE html>
 <html>
   <head>
+
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   </head>
   <body>
     <p>departamento: 9<br>
       origem: 5149<br>
-      descrição: Teste do sistema de logs<br>
-      código de tributação: 7<br>
+      descrição: Teste de lançamento<br>
       cc: 1<br>
-      rateio: não</p>
+      rateio: sim</p>
+    <p>código de tributação: 7<br>
+    </p>
     <div class="moz-signature">-- <br>
       <meta charset="UTF-8">
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -81,7 +84,7 @@ href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;
         <div class="flex-wraper">
           <div class="logos-sect"> <img
 src="https://github.com/suportecarburgo/assinaturas/blob/main/ModelosDeAssinatura/grupocarburgo.png?raw=true"
-              style="max-width: 80%;" moz-do-not-send="true"> </div>
+              style="max-width: 80%;"> </div>
           <div class="infos-sect">
             <div class="name">
               <h2><span style="color: #36265F">Caetano</span> Apollo da
@@ -90,68 +93,87 @@ src="https://github.com/suportecarburgo/assinaturas/blob/main/ModelosDeAssinatur
             </div>
             <div class="social-icons">
               <div class="single-icon"> <img
-src="https://github.com/suportecarburgo/assinaturas/blob/main/ModelosDeAssinatura/EMAIL0.png?raw=true"
-                  moz-do-not-send="true"> <a
-                  href="mailto:caetano.apollo@carburgo.com.br"
-                  class="moz-txt-link-freetext" moz-do-not-send="true">caetano.apollo@carburgo.com.br</a>
+src="https://github.com/suportecarburgo/assinaturas/blob/main/ModelosDeAssinatura/EMAIL0.png?raw=true">
+                <a href="mailto:caetano.apollo@carburgo.com.br"
+                  class="moz-txt-link-freetext">caetano.apollo@carburgo.com.br</a>
               </div>
               <div class="single-icon"> <img
-src="https://github.com/suportecarburgo/assinaturas/blob/main/ModelosDeAssinatura/TELEFONE0.png?raw=true"
-                  moz-do-not-send="true"><a href="tel:5135949255"
-                  moz-do-not-send="true"> (51) 3594-9255</a> </div>
+src="https://github.com/suportecarburgo/assinaturas/blob/main/ModelosDeAssinatura/TELEFONE0.png?raw=true"><a
+                  href="tel:5135949255"> (51) 3594-9255</a> </div>
               <div class="single-icon"> <img
-src="https://github.com/suportecarburgo/assinaturas/blob/main/ModelosDeAssinatura/SITE0.png?raw=true"
-                  moz-do-not-send="true"> <a
-                  href="https://www.carburgo.com.br"
-                  moz-do-not-send="true">www.carburgo.com.br</a> </div>
+src="https://github.com/suportecarburgo/assinaturas/blob/main/ModelosDeAssinatura/SITE0.png?raw=true">
+                <a href="https://www.carburgo.com.br">www.carburgo.com.br</a>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <style>*{
+      <style>
+    *{
         box-sizing: border-box;
         margin: 0;
         clear: both;
         font-family: 'Poppins', sans-serif;
-    }.main-wraper{
+    }
+    .main-wraper{
         padding: 0px 50px;
         max-height: 600px;
         max-width: 1400px;
         border-left: unset;
         border-right: unset;
         background-image: unset;
-    }.flex-wraper{
+    }
+
+    .flex-wraper{
         display: flex;
         align-items: center;
         flex-direction: row-reverse;
-    }.logos-sect{
+    }
+
+    .logos-sect{
         padding-left: 100px;
         border-left: 5px solid #62BEAC;
-    }.infos-sect{
+    }
+
+    .infos-sect{
         padding: 50px;
-    }.infos-sect h2{
+    }
+
+    .infos-sect h2{
         font-size: 30px;
         color: #000;
-    }.name{
+    }
+
+    .name{
         border-bottom: 3px solid #62BEAC;
         padding: 10px 0;
-    }.social-icons{
+    }
+
+    .social-icons{
         margin: 15px 0;
-    }.single-icon {
+    }
+
+    .single-icon {
         display: flex;
         align-items: center;
-    }.single-icon a{
+    }
+
+    .single-icon a{
         color: #000;
         text-decoration: none;
         margin: 15px;
-    }.single-icon img{
+    }
+
+    .single-icon img{
         height: 40px;
-    }</style></div>
+    }
+
+</style></div>
   </body>
 </html>
 
---------------fXC70F3j1IXfyPJUrPctTkdB--
---------------sCMO9FU2A5HC0xmE4abDflNB
+--------------BMCjYnFcfnMeAZvv6cL7bQBD--
+--------------n9o9n2HxvTw6UYseQt0sQJeX
 Content-Type: text/xml; charset=UTF-8; name="notaTeste.xml"
 Content-Disposition: attachment; filename="notaTeste.xml"
 Content-Transfer-Encoding: base64
@@ -466,4 +488,4 @@ Pg0KICAgICAgICAgICAgPHhNb3Rpdm8+QXV0b3JpemFkbyBvIHVzbyBkYSBORi1lPC94TW90
 aXZvPg0KICAgICAgICA8L2luZlByb3Q+DQogICAgPC9wcm90TkZlPg0KPC9uZmVQcm9jPg==
 
 
---------------sCMO9FU2A5HC0xmE4abDflNB--
+--------------n9o9n2HxvTw6UYseQt0sQJeX--

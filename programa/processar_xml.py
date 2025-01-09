@@ -52,7 +52,7 @@ def parse_nota_fiscal(xml_file_path):
         # Extrair informações do emitente
         emitente = root.find(".//ns:emit", namespaces)
         if emitente is not None:
-            nota_fiscal_data["eminente"] = {
+            nota_fiscal_data["emitente"] = {
                 "cnpj": emitente.findtext("ns:CNPJ", namespaces=namespaces),
                 "nome": emitente.findtext("ns:xNome", namespaces=namespaces),
             }

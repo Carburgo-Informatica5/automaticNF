@@ -13,6 +13,7 @@ import json
 import logging
 import unicodedata
 import re
+from logging.handlers import TimedRotatingFileHandler
 
 from processar_xml import *
 from db_connection import *
@@ -94,7 +95,7 @@ def extract_values(text):
             values["cod_item"] = line.split(":", 1)[1].strip()
     return values
 
-def verificar_emails():
+def check_emails():
     try:
         server = poplib.POP3_SSL(HOST, PORT)
         server.user(USERNAME)
@@ -150,7 +151,7 @@ def verificar_emails():
                                 if not dados_nota_fiscal["valor_total"]:
                                     raise ValueError("Valor total não encontrado na nota fiscal")
                                 valor_total = str(dados_nota_fiscal["valor_total"][0]["valor_total"]).replace(".", ",")
-                                dados_centros_de_custo = processar_centros_de_custo(cc_texto, float(valor_total.replace(",", ".")))
+                                dados_centros_de_custo = process_cost_centers(cc_texto, float(valor_total.replace(",", ".")))
                                 logging.info(f"Dados dos centros de custo: {dados_centros_de_custo}")
                                 dados_email = {
                                     "departamento": departamento,
@@ -177,13 +178,13 @@ def verificar_emails():
                                 break
                             except Exception as e:
                                 logging.error(f"Erro ao processar o e-mail: {e}")
-                                enviar_email_erro(dani, sender, f"Erro ao processar o e-mail: {e}")
+                                send_email_error(dani, sender, f"Erro ao processar o e-mail: {e}")
                             else:
                                 logging.error("Erro ao processar o XML da nota fiscal")
-                                enviar_email_erro(dani, sender, "Erro ao processar o XML da nota fiscal")
+                                send_email_error(dani, sender, "Erro ao processar o XML da nota fiscal")
                         else:
                             logging.error("Erro ao salvar ou processar o anexo")
-                            enviar_email_erro(dani, sender, "Erro ao salvar ou processar o anexo")
+                            send_email_error(dani, sender, "Erro ao salvar ou processar o anexo")
             else:
                 charset = email_message.get_content_charset()
                 body = decode_body(email_message.get_payload(decode=True), charset)
@@ -210,7 +211,7 @@ def verificar_emails():
         return dados_extraidos
     except Exception as e:
         logging.error(f"Erro ao verificar emails: {e}")
-        enviar_email_erro(dani, sender, "caetano.apollo@carburgo.com.br", f"Erro ao verificar emails: {e}")
+        send_email_error(dani, sender, "caetano.apollo@carburgo.com.br", f"Erro ao verificar emails: {e}")
         return None
 
 def save_attachment(part, directory):
@@ -240,7 +241,7 @@ def save_attachment(part, directory):
         logging.error(f"Erro ao parsear o XML da nota fiscal: {filepath}")
         return None
 
-def processar_centros_de_custo(cc_texto, valor_total):
+def process_cost_centers(cc_texto, valor_total):
     valor_total = float(valor_total)
     centros_de_custo = []
     total_calculado = 0.0
@@ -284,7 +285,7 @@ def processar_centros_de_custo(cc_texto, valor_total):
 
     return centros_de_custo
 
-def enviar_email_erro(dani, destinatario, erro):
+def send_email_error(dani, destinatario, erro):
     config["to"] = destinatario
     dani = Queue(config)
 
@@ -304,7 +305,7 @@ def enviar_email_erro(dani, destinatario, erro):
     )
     dani.push(mensagem).push(mensagem_assinatura).flush()
 
-def enviar_mensagem_sucesso(dani, destinatario, numero_nota):
+def send_success_message(dani, destinatario, numero_nota):
     config["to"] = destinatario
     dani = Queue(config)
 
@@ -342,13 +343,13 @@ else:
     logging.error("Dados da nota fiscal não foram carregados")
 
 
-class SistemaNF:
+class SystemNF:
     logging.info("Entrou na classe do Sistema")
 
     def __init__(self, master=None):
         self.br = None
 
-    def executar_automacao_gui(
+    def automation_gui(
         self,
         departamento,
         origem,
@@ -367,7 +368,6 @@ class SistemaNF:
     ):
         logging.info("Entrou na parte da automação")
         try:
-            gui.PAUSE = 0.5
             data_atual = datetime.datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
             time.sleep(3)
@@ -485,7 +485,7 @@ class SistemaNF:
             gui.press("tab", presses=3)
             gui.press("enter")
         except Exception as e:
-            enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e)
+            send_email_error(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e)
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
 
@@ -494,7 +494,7 @@ if __name__ == "__main__":
     while True:
         logging.info("Iniciando a automação")
         try:
-            dados_extraidos = verificar_emails()
+            dados_extraidos = check_emails()
             if dados_extraidos is not None:
                 for dados in dados_extraidos:
                     if "departamento" in dados:
@@ -519,7 +519,7 @@ if __name__ == "__main__":
                             cnpj_dest = dados["destinatario"]["cnpj"]
                         else:
                             logging.error("Dados da nota fiscal não foram carregados corretamente")
-                            enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), "Erro: Dados da nota fiscal não foram carregados corretamente")
+                            send_email_error(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), "Erro: Dados da nota fiscal não foram carregados corretamente")
                             continue
 
                         # Verificação de campos obrigatórios
@@ -543,7 +543,7 @@ if __name__ == "__main__":
                             if not dados_centros_de_custo:
                                 mensagem_erro += "- Dados dos Centros de Custo\n"
                             logging.error(mensagem_erro)
-                            enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), mensagem_erro)
+                            send_email_error(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), mensagem_erro)
                             continue
 
                         # Executando a parte de revenda primeiro
@@ -564,7 +564,7 @@ if __name__ == "__main__":
                                 gui.press("enter")
                                 time.sleep(5)
                             else:
-                                enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), "Erro, CNPJ do destinatário não encontrado")
+                                send_email_error(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), "Erro, CNPJ do destinatário não encontrado")
                                 logging.error("Erro, CNPJ não encontrado")
 
                         # Adicionando logs para verificar os dados extraídos
@@ -582,9 +582,31 @@ if __name__ == "__main__":
                         logging.info(f"Chave de Acesso: {chave_acesso}")
                         logging.info(f"Modelo: {modelo}")
 
-                        sistema_nf = SistemaNF()
+                        sistema_nf = SystemNF()
+                        
+                        # Configuração do logger
+                        logger = logging.getLogger("SystemNFLogger")
+                        logger.setLevel(logging.INFO)
+
+                        # Criar um handler que cria um novo arquivo de log a cada dia
+                        log_dir = "logs"
+                        if not os.path.exists(log_dir):
+                            os.makedirs(log_dir)
+
+                        log_file = os.path.join(log_dir, "processamento_notas.log")
+                        handler = TimedRotatingFileHandler(log_file, when="midnight", interval=1)
+                        handler.suffix = "%Y-%m-%d"
+                        handler.setLevel(logging.INFO)
+
+                        # Formato do log
+                        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+                        handler.setFormatter(formatter)
+
+                        # Adicionar o handler ao logger
+                        logger.addHandler(handler)
+
                         try:
-                            sistema_nf.executar_automacao_gui(
+                            sistema_nf.automation_gui(
                                 departamento,
                                 origem,
                                 descricao,
@@ -601,15 +623,15 @@ if __name__ == "__main__":
                                 rateio
                             )
                             # Enviar mensagem de sucesso após a execução bem-sucedida
-                            enviar_mensagem_sucesso(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), nmr_nota)
+                            send_success_message(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), nmr_nota)
                         except Exception as e:
-                            enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e)
+                            send_email_error(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e)
                     else:
                         logging.info("Dados da nota fiscal não são usados para automação GUI")
             else:
                 logging.info("Nenhum dado extraído, automação não será executada")
         except Exception as e:
             logging.error(f"Erro durante a automação: {e}")
-            enviar_email_erro(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e)
+            send_email_error(dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e)
         logging.info("Esperando antes da nova verificação...")
         time.sleep(30)
