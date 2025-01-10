@@ -1,4 +1,5 @@
 import os
+import xml.etree.ElementTree as ET
 import sys
 import time
 import datetime
@@ -16,7 +17,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 from processar_xml import *
 from db_connection import *
-from DANImail import Queue
+from DANImail import Queue, WriteTo
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -25,6 +26,7 @@ logging.basicConfig(
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/bravos")
 
+from bravos import openBravos
 
 logging.info("Iniciando o Programa")
 
