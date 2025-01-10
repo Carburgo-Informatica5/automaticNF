@@ -38,8 +38,6 @@ PASSWORD = "p@r!sA1856"
 ASSUNTO_ALVO = "lançamentos notas fiscais DANI"
 # Diretório para salvar os anexos
 DIRECTORY = os.path.join(current_dir, "anexos")
-# Pasta local para mover as notas processadas
-NOTAS_PROCESSADAS = os.path.join(current_dir, "notas_processadas")
 
 
 def decode_header_value(header_value):
@@ -102,7 +100,11 @@ PROCESSED_EMAILS_FILE = os.path.join(current_dir, "processed_emails.json")
 def load_processed_emails():
     if os.path.exists(PROCESSED_EMAILS_FILE):
         with open(PROCESSED_EMAILS_FILE, "r") as file:
-            return json.load(file)
+            try:
+                return json.load(file)
+            except json.JSONDecodeError:
+                logging.error("Erro ao carregar processed_emails.json. O arquivo está vazio ou corrompido.")
+                return []
     return []
 
 def save_processed_emails(processed_emails):
@@ -110,6 +112,7 @@ def save_processed_emails(processed_emails):
         json.dump(processed_emails, file)
 
 def check_emails():
+    sender = None  # Inicializar a variável sender
     try:
         server = poplib.POP3_SSL(HOST, PORT)
         server.user(USERNAME)
@@ -119,9 +122,6 @@ def check_emails():
 
         if not os.path.exists(DIRECTORY):
             os.makedirs(DIRECTORY)
-
-        if not os.path.exists(NOTAS_PROCESSADAS):
-            os.makedirs(NOTAS_PROCESSADAS)
 
         processed_emails = load_processed_emails()
         dados_extraidos = []
@@ -208,7 +208,6 @@ def check_emails():
                                     dados_extraidos.append(dados_email)
                                     logging.info(f"Dados extraídos do email: {dados_email}")
                                     with open(
-                                        os.path.join(NOTAS_PROCESSADAS, f"email_{i}.eml"),
                                         "w",
                                     ) as f:
                                         f.write(raw_message)
@@ -219,6 +218,13 @@ def check_emails():
                                     logging.error(f"Erro ao processar o e-mail: {e}")
                                     send_email_error(
                                         dani, sender, f"Erro ao processar o e-mail: {e}"
+                                    )
+                                else:
+                                    logging.error("Erro ao processar o XML da nota fiscal")
+                                    send_email_error(
+                                        dani,
+                                        sender,
+                                        "Erro ao processar o XML da nota fiscal",
                                     )
                             else:
                                 logging.error("Erro ao salvar ou processar o anexo")
@@ -258,8 +264,7 @@ def check_emails():
         logging.error(f"Erro ao verificar emails: {e}")
         send_email_error(
             dani,
-            sender,
-            "caetano.apollo@carburgo.com.br",
+            sender if sender else "caetano.apollo@carburgo.com.br",
             f"Erro ao verificar emails: {e}",
         )
         return None
@@ -343,14 +348,14 @@ def process_cost_centers(cc_texto, valor_total):
     return centros_de_custo
 
 
-def send_email_error(dani, destinatario, erro):
+def send_email_error(dani, destinatario, erro, numero_nota):
     config["to"] = destinatario
     dani = Queue(config)
 
     mensagem = (
         dani.make_message()
         .set_color("red")
-        .add_text("Erro durante lançamento de nota fiscal", tag="h1")
+        .add_text(f"Erro durante lançamento de nota fiscal: {numero_nota}", tag="h1")
         .add_text(str(erro), tag="pre")
     )
 
