@@ -220,13 +220,6 @@ def check_emails():
                                     send_email_error(
                                         dani, sender, f"Erro ao processar o e-mail: {e}"
                                     )
-                                else:
-                                    logging.error("Erro ao processar o XML da nota fiscal")
-                                    send_email_error(
-                                        dani,
-                                        sender,
-                                        "Erro ao processar o XML da nota fiscal",
-                                    )
                             else:
                                 logging.error("Erro ao salvar ou processar o anexo")
                                 send_email_error(
