@@ -111,7 +111,7 @@ def save_processed_emails(processed_emails):
     with open(PROCESSED_EMAILS_FILE, "w") as file:
         json.dump(processed_emails, file)
 
-def check_emails():
+def check_emails(nmr_nota):
     sender = None  # Inicializar a variável sender
     try:
         server = poplib.POP3_SSL(HOST, PORT)
@@ -217,12 +217,12 @@ def check_emails():
                                 except Exception as e:
                                     logging.error(f"Erro ao processar o e-mail: {e}")
                                     send_email_error(
-                                        dani, sender, f"Erro ao processar o e-mail: {e}"
+                                        dani, sender, nmr_nota, f"Erro ao processar o e-mail: {e}"
                                     )
                             else:
                                 logging.error("Erro ao salvar ou processar o anexo")
                                 send_email_error(
-                                    dani, sender, "Erro ao salvar ou processar o anexo"
+                                    dani, sender, nmr_nota, "Erro ao salvar ou processar o anexo"
                                 )
                 else:
                     charset = email_message.get_content_charset()
@@ -258,6 +258,7 @@ def check_emails():
         send_email_error(
             dani,
             sender if sender else "caetano.apollo@carburgo.com.br",
+            nmr_nota,
             f"Erro ao verificar emails: {e}",
         )
         return None
@@ -341,14 +342,14 @@ def process_cost_centers(cc_texto, valor_total):
     return centros_de_custo
 
 
-def send_email_error(dani, destinatario, erro, numero_nota):
+def send_email_error(dani, destinatario, erro, nmr_nota):
     config["to"] = destinatario
     dani = Queue(config)
 
     mensagem = (
         dani.make_message()
         .set_color("red")
-        .add_text(f"Erro durante lançamento de nota fiscal: {numero_nota}", tag="h1")
+        .add_text(f"Erro durante lançamento de nota fiscal: {nmr_nota}", tag="h1")
         .add_text(str(erro), tag="pre")
     )
 
@@ -365,14 +366,14 @@ def send_email_error(dani, destinatario, erro, numero_nota):
     dani.push(mensagem).push(mensagem_assinatura).flush()
 
 
-def send_success_message(dani, destinatario, numero_nota):
+def send_success_message(dani, destinatario, nmr_nota):
     config["to"] = destinatario
     dani = Queue(config)
 
     mensagem = (
         dani.make_message()
         .set_color("green")
-        .add_text(f"Nota lançada com sucesso número da nota: {numero_nota}", tag="h1")
+        .add_text(f"Nota lançada com sucesso número da nota: {nmr_nota}", tag="h1")
         .add_text("Acesse o sistema para verificar o lançamento.", tag="pre")
     )
 
@@ -548,7 +549,7 @@ class SystemNF:
             gui.press("enter")
         except Exception as e:
             send_email_error(
-                dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e
+                dani, nmr_nota, dados.get("sender", "caetano.apollo@carburgo.com.br"), e
             )
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
@@ -558,7 +559,7 @@ if __name__ == "__main__":
     while True:
         logging.info("Iniciando a automação")
         try:
-            dados_extraidos = check_emails()
+            dados_extraidos = check_emails(nmr_nota)
             if dados_extraidos is not None:
                 for dados in dados_extraidos:
                     if "departamento" in dados:
@@ -594,6 +595,7 @@ if __name__ == "__main__":
                             )
                             send_email_error(
                                 dani,
+                                nmr_nota,
                                 dados.get("sender", "caetano.apollo@carburgo.com.br"),
                                 "Erro: Dados da nota fiscal não foram carregados corretamente",
                             )
@@ -630,6 +632,7 @@ if __name__ == "__main__":
                             logging.error(mensagem_erro)
                             send_email_error(
                                 dani,
+                                nmr_nota,
                                 dados.get("sender", "caetano.apollo@carburgo.com.br"),
                                 mensagem_erro,
                             )
@@ -655,6 +658,7 @@ if __name__ == "__main__":
                             else:
                                 send_email_error(
                                     dani,
+                                    nmr_nota,
                                     dados.get(
                                         "sender", "caetano.apollo@carburgo.com.br"
                                     ),
@@ -732,6 +736,7 @@ if __name__ == "__main__":
                         except Exception as e:
                             send_email_error(
                                 dani,
+                                nmr_nota,
                                 dados.get("sender", "caetano.apollo@carburgo.com.br"),
                                 e,
                             )
@@ -744,7 +749,7 @@ if __name__ == "__main__":
         except Exception as e:
             logging.error(f"Erro durante a automação: {e}")
             send_email_error(
-                dani, dados.get("sender", "caetano.apollo@carburgo.com.br"), e
+                dani, nmr_nota, dados.get("sender", "caetano.apollo@carburgo.com.br"), e
             )
         logging.info("Esperando antes da nova verificação...")
         time.sleep(30)
