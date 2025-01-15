@@ -124,7 +124,6 @@ def check_emails(nmr_nota):
             os.makedirs(DIRECTORY)
 
         processed_emails = load_processed_emails()
-        dados_extraidos = []
 
         for i in range(num_messages):
             response, lines, octets = server.retr(i + 1)
@@ -204,55 +203,31 @@ def check_emails(nmr_nota):
                                         "destinatario": dados_nota_fiscal["destinatario"],
                                         "rateio": rateio,
                                         "sender": sender,
+                                        "email_id": email_id,  # Adiciona o ID do e-mail
                                     }
-                                    dados_extraidos.append(dados_email)
-                                    logging.info(f"Dados extraídos do email: {dados_email}")
-                                    with open(
-                                        "w",
-                                    ) as f:
-                                        f.write(raw_message)
-                                    # Adicionar o ID do e-mail processado à lista
-                                    processed_emails.append(email_id)
-                                    break
+                                    server.quit()
+                                    return dados_email  # Retorna os dados do primeiro e-mail encontrado
                                 except Exception as e:
                                     logging.error(f"Erro ao processar o e-mail: {e}")
                                     send_email_error(
                                         dani, sender, nmr_nota, f"Erro ao processar o e-mail: {e}"
                                     )
+                                    server.quit()
+                                    return None
                             else:
                                 logging.error("Erro ao salvar ou processar o anexo")
                                 send_email_error(
                                     dani, sender, nmr_nota, "Erro ao salvar ou processar o anexo"
                                 )
+                                server.quit()
+                                return None
                 else:
                     charset = email_message.get_content_charset()
                     body = decode_body(email_message.get_payload(decode=True), charset)
 
         server.quit()
-
-        # Salvar a lista de e-mails processados
-        save_processed_emails(processed_emails)
-
-        # Carregar dados das notas fiscais processadas
-        pasta_notas = os.path.join(current_dir, "NOTA EM JSON")
-        if not os.path.exists(pasta_notas):
-            os.makedirs(pasta_notas)
-
-        for arquivo in os.listdir(pasta_notas):
-            if arquivo.endswith(".json"):
-                caminho_completo = os.path.join(pasta_notas, arquivo)
-                with open(caminho_completo, "r") as json_file:
-                    dados_nota_fiscal = json.load(json_file)
-                    dados_extraidos.append(dados_nota_fiscal)
-                    logging.info(
-                        f"Dados da nota fiscal carregados: {dados_nota_fiscal}"
-                    )
-
-        if not dados_extraidos:
-            logging.info("Nenhum dado extraído encontrado")
-
-        logging.info(f"Dados extraídos: {dados_extraidos}")
-        return dados_extraidos
+        logging.info("Nenhum e-mail com o assunto alvo encontrado")
+        return None
     except Exception as e:
         logging.error(f"Erro ao verificar emails: {e}")
         send_email_error(
@@ -559,6 +534,7 @@ if __name__ == "__main__":
     while True:
         logging.info("Iniciando a automação")
         try:
+            nmr_nota = ''
             dados_extraidos = check_emails(nmr_nota)
             if dados_extraidos is not None:
                 for dados in dados_extraidos:
@@ -710,6 +686,7 @@ if __name__ == "__main__":
                         # Adicionar o handler ao logger
                         logger.addHandler(handler)
 
+                        processed_emails = load_processed_emails()
                         try:
                             sistema_nf.automation_gui(
                                 departamento,
@@ -727,7 +704,10 @@ if __name__ == "__main__":
                                 modelo,
                                 rateio,
                             )
-                            # Enviar mensagem de sucesso após a execução bem-sucedida
+                            # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
+                            processed_emails = load_processed_emails()
+                            processed_emails.append(dados["email_id"])
+                            save_processed_emails(processed_emails)
                             send_success_message(
                                 dani,
                                 dados.get("sender", "caetano.apollo@carburgo.com.br"),
