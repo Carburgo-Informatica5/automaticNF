@@ -434,7 +434,6 @@ class SystemNF:
             data_atual = datetime.datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
             time.sleep(3)
-            # Localiza a janela do BRAVOS pelo título
             window = gw.getWindowsWithTitle("BRAVOS v5.17 Evolutivo")[0]
             if not window:
                 raise Exception("Janela do BRAVOS não encontrada")
