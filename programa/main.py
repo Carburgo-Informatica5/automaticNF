@@ -2,7 +2,7 @@ import os
 import xml.etree.ElementTree as ET
 import sys
 import time
-import datetime
+from datetime import datetime, timedelta
 import pyautogui as gui
 import pygetwindow as gw
 import pytesseract
@@ -374,29 +374,30 @@ def processar_parcelas(parcelas):
     logging.info("Iniciando o processamento das parcelas")
     for parcela in parcelas:
         logging.info(f"Processando parcela: {parcela}")
+
         data_vencimento = parcela["data_vencimento"]
         valor_parcela = parcela["valor_parcela"]
 
-        # Calcular a quantidade de dias para o vencimento
-        data_vencimento_formatada = datetime.datetime.strptime(data_vencimento, "%Y-%m-%d")
-        dias_para_vencimento = (data_vencimento_formatada - datetime.datetime.now()).days
+        # Formatar a data de vencimento
+        data_vencimento_formatada = datetime.strptime(data_vencimento, "%Y-%m-%d")
 
-        # Log de informações para debug
+        # Adicionar um dia à data de vencimento
+        data_vencimento_ajustada = data_vencimento_formatada + timedelta(days=1)
+
+        # Calcular os dias restantes para o vencimento ajustado
+        dias_para_vencimento = (data_vencimento_ajustada - datetime.now()).days
+
+        # Log para verificar a data ajustada e os dias calculados
         logging.info(
-            f"Parcela com vencimento em {data_vencimento_formatada.strftime('%d/%m/%Y')} faltam {dias_para_vencimento} dias."
+            f"Parcela ajustada para vencimento em {data_vencimento_ajustada.strftime('%d/%m/%Y')} "
+            f"faltam {dias_para_vencimento} dias."
         )
 
-        # Preparar a data no formato para o sistema
-        data_vencimento_sistema = data_vencimento_formatada.strftime("%d%m%Y")
-
-        gui.write(str(dias_para_vencimento))
-        gui.press("tab", presses=2)
-        gui.write(valor_parcela.replace(".", ","))
-        gui.press("enter")
-
-        logging.info(
-            f"Parcela lançada no sistema: Data {data_vencimento_sistema}, Valor {valor_parcela}"
-        )
+    # Passar os dias ajustados para o sistema
+    gui.write(str(dias_para_vencimento))
+    gui.press("tab", presses=2)
+    gui.write(valor_parcela.replace(".", ","))
+    gui.press("enter")
 
 dados_nota_fiscal = None
 
@@ -458,11 +459,9 @@ class SystemNF:
         logging.info(f"Modelo: {modelo}")
         logging.info(f"Rateio: {rateio}")
         logging.info(f"Parcelas recebidas para automação: {parcelas}")
-        logging.info(f"Parcelas recebidas em automation_gui: {parcelas}")
-        
-        logging.info("Entrou na parte da automação")
+
         try:
-            data_atual = datetime.datetime.now()
+            data_atual = datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
             time.sleep(3)
             window = gw.getWindowsWithTitle("BRAVOS v5.17 Evolutivo")[0]
@@ -474,7 +473,7 @@ class SystemNF:
             gui.moveTo(x, y, duration=0.5)
             gui.click()
             time.sleep(15)
-            gui.press("tab", presses=19)
+            gui.press("tab", presses=22)
             gui.write(cnpj_emitente)
             time.sleep(2)
             gui.press("enter")
@@ -548,12 +547,13 @@ class SystemNF:
             gui.press("tab", presses=5)
             gui.press("enter")
             
-            logging.INFO(f"Processando parcelas: {parcelas}")
+            logging.info(f"Processando parcelas: {parcelas}")
+            gui.press("tab")
             processar_parcelas(parcelas)  # Processa as parcelas
             
-            gui.press("tab", presses=4)
+            gui.press("tab", presses=3)
             gui.press(["enter", "tab", "tab", "tab", "enter"])
-            gui.press("tab", presses=36)
+            gui.press("tab", presses=35)
             if rateio.lower() == "sim":
                 gui.press("enter")
                 gui.press("tab", presses=8)
@@ -589,7 +589,6 @@ class SystemNF:
             )
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
-
 
 if __name__ == "__main__":
     while True:
