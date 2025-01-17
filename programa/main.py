@@ -204,7 +204,13 @@ def check_emails(nmr_nota):
                                         "rateio": rateio,
                                         "sender": sender,
                                         "email_id": email_id,  # Adiciona o ID do e-mail
+                                        "parcelas": dados_nota_fiscal["pagamento_parcelado"],
                                     }
+                                    
+                                    logging.info(f"Dados carregados: {dados_nota_fiscal}")
+                                    logging.info(f"Parcelas carregadas: {dados_nota_fiscal.get('pagamento_parcelado')}")
+
+                                    
                                     server.quit()
                                     return dados_email  # Retorna os dados do primeiro e-mail encontrado
                                 except Exception as e:
@@ -364,6 +370,33 @@ def send_success_message(dani, destinatario, nmr_nota):
     )
     dani.push(mensagem).push(mensagem_assinatura).flush()
 
+def processar_parcelas(parcelas):
+    logging.info("Iniciando o processamento das parcelas")
+    for parcela in parcelas:
+        logging.info(f"Processando parcela: {parcela}")
+        data_vencimento = parcela["data_vencimento"]
+        valor_parcela = parcela["valor_parcela"]
+
+        # Calcular a quantidade de dias para o vencimento
+        data_vencimento_formatada = datetime.datetime.strptime(data_vencimento, "%Y-%m-%d")
+        dias_para_vencimento = (data_vencimento_formatada - datetime.datetime.now()).days
+
+        # Log de informações para debug
+        logging.info(
+            f"Parcela com vencimento em {data_vencimento_formatada.strftime('%d/%m/%Y')} faltam {dias_para_vencimento} dias."
+        )
+
+        # Preparar a data no formato para o sistema
+        data_vencimento_sistema = data_vencimento_formatada.strftime("%d%m%Y")
+
+        gui.write(str(dias_para_vencimento))
+        gui.press("tab", presses=2)
+        gui.write(valor_parcela.replace(".", ","))
+        gui.press("enter")
+
+        logging.info(
+            f"Parcela lançada no sistema: Data {data_vencimento_sistema}, Valor {valor_parcela}"
+        )
 
 dados_nota_fiscal = None
 
@@ -378,6 +411,7 @@ if dados_nota_fiscal is not None:
     data_emi = dados_nota_fiscal["data_emi"]["data_emissao"]
     data_venc = dados_nota_fiscal["data_venc"]["data_venc"]
     modelo = dados_nota_fiscal["modelo"]["modelo"]
+    parcelas = dados_nota_fiscal["pagamento_parcelado"]
 else:
     logging.error("Dados da nota fiscal não foram carregados")
 
@@ -404,7 +438,28 @@ class SystemNF:
         chave_acesso,
         modelo,
         rateio,
+        parcelas,
     ):
+        if not parcelas:
+            logging.warning("As parcelas estão vazias ao entrar em automation_gui")
+        logging.info("Entrou na parte da automação")
+        logging.info(f"Departamento: {departamento}")
+        logging.info(f"Origem: {origem}")
+        logging.info(f"Descrição: {descricao}")
+        logging.info(f"CC: {cc}")
+        logging.info(f"Código do Item: {cod_item}")
+        logging.info(f"Valor Total: {valor_total}")
+        logging.info(f"Dados dos Centros de Custo: {dados_centros_de_custo}")
+        logging.info(f"CNPJ Emitente: {cnpj_emitente}")
+        logging.info(f"Número da Nota: {nmr_nota}")
+        logging.info(f"Data de Emissão: {data_emi}")
+        logging.info(f"Data de Vencimento: {data_venc}")
+        logging.info(f"Chave de Acesso: {chave_acesso}")
+        logging.info(f"Modelo: {modelo}")
+        logging.info(f"Rateio: {rateio}")
+        logging.info(f"Parcelas recebidas para automação: {parcelas}")
+        logging.info(f"Parcelas recebidas em automation_gui: {parcelas}")
+        
         logging.info("Entrou na parte da automação")
         try:
             data_atual = datetime.datetime.now()
@@ -437,6 +492,9 @@ class SystemNF:
             screenshot = screenshot.point(lambda p: p > threshold and 255)
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
+            
+            gui.PAUSE = 1
+            
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
             gui.press("alt")
@@ -488,9 +546,11 @@ class SystemNF:
             gui.press("tab", presses=11)
             gui.press("left", presses=2)
             gui.press("tab", presses=5)
-            gui.press(["enter", "tab", "enter"])
-            gui.press("tab", presses=5)
-            gui.write(data_venc)
+            gui.press("enter")
+            
+            logging.INFO(f"Processando parcelas: {parcelas}")
+            processar_parcelas(parcelas)  # Processa as parcelas
+            
             gui.press("tab", presses=4)
             gui.press(["enter", "tab", "tab", "tab", "enter"])
             gui.press("tab", presses=36)
@@ -522,9 +582,10 @@ class SystemNF:
                         gui.press("tab", presses=3)
             gui.press("tab", presses=3)
             gui.press("enter")
+
         except Exception as e:
             send_email_error(
-                dani, nmr_nota, dados.get("sender", "caetano.apollo@carburgo.com.br"), e
+                dani, nmr_nota, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), e
             )
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
@@ -535,201 +596,205 @@ if __name__ == "__main__":
         logging.info("Iniciando a automação")
         try:
             nmr_nota = ''
-            dados_extraidos = check_emails(nmr_nota)
-            if dados_extraidos is not None:
-                for dados in dados_extraidos:
-                    if "departamento" in dados:
-                        logging.info("Executando automação GUI")
-                        departamento = dados.get("departamento")
-                        origem = dados.get("origem")
-                        descricao = dados.get("descricao")
-                        cc = dados.get("cc")
-                        cod_item = dados.get("cod_item")
-                        valor_total = dados.get("valor_total")
-                        dados_centros_de_custo = dados.get("dados_centros_de_custo")
-                        rateio = dados.get("rateio")
+            dados_email = check_emails(nmr_nota)
+            if dados_email is not None:
+                logging.info("Executando automação GUI")
+                logging.info(f"Conteúdo completo de dados_email: {dados_email}")
 
-                        if (
-                            "emitente" in dados
-                            and "num_nota" in dados
-                            and "data_emi" in dados
-                            and "data_venc" in dados
-                            and "chave_acesso" in dados
-                            and "modelo" in dados
-                            and "destinatario" in dados
-                        ):
-                            cnpj_emitente = dados["emitente"]["cnpj"]
-                            nmr_nota = dados["num_nota"]["numero_nota"]
-                            data_emi = dados["data_emi"]["data_emissao"]
-                            data_venc = dados["data_venc"]["data_venc"]
-                            chave_acesso = dados["chave_acesso"]["chave"]
-                            modelo = dados["modelo"]["modelo"]
-                            cnpj_dest = dados["destinatario"]["cnpj"]
-                        else:
-                            logging.error(
-                                "Dados da nota fiscal não foram carregados corretamente"
-                            )
-                            send_email_error(
-                                dani,
-                                nmr_nota,
-                                dados.get("sender", "caetano.apollo@carburgo.com.br"),
-                                "Erro: Dados da nota fiscal não foram carregados corretamente",
-                            )
-                            continue
+                departamento = dados_email.get("departamento")
+                origem = dados_email.get("origem")
+                descricao = dados_email.get("descricao")
+                cc = dados_email.get("cc")
+                cod_item = dados_email.get("cod_item")
+                valor_total = dados_email.get("valor_total")
+                dados_centros_de_custo = dados_email.get("dados_centros_de_custo")
+                rateio = dados_email.get("rateio")
+                parcelas = dados_email.get("parcelas", [])
+                if "parcelas" in dados_email:
+                    parcelas = dados_email["parcelas"]
+                else:
+                    logging.warning("Chave 'parcelas' não encontrada em dados_email")
+                logging.info(f"Parcelas recebidas: {parcelas}")
 
-                        # Verificação de campos obrigatórios
-                        campos_obrigatorios = [
-                            departamento,
-                            origem,
-                            descricao,
-                            cc,
-                            cod_item,
-                            valor_total,
-                            dados_centros_de_custo,
-                        ]
-                        if not all(campos_obrigatorios):
-                            mensagem_erro = (
-                                "Faltando campos obrigatórios para o lançamento:\n"
-                            )
-                            if not departamento:
-                                mensagem_erro += "- Departamento\n"
-                            if not origem:
-                                mensagem_erro += "- Origem\n"
-                            if not descricao:
-                                mensagem_erro += "- Descrição\n"
-                            if not cc:
-                                mensagem_erro += "- CC\n"
-                            if not cod_item:
-                                mensagem_erro += "- Código de tributação do item\n"
-                            if not valor_total:
-                                mensagem_erro += "- Valor Total\n"
-                            if not dados_centros_de_custo:
-                                mensagem_erro += "- Dados dos Centros de Custo\n"
-                            logging.error(mensagem_erro)
-                            send_email_error(
-                                dani,
-                                nmr_nota,
-                                dados.get("sender", "caetano.apollo@carburgo.com.br"),
-                                mensagem_erro,
-                            )
-                            continue
+                if (
+                    "emitente" in dados_email
+                    and "num_nota" in dados_email
+                    and "data_emi" in dados_email
+                    and "data_venc" in dados_email
+                    and "chave_acesso" in dados_email
+                    and "modelo" in dados_email
+                    and "destinatario" in dados_email
+                ):
+                    cnpj_emitente = dados_email["emitente"]["cnpj"]
+                    nmr_nota = dados_email["num_nota"]["numero_nota"]
+                    data_emi = dados_email["data_emi"]["data_emissao"]
+                    data_venc = dados_email["data_venc"]["data_venc"]
+                    chave_acesso = dados_email["chave_acesso"]["chave"]
+                    modelo = dados_email["modelo"]["modelo"]
+                    cnpj_dest = dados_email["destinatario"]["cnpj"]
+                else:
+                    logging.error(
+                        "Dados da nota fiscal não foram carregados corretamente"
+                    )
+                    send_email_error(
+                        dani,
+                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                        nmr_nota,
+                        "Erro: Dados da nota fiscal não foram carregados corretamente",
+                    )
+                    continue
 
-                        # Executando a parte de revenda primeiro
-                        if cnpj_dest:
-                            result = revenda(cnpj_dest)
-                            if result:
-                                empresa, revenda = result
-                                logging.info(f"Empresa: {empresa}, Revenda: {revenda}")
+                # Verificação de campos obrigatórios
+                campos_obrigatorios = [
+                    departamento,
+                    origem,
+                    descricao,
+                    cc,
+                    cod_item,
+                    valor_total,
+                    dados_centros_de_custo,
+                ]
+                if not all(campos_obrigatorios):
+                    mensagem_erro = (
+                        "Faltando campos obrigatórios para o lançamento:\n"
+                    )
+                    if not departamento:
+                        mensagem_erro += "- Departamento\n"
+                    if not origem:
+                        mensagem_erro += "- Origem\n"
+                    if not descricao:
+                        mensagem_erro += "- Descrição\n"
+                    if not cc:
+                        mensagem_erro += "- CC\n"
+                    if not cod_item:
+                        mensagem_erro += "- Código de tributação do item\n"
+                    if not valor_total:
+                        mensagem_erro += "- Valor Total\n"
+                    if not dados_centros_de_custo:
+                        mensagem_erro += "- Dados dos Centros de Custo\n"
+                    logging.error(mensagem_erro)
+                    send_email_error(
+                        dani,
+                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                        nmr_nota,
+                        mensagem_erro,
+                    )
+                    continue
 
-                                # Acessando o menu
-                                gui.press("alt")
-                                gui.press("right")
-                                gui.press("down")
-                                gui.press("enter")
-                                gui.press("down", presses=2)
+                # Executando a parte de revenda primeiro
+                if cnpj_dest:
+                    result = revenda(cnpj_dest)
+                    if result:
+                        empresa, revenda = result
+                        logging.info(f"Empresa: {empresa}, Revenda: {revenda}")
 
-                                gui.write(f"{empresa}.{revenda}")
-                                gui.press("enter")
-                                time.sleep(5)
-                            else:
-                                send_email_error(
-                                    dani,
-                                    nmr_nota,
-                                    dados.get(
-                                        "sender", "caetano.apollo@carburgo.com.br"
-                                    ),
-                                    "Erro, CNPJ do destinatário não encontrado",
-                                )
-                                logging.error("Erro, CNPJ não encontrado")
+                        # Acessando o menu
+                        gui.press("alt")
+                        gui.press("right")
+                        gui.press("down")
+                        gui.press("enter")
+                        gui.press("down", presses=2)
 
-                        # Adicionando logs para verificar os dados extraídos
-                        logging.info(f"Departamento: {departamento}")
-                        logging.info(f"Origem: {origem}")
-                        logging.info(f"Descrição: {descricao}")
-                        logging.info(f"CC: {cc}")
-                        logging.info(f"Código do Item: {cod_item}")
-                        logging.info(f"Valor Total: {valor_total}")
-                        logging.info(
-                            f"Dados dos Centros de Custo: {dados_centros_de_custo}"
-                        )
-                        logging.info(f"CNPJ Eminente: {cnpj_emitente}")
-                        logging.info(f"Número da Nota: {nmr_nota}")
-                        logging.info(f"Data de Emissão: {data_emi}")
-                        logging.info(f"Data de Vencimento: {data_venc}")
-                        logging.info(f"Chave de Acesso: {chave_acesso}")
-                        logging.info(f"Modelo: {modelo}")
-
-                        sistema_nf = SystemNF()
-
-                        # Configuração do logger
-                        logger = logging.getLogger("SystemNFLogger")
-                        logger.setLevel(logging.INFO)
-
-                        # Criar um handler que cria um novo arquivo de log a cada dia
-                        log_dir = "logs"
-                        if not os.path.exists(log_dir):
-                            os.makedirs(log_dir)
-
-                        log_file = os.path.join(log_dir, "processamento_notas.log")
-                        handler = TimedRotatingFileHandler(
-                            log_file, when="midnight", interval=1
-                        )
-                        handler.suffix = "%d-%m-%Y"
-                        handler.setLevel(logging.INFO)
-
-                        # Formato do log
-                        formatter = logging.Formatter(
-                            "%(asctime)s - %(levelname)s - %(message)s"
-                        )
-                        handler.setFormatter(formatter)
-
-                        # Adicionar o handler ao logger
-                        logger.addHandler(handler)
-
-                        processed_emails = load_processed_emails()
-                        try:
-                            sistema_nf.automation_gui(
-                                departamento,
-                                origem,
-                                descricao,
-                                cc,
-                                cod_item,
-                                valor_total,
-                                dados_centros_de_custo,
-                                cnpj_emitente,
-                                nmr_nota,
-                                data_emi,
-                                data_venc,
-                                chave_acesso,
-                                modelo,
-                                rateio,
-                            )
-                            # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
-                            processed_emails = load_processed_emails()
-                            processed_emails.append(dados["email_id"])
-                            save_processed_emails(processed_emails)
-                            send_success_message(
-                                dani,
-                                dados.get("sender", "caetano.apollo@carburgo.com.br"),
-                                nmr_nota,
-                            )
-                        except Exception as e:
-                            send_email_error(
-                                dani,
-                                nmr_nota,
-                                dados.get("sender", "caetano.apollo@carburgo.com.br"),
-                                e,
-                            )
+                        gui.write(f"{empresa}.{revenda}")
+                        gui.press("enter")
+                        time.sleep(5)
                     else:
-                        logging.info(
-                            "Dados da nota fiscal não são usados para automação GUI"
+                        send_email_error(
+                            dani,
+                            nmr_nota,
+                            dados_email.get(
+                                "sender", "caetano.apollo@carburgo.com.br"
+                            ),
+                            "Erro, CNPJ do destinatário não encontrado",
                         )
+                        logging.error("Erro, CNPJ não encontrado")
+
+                # Adicionando logs para verificar os dados extraídos
+                logging.info(f"Departamento: {departamento}")
+                logging.info(f"Origem: {origem}")
+                logging.info(f"Descrição: {descricao}")
+                logging.info(f"CC: {cc}")
+                logging.info(f"Código do Item: {cod_item}")
+                logging.info(f"Valor Total: {valor_total}")
+                logging.info(
+                    f"Dados dos Centros de Custo: {dados_centros_de_custo}"
+                )
+                logging.info(f"CNPJ Eminente: {cnpj_emitente}")
+                logging.info(f"Número da Nota: {nmr_nota}")
+                logging.info(f"Data de Emissão: {data_emi}")
+                logging.info(f"Data de Vencimento: {data_venc}")
+                logging.info(f"Chave de Acesso: {chave_acesso}")
+                logging.info(f"Modelo: {modelo}")
+
+                sistema_nf = SystemNF()
+
+                # Configuração do logger
+                logger = logging.getLogger("SystemNFLogger")
+                logger.setLevel(logging.INFO)
+
+                # Criar um handler que cria um novo arquivo de log a cada dia
+                log_dir = "logs"
+                if not os.path.exists(log_dir):
+                    os.makedirs(log_dir)
+
+                log_file = os.path.join(log_dir, "processamento_notas.log")
+                handler = TimedRotatingFileHandler(
+                    log_file, when="midnight", interval=1
+                )
+                handler.suffix = "%d-%m-%Y"
+                handler.setLevel(logging.INFO)
+
+                # Formato do log
+                formatter = logging.Formatter(
+                    "%(asctime)s - %(levelname)s - %(message)s"
+                )
+                handler.setFormatter(formatter)
+
+                # Adicionar o handler ao logger
+                logger.addHandler(handler)
+
+                logging.info(f"Parcelas a serem passadas para automation_gui: {parcelas}")
+
+                try:
+                    sistema_nf.automation_gui(
+                        departamento,
+                        origem,
+                        descricao,
+                        cc,
+                        cod_item,
+                        valor_total,
+                        dados_centros_de_custo,
+                        cnpj_emitente,
+                        nmr_nota,
+                        data_emi,
+                        data_venc,
+                        chave_acesso,
+                        modelo,
+                        rateio,
+                        parcelas 
+                    )
+                    # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
+                    processed_emails = load_processed_emails()
+                    processed_emails.append(dados_email["email_id"])
+                    save_processed_emails(processed_emails)
+                    send_success_message(
+                        dani,
+                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                        nmr_nota,
+                    )
+                except Exception as e:
+                    send_email_error(
+                        dani,
+                        nmr_nota,
+                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                        e,
+                    )
             else:
                 logging.info("Nenhum dado extraído, automação não será executada")
         except Exception as e:
             logging.error(f"Erro durante a automação: {e}")
             send_email_error(
-                dani, nmr_nota, dados.get("sender", "caetano.apollo@carburgo.com.br"), e
+                dani, nmr_nota, "caetano.apollo@carburgo.com.br", e
             )
         logging.info("Esperando antes da nova verificação...")
         time.sleep(30)

@@ -46,7 +46,9 @@ def parse_nota_fiscal(xml_file_path):
             "data_emi": {},
             "data_venc": {},
             "modelo": {},
-            "valor_total": []
+            "valor_total": [],
+            "pagamento_parcelado": [],
+            "info_adicional": {},
         }
 
         # Extrair informações do emitente
@@ -84,15 +86,6 @@ def parse_nota_fiscal(xml_file_path):
             if modelo:
                 nota_fiscal_data["modelo"] = {"modelo": modelo}
 
-        # Extrair valor total
-        total = root.find(".//ns:ICMSTot", namespaces)
-        if total is not None:
-            valor_total = total.findtext("ns:vNF", namespaces=namespaces)
-            if valor_total:
-                nota_fiscal_data["valor_total"].append({
-                    "valor_total": valor_total
-                })
-
         # Extrair data de vencimento
         data_venc = root.find(".//ns:cobr/ns:dup/ns:dVenc", namespaces=namespaces)
         if data_venc is not None:
@@ -107,7 +100,28 @@ def parse_nota_fiscal(xml_file_path):
             nota_fiscal_data["chave_acesso"] = {"chave": chave_completa[3:]}
         else:
             nota_fiscal_data["chave_acesso"] = {"chave": None}
-
+        
+        total = root.find(".//ns:ICMSTot", namespaces)
+        if total is not None:
+            valor_total = total.findtext("ns:vNF", namespaces=namespaces)
+            if valor_total:
+                nota_fiscal_data["valor_total"].append({
+                    "valor_total": valor_total
+                })
+        
+        # Extrair parcelas
+        parcelas = root.findall(".//ns:cobr/ns:dup", namespaces)
+        for parcela in parcelas:
+            numero_parcela = parcela.findtext("ns:nDup", namespaces=namespaces)
+            data_vencimento = parcela.findtext("ns:dVenc", namespaces=namespaces)
+            valor_parcela = parcela.findtext("ns:vDup", namespaces=namespaces)
+            if numero_parcela and data_vencimento and valor_parcela:
+                nota_fiscal_data["pagamento_parcelado"].append({
+                    "numero_parcela": numero_parcela,
+                    "data_vencimento": data_vencimento,
+                    "valor_parcela": valor_parcela
+                })
+        
         # Extrair informações adicionais de data e dias
         inf_adic = root.find(".//ns:infAdic/ns:infCpl", namespaces)
         if inf_adic is not None:
