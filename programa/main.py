@@ -393,11 +393,12 @@ def processar_parcelas(parcelas):
             f"faltam {dias_para_vencimento} dias."
         )
 
-    # Passar os dias ajustados para o sistema
-    gui.write(str(dias_para_vencimento))
-    gui.press("tab", presses=2)
-    gui.write(valor_parcela.replace(".", ","))
-    gui.press("enter")
+        # Passar os dias ajustados para o sistema
+        gui.write(str(dias_para_vencimento))
+        gui.press("tab", presses=2)
+        gui.write(valor_parcela.replace(".", ","))
+        gui.press("enter")
+        gui.press("enter")
 
 dados_nota_fiscal = None
 
@@ -549,11 +550,12 @@ class SystemNF:
             
             logging.info(f"Processando parcelas: {parcelas}")
             gui.press("tab")
-            processar_parcelas(parcelas)  # Processa as parcelas
+            gui.press("enter")
+            processar_parcelas(parcelas)
             
             gui.press("tab", presses=3)
             gui.press(["enter", "tab", "tab", "tab", "enter"])
-            gui.press("tab", presses=35)
+            gui.press("tab", presses=3)
             if rateio.lower() == "sim":
                 gui.press("enter")
                 gui.press("tab", presses=8)

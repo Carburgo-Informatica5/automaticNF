@@ -8,7 +8,7 @@
                 <natOp>Venda de mercadorias adquirida de terceiros</natOp>
                 <mod>55</mod>
                 <serie>1</serie>
-                <nNF>97</nNF>
+                <nNF>77777</nNF>
                 <dhEmi>2025-01-09T18:05:25-03:00</dhEmi>
                 <dhSaiEnt>2025-01-09T18:05:59-03:00</dhSaiEnt>
                 <tpNF>1</tpNF>
@@ -569,7 +569,7 @@
                 </fat>
                 <dup>
                     <nDup>001</nDup>
-                    <dVenc>2025-01-19</dVenc>
+                    <dVenc>2025-01-31</dVenc>
                     <vDup>1001.90</vDup>
                 </dup>
                 <dup>
