@@ -555,7 +555,7 @@ class SystemNF:
             
             gui.press("tab", presses=3)
             gui.press(["enter", "tab", "tab", "tab", "enter"])
-            gui.press("tab", presses=3)
+            gui.press("tab", presses=35)
             if rateio.lower() == "sim":
                 gui.press("enter")
                 gui.press("tab", presses=8)
@@ -582,7 +582,7 @@ class SystemNF:
                         logging.info("Último centro de custo salvo e encerrado.")
                     else:
                         gui.press("tab", presses=3)
-            gui.press("tab", presses=3)
+            gui.press("tab", presses=4)
             gui.press("enter")
 
         except Exception as e:
