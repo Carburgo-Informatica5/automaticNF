@@ -203,6 +203,7 @@ def check_emails(nmr_nota):
                                         "destinatario": dados_nota_fiscal["destinatario"],
                                         "rateio": rateio,
                                         "sender": sender,
+                                        "serie": dados_nota_fiscal["serie"],
                                         "email_id": email_id,  # Adiciona o ID do e-mail
                                         "parcelas": dados_nota_fiscal["pagamento_parcelado"],
                                     }
@@ -441,6 +442,7 @@ class SystemNF:
         modelo,
         rateio,
         parcelas,
+        serie,
     ):
         if not parcelas:
             logging.warning("As parcelas estão vazias ao entrar em automation_gui")
@@ -474,7 +476,7 @@ class SystemNF:
             gui.moveTo(x, y, duration=0.5)
             gui.click()
             time.sleep(15)
-            gui.press("tab", presses=22)
+            gui.press("tab", presses=19) # Ver maneira de colocar 22 quando necessario
             gui.write(cnpj_emitente)
             time.sleep(2)
             gui.press("enter")
@@ -488,12 +490,10 @@ class SystemNF:
             x, y, width, height = janela_left + 500, janela_top + 323, 120, 21
             screenshot = gui.screenshot(region=(x, y, width, height))
             screenshot = screenshot.convert("L")
-            threshold = 150
+            threshold = 190
             screenshot = screenshot.point(lambda p: p > threshold and 255)
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
-            
-            gui.PAUSE = 1
             
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
@@ -507,7 +507,7 @@ class SystemNF:
             gui.press("tab")
             gui.write(nmr_nota)
             gui.press("tab")
-            gui.write("1")
+            gui.write(serie) # serie da nota
             gui.press("tab")
             gui.press("down")
             gui.press("tab")
@@ -728,31 +728,6 @@ if __name__ == "__main__":
                 logging.info(f"Modelo: {modelo}")
 
                 sistema_nf = SystemNF()
-
-                # Configuração do logger
-                logger = logging.getLogger("SystemNFLogger")
-                logger.setLevel(logging.INFO)
-
-                # Criar um handler que cria um novo arquivo de log a cada dia
-                log_dir = "logs"
-                if not os.path.exists(log_dir):
-                    os.makedirs(log_dir)
-
-                log_file = os.path.join(log_dir, "processamento_notas.log")
-                handler = TimedRotatingFileHandler(
-                    log_file, when="midnight", interval=1
-                )
-                handler.suffix = "%d-%m-%Y"
-                handler.setLevel(logging.INFO)
-
-                # Formato do log
-                formatter = logging.Formatter(
-                    "%(asctime)s - %(levelname)s - %(message)s"
-                )
-                handler.setFormatter(formatter)
-
-                # Adicionar o handler ao logger
-                logger.addHandler(handler)
 
                 logging.info(f"Parcelas a serem passadas para automation_gui: {parcelas}")
 
