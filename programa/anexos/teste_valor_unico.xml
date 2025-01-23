@@ -1,1 +1,205 @@
-<?xml version="1.0" encoding="UTF-8"?><nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe versao="4.00" Id="NFe43250110312847000165550010000000881053908614"><ide><cUF>43</cUF><cNF>05390861</cNF><natOp>Venda de mercadorias adquirida de terceiros</natOp><mod>55</mod><serie>1</serie><nNF>77777</nNF><dhEmi>2025-01-03T12:47:52-03:00</dhEmi><dhSaiEnt>2025-01-03T12:47:59-03:00</dhSaiEnt><tpNF>1</tpNF><idDest>1</idDest><cMunFG>4303905</cMunFG><tpImp>1</tpImp><tpEmis>1</tpEmis><cDV>4</cDV><tpAmb>1</tpAmb><finNFe>1</finNFe><indFinal>1</indFinal><indPres>2</indPres><indIntermed>0</indIntermed><procEmi>0</procEmi><verProc>Tiny ERP</verProc></ide><emit><CNPJ>10312847000165</CNPJ><xNome>NET COMMERCE COMERCIO ELETRONICO LTDA</xNome><xFant>Net Commerce</xFant><enderEmit><xLgr>AVENIDA PRESIDENTE VARGAS</xLgr><nro>594</nro><xBairro>CENTRO</xBairro><cMun>4303905</cMun><xMun>Campo Bom</xMun><UF>RS</UF><CEP>93700000</CEP><cPais>1058</cPais><xPais>Brasil</xPais></enderEmit><IE>190148071</IE><CRT>1</CRT></emit><dest><CNPJ>91667618000165</CNPJ><xNome>CARBURGO VEICULOS LTDA - NH</xNome><enderDest><xLgr>Avenida Coronel Frederico Linck</xLgr><nro>240</nro><xBairro>Ideal</xBairro><cMun>4313409</cMun><xMun>Novo Hamburgo</xMun><UF>RS</UF><CEP>93336001</CEP><cPais>1058</cPais><xPais>Brasil</xPais><fone>5135949400</fone></enderDest><indIEDest>1</indIEDest><IE>0860031101</IE><email>suporte@carburgo.com.br</email></dest><det nItem="1"><prod><cProd>3563</cProd><cEAN>0609963069552</cEAN><xProd>VGA GT 740 4GB GDDR5 128 BITS BLUECASE BOX DVI HDMI VGA BP-GT740-4GD5DBX</xProd><NCM>84718000</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>1.0000</qCom><vUnCom>418.80</vUnCom><vProd>418.80</vProd><cEANTrib>0609963069552</cEANTrib><uTrib>UN</uTrib><qTrib>1.0000</qTrib><vUnTrib>418.80</vUnTrib><indTot>1</indTot></prod><imposto><vTotTrib>167.60</vTotTrib><ICMS><ICMSSN102><orig>7</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS><IPI><cEnq>999</cEnq><IPITrib><CST>99</CST><vBC>418.80</vBC><pIPI>0.00</pIPI><vIPI>0.00</vIPI></IPITrib></IPI><PIS><PISNT><CST>07</CST></PISNT></PIS><COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS></imposto></det><total><ICMSTot><vBC>0.00</vBC><vICMS>0.00</vICMS><vICMSDeson>0.00</vICMSDeson><vFCPUFDest>0.00</vFCPUFDest><vICMSUFDest>0.00</vICMSUFDest><vICMSUFRemet>0.00</vICMSUFRemet><vFCP>0.00</vFCP><vBCST>0.00</vBCST><vST>0.00</vST><vFCPST>0.00</vFCPST><vFCPSTRet>0.00</vFCPSTRet><vProd>418.80</vProd><vFrete>0.00</vFrete><vSeg>0.00</vSeg><vDesc>0.00</vDesc><vII>0.00</vII><vIPI>0.00</vIPI><vIPIDevol>0.00</vIPIDevol><vPIS>0.00</vPIS><vCOFINS>0.00</vCOFINS><vOutro>0.00</vOutro><vNF>418.80</vNF><vTotTrib>167.60</vTotTrib></ICMSTot></total><transp><modFrete>0</modFrete><vol><qVol>1</qVol><pesoL>0.600</pesoL><pesoB>0.600</pesoB></vol></transp><cobr><fat><nFat>88</nFat><vOrig>418.80</vOrig><vDesc>0</vDesc><vLiq>418.80</vLiq></fat><dup><nDup>001</nDup><dVenc>2025-01-24</dVenc><vDup>418.80</vDup></dup></cobr><pag><detPag><tPag>15</tPag><vPag>418.80</vPag><card><tpIntegra>2</tpIntegra></card></detPag></pag><infAdic><infCpl>Tributos aproximados: R$ 96,41 (Federal) e R$ 71,20 (Estadual). Fonte: IBPT A2A75B&lt;br /&gt;63474710117&lt;br /&gt;N Pedido: 129</infCpl></infAdic></infNFe><Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><Reference URI="#NFe43250110312847000165550010000000881053908614"><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><DigestValue>kO/E+3ombTZyWQ4Wq7WuATLGACc=</DigestValue></Reference></SignedInfo><SignatureValue>SXYAjo5UFvWx+g0C6nG3aaMeeJrxZfOdFKFwlLStKe/E91byBGXV/jMtYIf9hf3Kirepk1WAe9fzfgmPeerq+aEHXMcDSrrM7Nuej4bAktuXIlFBcDaGH2y8xu8E7bJWPgjkrQTat1U771ffuzeoZXTW8mMNn88MJaboE6G8iTClWNVPv3Zov7KINehIx77j1cwnIagKwLjnnRoTNdc82E9wvD13sWOywgzi6yfyuUKuxQGWPGzYnqkwMC36BJH+TB/ukODnn/veYv505DF/VHEcZ8NfrVKEdwDEmKoSvA+ZKGHtcSo06ZNBjJzWcX0po5cV/zXa+63Nls38Kc5cqA==</SignatureValue><KeyInfo><X509Data><X509Certificate>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</X509Certificate></X509Data></KeyInfo></Signature></NFe><protNFe versao="4.00"><infProt><tpAmb>1</tpAmb><verAplic>RS2412041334DR</verAplic><chNFe>43250110312847000165550010000000881053908614</chNFe><dhRecbto>2025-01-03T15:09:28-03:00</dhRecbto><nProt>243250001656645</nProt><digVal>kO/E+3ombTZyWQ4Wq7WuATLGACc=</digVal><cStat>100</cStat><xMotivo>Autorizado o uso da NF-e</xMotivo></infProt></protNFe></nfeProc>
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+    <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+        <infNFe versao="4.00" Id="NFe43250110312847000165550010000000881053908614">
+            <ide>
+                <cUF>43</cUF>
+                <cNF>05390861</cNF>
+                <natOp>Venda de mercadorias adquirida de terceiros</natOp>
+                <mod>55</mod>
+                <serie>1</serie>
+                <nNF>77777</nNF>
+                <dhEmi>2025-01-03T12:47:52-03:00</dhEmi>
+                <dhSaiEnt>2025-01-03T12:47:59-03:00</dhSaiEnt>
+                <tpNF>1</tpNF>
+                <idDest>1</idDest>
+                <cMunFG>4303905</cMunFG>
+                <tpImp>1</tpImp>
+                <tpEmis>1</tpEmis>
+                <cDV>4</cDV>
+                <tpAmb>1</tpAmb>
+                <finNFe>1</finNFe>
+                <indFinal>1</indFinal>
+                <indPres>2</indPres>
+                <indIntermed>0</indIntermed>
+                <procEmi>0</procEmi>
+                <verProc>Tiny ERP</verProc>
+            </ide>
+            <emit>
+                <CNPJ>10312847000165</CNPJ>
+                <xNome>NET COMMERCE COMERCIO ELETRONICO LTDA</xNome>
+                <xFant>Net Commerce</xFant>
+                <enderEmit>
+                    <xLgr>AVENIDA PRESIDENTE VARGAS</xLgr>
+                    <nro>594</nro>
+                    <xBairro>CENTRO</xBairro>
+                    <cMun>4303905</cMun>
+                    <xMun>Campo Bom</xMun>
+                    <UF>RS</UF>
+                    <CEP>93700000</CEP>
+                    <cPais>1058</cPais>
+                    <xPais>Brasil</xPais>
+                </enderEmit>
+                <IE>190148071</IE>
+                <CRT>1</CRT>
+            </emit>
+            <dest>
+                <CNPJ>91667618000165</CNPJ>
+                <xNome>CARBURGO VEICULOS LTDA - NH</xNome>
+                <enderDest>
+                    <xLgr>Avenida Coronel Frederico Linck</xLgr>
+                    <nro>240</nro>
+                    <xBairro>Ideal</xBairro>
+                    <cMun>4313409</cMun>
+                    <xMun>Novo Hamburgo</xMun>
+                    <UF>RS</UF>
+                    <CEP>93336001</CEP>
+                    <cPais>1058</cPais>
+                    <xPais>Brasil</xPais>
+                    <fone>5135949400</fone>
+                </enderDest>
+                <indIEDest>1</indIEDest>
+                <IE>0860031101</IE>
+                <email>suporte@carburgo.com.br</email>
+            </dest>
+            <det nItem="1">
+                <prod>
+                    <cProd>3563</cProd>
+                    <cEAN>0609963069552</cEAN>
+                    <xProd>VGA GT 740 4GB GDDR5 128 BITS BLUECASE BOX DVI HDMI VGA BP-GT740-4GD5DBX</xProd>
+                    <NCM>84718000</NCM>
+                    <CFOP>5102</CFOP>
+                    <uCom>UN</uCom>
+                    <qCom>1.0000</qCom>
+                    <vUnCom>418.80</vUnCom>
+                    <vProd>418.80</vProd>
+                    <cEANTrib>0609963069552</cEANTrib>
+                    <uTrib>UN</uTrib>
+                    <qTrib>1.0000</qTrib>
+                    <vUnTrib>418.80</vUnTrib>
+                    <indTot>1</indTot>
+                </prod>
+                <imposto>
+                    <vTotTrib>167.60</vTotTrib>
+                    <ICMS>
+                        <ICMSSN102>
+                            <orig>7</orig>
+                            <CSOSN>102</CSOSN>
+                        </ICMSSN102>
+                    </ICMS>
+                    <IPI>
+                        <cEnq>999</cEnq>
+                        <IPITrib>
+                            <CST>99</CST>
+                            <vBC>418.80</vBC>
+                            <pIPI>0.00</pIPI>
+                            <vIPI>0.00</vIPI>
+                        </IPITrib>
+                    </IPI>
+                    <PIS>
+                        <PISNT>
+                            <CST>07</CST>
+                        </PISNT>
+                    </PIS>
+                    <COFINS>
+                        <COFINSNT>
+                            <CST>07</CST>
+                        </COFINSNT>
+                    </COFINS>
+                </imposto>
+            </det>
+            <total>
+                <ICMSTot>
+                    <vBC>0.00</vBC>
+                    <vICMS>0.00</vICMS>
+                    <vICMSDeson>0.00</vICMSDeson>
+                    <vFCPUFDest>0.00</vFCPUFDest>
+                    <vICMSUFDest>0.00</vICMSUFDest>
+                    <vICMSUFRemet>0.00</vICMSUFRemet>
+                    <vFCP>0.00</vFCP>
+                    <vBCST>0.00</vBCST>
+                    <vST>0.00</vST>
+                    <vFCPST>0.00</vFCPST>
+                    <vFCPSTRet>0.00</vFCPSTRet>
+                    <vProd>418.80</vProd>
+                    <vFrete>0.00</vFrete>
+                    <vSeg>0.00</vSeg>
+                    <vDesc>0.00</vDesc>
+                    <vII>0.00</vII>
+                    <vIPI>0.00</vIPI>
+                    <vIPIDevol>0.00</vIPIDevol>
+                    <vPIS>0.00</vPIS>
+                    <vCOFINS>0.00</vCOFINS>
+                    <vOutro>0.00</vOutro>
+                    <vNF>418.80</vNF>
+                    <vTotTrib>167.60</vTotTrib>
+                </ICMSTot>
+            </total>
+            <transp>
+                <modFrete>0</modFrete>
+                <vol>
+                    <qVol>1</qVol>
+                    <pesoL>0.600</pesoL>
+                    <pesoB>0.600</pesoB>
+                </vol>
+            </transp>
+            <cobr>
+                <fat>
+                    <nFat>88</nFat>
+                    <vOrig>418.80</vOrig>
+                    <vDesc>0</vDesc>
+                    <vLiq>418.80</vLiq>
+                </fat>
+                <dup>
+                    <nDup>001</nDup>
+                    <dVenc>2025-01-24</dVenc>
+                    <vDup>418.80</vDup>
+                </dup>
+            </cobr>
+            <pag>
+                <detPag>
+                    <tPag>15</tPag>
+                    <vPag>418.80</vPag>
+                    <card>
+                        <tpIntegra>2</tpIntegra>
+                    </card>
+                </detPag>
+            </pag>
+            <infAdic>
+                <infCpl>Tributos aproximados: R$ 96,41 (Federal) e R$ 71,20 (Estadual). Fonte: IBPT A2A75B&lt;br /&gt;63474710117&lt;br /&gt;N Pedido: 129</infCpl>
+            </infAdic>
+        </infNFe>
+        <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+                <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+                <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+                <Reference URI="#NFe43250110312847000165550010000000881053908614">
+                    <Transforms>
+                        <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+                        <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+                    </Transforms>
+                    <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+                    <DigestValue>kO/E+3ombTZyWQ4Wq7WuATLGACc=</DigestValue>
+                </Reference>
+            </SignedInfo>
+            <SignatureValue>SXYAjo5UFvWx+g0C6nG3aaMeeJrxZfOdFKFwlLStKe/E91byBGXV/jMtYIf9hf3Kirepk1WAe9fzfgmPeerq+aEHXMcDSrrM7Nuej4bAktuXIlFBcDaGH2y8xu8E7bJWPgjkrQTat1U771ffuzeoZXTW8mMNn88MJaboE6G8iTClWNVPv3Zov7KINehIx77j1cwnIagKwLjnnRoTNdc82E9wvD13sWOywgzi6yfyuUKuxQGWPGzYnqkwMC36BJH+TB/ukODnn/veYv505DF/VHEcZ8NfrVKEdwDEmKoSvA+ZKGHtcSo06ZNBjJzWcX0po5cV/zXa+63Nls38Kc5cqA==</SignatureValue>
+            <KeyInfo>
+                <X509Data>
+                    <X509Certificate>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</X509Certificate>
+                </X509Data>
+            </KeyInfo>
+        </Signature>
+    </NFe>
+    <protNFe versao="4.00">
+        <infProt>
+            <tpAmb>1</tpAmb>
+            <verAplic>RS2412041334DR</verAplic>
+            <chNFe>43250110312847000165550010000000881053908614</chNFe>
+            <dhRecbto>2025-01-03T15:09:28-03:00</dhRecbto>
+            <nProt>243250001656645</nProt>
+            <digVal>kO/E+3ombTZyWQ4Wq7WuATLGACc=</digVal>
+            <cStat>100</cStat>
+            <xMotivo>Autorizado o uso da NF-e</xMotivo>
+        </infProt>
+    </protNFe>
+</nfeProc>

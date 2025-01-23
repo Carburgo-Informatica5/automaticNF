@@ -203,9 +203,9 @@ def check_emails(nmr_nota):
                                         "destinatario": dados_nota_fiscal["destinatario"],
                                         "rateio": rateio,
                                         "sender": sender,
-                                        "serie": dados_nota_fiscal["serie"],
                                         "email_id": email_id,  # Adiciona o ID do e-mail
                                         "parcelas": dados_nota_fiscal["pagamento_parcelado"],
+                                        "serie": dados_nota_fiscal["serie"],
                                     }
                                     
                                     logging.info(f"Dados carregados: {dados_nota_fiscal}")
@@ -271,6 +271,7 @@ def save_attachment(part, directory):
     else:
         logging.error(f"Erro ao parsear o XML da nota fiscal: {filepath}")
         return None
+
 
 
 def process_cost_centers(cc_texto, valor_total):
@@ -461,7 +462,8 @@ class SystemNF:
         logging.info(f"Chave de Acesso: {chave_acesso}")
         logging.info(f"Modelo: {modelo}")
         logging.info(f"Rateio: {rateio}")
-        logging.info(f"Parcelas recebidas para automação: {parcelas}")
+        logging.info(f"Série: {serie}")
+        logging.info(f"Parcelas: {parcelas}")
 
         try:
             data_atual = datetime.now()
@@ -476,7 +478,9 @@ class SystemNF:
             gui.moveTo(x, y, duration=0.5)
             gui.click()
             time.sleep(15)
-            gui.press("tab", presses=19) # Ver maneira de colocar 22 quando necessario
+            if empresa and revenda == "1.1":
+                gui.press("tab", presses=22)
+            gui.press("tab", presses=19)
             gui.write(cnpj_emitente)
             time.sleep(2)
             gui.press("enter")
@@ -495,6 +499,8 @@ class SystemNF:
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
             
+            gui.PAUSE = 1
+            
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
             gui.press("alt")
@@ -507,7 +513,7 @@ class SystemNF:
             gui.press("tab")
             gui.write(nmr_nota)
             gui.press("tab")
-            gui.write(serie) # serie da nota
+            gui.write(serie) 
             gui.press("tab")
             gui.press("down")
             gui.press("tab")
@@ -587,7 +593,7 @@ class SystemNF:
 
         except Exception as e:
             send_email_error(
-                dani, nmr_nota, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), e
+                dani, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), nmr_nota, e
             )
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
@@ -611,6 +617,7 @@ if __name__ == "__main__":
                 dados_centros_de_custo = dados_email.get("dados_centros_de_custo")
                 rateio = dados_email.get("rateio")
                 parcelas = dados_email.get("parcelas", [])
+                serie = dados_email.get("serie")
                 if "parcelas" in dados_email:
                     parcelas = dados_email["parcelas"]
                 else:
@@ -747,7 +754,8 @@ if __name__ == "__main__":
                         chave_acesso,
                         modelo,
                         rateio,
-                        parcelas 
+                        parcelas,
+                        serie, 
                     )
                     # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
                     processed_emails = load_processed_emails()
@@ -761,8 +769,8 @@ if __name__ == "__main__":
                 except Exception as e:
                     send_email_error(
                         dani,
-                        nmr_nota,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                        nmr_nota,
                         e,
                     )
             else:
@@ -770,7 +778,7 @@ if __name__ == "__main__":
         except Exception as e:
             logging.error(f"Erro durante a automação: {e}")
             send_email_error(
-                dani, nmr_nota, "caetano.apollo@carburgo.com.br", e
+                dani, "caetano.apollo@carburgo.com.br", nmr_nota, e
             )
         logging.info("Esperando antes da nova verificação...")
         time.sleep(30)

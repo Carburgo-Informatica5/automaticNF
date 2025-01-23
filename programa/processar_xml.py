@@ -78,7 +78,7 @@ def parse_nota_fiscal(xml_file_path):
             # Adicionar extração da série
             serie = num_nota.findtext("ns:serie", namespaces=namespaces)
             if serie:
-                nota_fiscal_data["serie"] = {"serie": serie}
+                nota_fiscal_data["serie"] = serie
 
             data_emi = num_nota.findtext("ns:dhEmi", namespaces=namespaces)
             if data_emi is not None:
