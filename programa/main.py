@@ -478,9 +478,10 @@ class SystemNF:
             gui.moveTo(x, y, duration=0.5)
             gui.click()
             time.sleep(15)
-            if empresa and revenda == "1.1":
+            if empresa == 1:
                 gui.press("tab", presses=22)
-            gui.press("tab", presses=19)
+            else:
+                gui.press("tab", presses=19)
             gui.write(cnpj_emitente)
             time.sleep(2)
             gui.press("enter")
@@ -494,12 +495,12 @@ class SystemNF:
             x, y, width, height = janela_left + 500, janela_top + 323, 120, 21
             screenshot = gui.screenshot(region=(x, y, width, height))
             screenshot = screenshot.convert("L")
-            threshold = 190
+            threshold = 150
             screenshot = screenshot.point(lambda p: p > threshold and 255)
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
             
-            gui.PAUSE = 1
+            # Modelo 55, 43 e 22 não podem ser código de tributação nunca é dez
             
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
@@ -540,6 +541,10 @@ class SystemNF:
             gui.press("tab", presses=5)
             gui.press("enter")
             gui.press("tab", presses=4)
+            if modelo == "55" and modelo == "43" and modelo == "22" and cod_item != "7":
+                send_email_error(
+                dani, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), nmr_nota, "Erro: Modelo de nota fiscal inválido para o código de tributação informado."
+            )
             gui.write(cod_item)
             gui.press("tab", presses=10)
             gui.write("1")
