@@ -131,7 +131,7 @@ def check_emails(nmr_nota):
             raw_message = b"\n".join(lines).decode("utf-8", errors="ignore")
             email_message = parser.Parser().parsestr(raw_message)
             subject = decode_header_value(email_message["subject"])
-            sender = parseaddr(decode_header_value(email_message["from"]))[1]
+            sender = parseaddr(decode_header_value(email_message["from"]))[1]  # Captura o endereço de e-mail completo
             email_id = email_message["Message-ID"]
 
             if email_id in processed_emails:
@@ -551,10 +551,10 @@ class SystemNF:
             gui.press("tab", presses=5)
             gui.press("enter")
             gui.press("tab", presses=4)
-            if modelo == "55" and modelo == "43" and modelo == "22" and cod_item != "7":
+            if (modelo == "55" or modelo == "43" or modelo == "22") and cod_item != "7":
                 send_email_error(
-                dani, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), "Erro: Modelo de nota fiscal inválido para o código de tributação informado.", nmr_nota, 
-            )
+                    dani, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), "Erro: Modelo de nota fiscal inválido para o código de tributação informado.", nmr_nota, 
+                )
             gui.write(cod_item)
             gui.press("tab", presses=10)
             gui.write("1")
