@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe versao="4.00" Id="NFe43250115105722000188550010000069941203897819"><ide><cUF>43</cUF><cNF>20389781</cNF><natOp>Venda de mercadoria adquirida ou recebida de terceiros</natOp><mod>55</mod><serie>1</serie><nNF>6994</nNF><dhEmi>2025-01-27T13:13:47-03:00</dhEmi><dhSaiEnt>2025-01-27T13:13:47-03:00</dhSaiEnt><tpNF>1</tpNF><idDest>1</idDest><cMunFG>4314803</cMunFG><tpImp>1</tpImp><tpEmis>1</tpEmis><cDV>9</cDV><tpAmb>1</tpAmb><finNFe>1</finNFe><indFinal>1</indFinal><indPres>0</indPres><procEmi>0</procEmi><verProc>0.1.0</verProc></ide><emit><CNPJ>15105722000188</CNPJ><xNome>CONTENTA RESTAURANTE EMPRESARIAL LTDA</xNome><xFant>CONTENTA RESTAURANTE EMPRESARIAL LTDA</xFant><enderEmit><xLgr>Rua: Julio de Castilho</xLgr><nro>8099</nro><xBairro>Rincao do Cascalho</xBairro><cMun>4314803</cMun><xMun>Portao</xMun><UF>RS</UF><CEP>93180000</CEP><cPais>1058</cPais><xPais>Brasil</xPais><fone>0000000000</fone></enderEmit><IE>2130038292</IE><CRT>3</CRT></emit><dest><CNPJ>91667618000165</CNPJ><xNome>CARBURGO VEICULOS LTDA</xNome><enderDest><xLgr>Avenida Coronel Frederico Linck</xLgr><nro>240</nro><xBairro>Rio Branco</xBairro><cMun>4313409</cMun><xMun>Novo Hamburgo</xMun><UF>RS</UF><CEP>93336001</CEP><cPais>1058</cPais><xPais>Brasil</xPais><fone>0000000000</fone></enderDest><indIEDest>1</indIEDest><IE>0860031101</IE><email>araceli@contentarestaurante.com.br</email></dest><det nItem="1"><prod><cProd>1-S</cProd><cEAN>SEM GTIN</cEAN><xProd>Almoco</xProd><NCM>21069090</NCM><CFOP>5102</CFOP><uCom>Un</uCom><qCom>1063.0000</qCom><vUnCom>16.75</vUnCom><vProd>17805.25</vProd><cEANTrib>SEM GTIN</cEANTrib><uTrib>Un</uTrib><qTrib>1063.0000</qTrib><vUnTrib>16.75</vUnTrib><indTot>1</indTot></prod><imposto><vTotTrib>5421.70</vTotTrib><ICMS><ICMS20><orig>0</orig><CST>20</CST><modBC>0</modBC><pRedBC>40.0000</pRedBC><vBC>10683.15</vBC><pICMS>12.0000</pICMS><vICMS>1281.98</vICMS></ICMS20></ICMS><PIS><PISAliq><CST>01</CST><vBC>16523.27</vBC><pPIS>0.6500</pPIS><vPIS>107.40</vPIS></PISAliq></PIS><COFINS><COFINSAliq><CST>01</CST><vBC>16523.27</vBC><pCOFINS>3.0000</pCOFINS><vCOFINS>495.70</vCOFINS></COFINSAliq></COFINS></imposto><infAdProd>Valor dos Impostos: R$ 1885,08</infAdProd></det><total><ICMSTot><vBC>10683.15</vBC><vICMS>1281.98</vICMS><vICMSDeson>0</vICMSDeson><vFCP>0</vFCP><vBCST>0</vBCST><vST>0</vST><vFCPST>0</vFCPST><vFCPSTRet>0</vFCPSTRet><vProd>17805.25</vProd><vFrete>0</vFrete><vSeg>0</vSeg><vDesc>0</vDesc><vII>0</vII><vIPI>0</vIPI><vIPIDevol>0</vIPIDevol><vPIS>107.40</vPIS><vCOFINS>495.70</vCOFINS><vOutro>0</vOutro><vNF>17805.25</vNF><vTotTrib>5421.70</vTotTrib></ICMSTot></total><transp><modFrete>9</modFrete><vol><qVol>1</qVol><lacres><nLacre>0</nLacre></lacres></vol></transp><cobr><fat><nFat>001</nFat><vOrig>17805.25</vOrig><vDesc>0</vDesc><vLiq>17805.25</vLiq></fat><dup><nDup>001</nDup><dVenc>2025-02-03</dVenc><vDup>17805.25</vDup></dup></cobr><pag><detPag><tPag>14</tPag><vPag>17805.25</vPag></detPag></pag><infAdic><infCpl>ICMS: FCP para UF de destino: 0,00, ICMS Interestadual para a UF de destino: -1281,98, ICMS Interestadual para a UF do remetente 0,00. - Base Calculo Reduzida cfe Livro I, Art. 23, inciso VI fo RICMS/RS. - Valor Aproximado dos Tributos: R$ 1.885,08 Trib. aprox. R$: 2.394,81 Federal,  3.026,89 Estadual Fonte: IBPT/empresometro.com.br A2A75B</infCpl></infAdic><infRespTec><CNPJ>07504505000132</CNPJ><xContato>Ricardo Acras</xContato><email>contato@focusnfe.com.br</email><fone>41991820810</fone></infRespTec></infNFe><Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><Reference URI="#NFe43250115105722000188550010000069941203897819"><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><DigestValue>P8h3VohHIQKf2A1Hz7Ua9ts2yBQ=</DigestValue></Reference></SignedInfo><SignatureValue>QXgfQ3ZywpSbOzDMcQ1/wsvBhLU3Cb2ZEhSUjilBA9/tBZ0kwAwHXaurEELAVMAKKZQo2pigUsBr
+L3LgwAnYI0dqtKtkqsqccn5Gs85wHaZaLwjosjQzRvwm6BglS5Lkvt/VSpuPKjphv21l0rb166NT
+19nwKP0spH2kWJWQzcIzUiJDDK7nkB+e3JE3bdgU4mxHlkxlpzsPw7OIfH1Tjnq5uomlriOqSI70
+jq8B2QCKu1yxpxH4pnEc6lq20rsnb+n/kEVSPABbxqkdpWGyXl8Ed74ZK0cArsa58yqMYSqEUzf4
+4Uub0I5Gw4nIDV/iQFab7zWsUor6yvuvM8f8xA==</SignatureValue><KeyInfo><X509Data><X509Certificate>MIIH/TCCBeWgAwIBAgIIFFlUYMjtPJAwDQYJKoZIhvcNAQELBQAwdDELMAkGA1UEBhMCQlIxEzAR
+BgNVBAoTCklDUC1CcmFzaWwxNjA0BgNVBAsTLVNlY3JldGFyaWEgZGEgUmVjZWl0YSBGZWRlcmFs
+IGRvIEJyYXNpbCAtIFJGQjEYMBYGA1UEAxMPQUMgVkFMSUQgUkZCIHY1MB4XDTI0MDYyODAxMjQz
+OVoXDTI1MDYyODAxMjQzOVowggEcMQswCQYDVQQGEwJCUjELMAkGA1UECBMCUlMxDzANBgNVBAcT
+BlBPUlRBTzETMBEGA1UEChMKSUNQLUJyYXNpbDE2MDQGA1UECxMtU2VjcmV0YXJpYSBkYSBSZWNl
+aXRhIEZlZGVyYWwgZG8gQnJhc2lsIC0gUkZCMRYwFAYDVQQLEw1SRkIgZS1DTlBKIEExMRcwFQYD
+VQQLEw5BUiBWTCBTRVJWSUNPUzEZMBcGA1UECxMQVmlkZW9jb25mZXJlbmNpYTEXMBUGA1UECxMO
+MzgwNjI3MjYwMDAxMjExPTA7BgNVBAMTNENPTlRFTlRBIFJFU1RBVVJBTlRFIEVNUFJFU0FSSUFM
+IExUREE6MTUxMDU3MjIwMDAxODgwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCVJ/sT
+hGJWQ644zM6WGnnMkfNeeZsHOmFx+VCT5inDuAM88whb2qgRkvXDL4qkhnDqoQvldbOaabzK2fSw
+X2KKuMGSmOHpGUFXglsUfMe0bxI5JxeYuO3bJU0b94c/D3n5yuuDb0cyX8nJ3d/7X+V5gbzva05V
+HQKdutXGVHrhPepcFgJep0wM3fFF8EbN7njh4b2Tt/jjjjYUCHcY4coMfkGQ3YC6+7aKq1DcJurN
+gX8NuF5wZ7Sqe6eJMVS2fkVgQfvJ/8Ykz1lBvNyrrT5aE0Yl4u1KHuslDH1MOrIqyCcWUgoPSb2+
+NVqix+Oq9v9kxcKuuwsD/F+dnQ00NZ2vAgMBAAGjggLnMIIC4zCBnAYIKwYBBQUHAQEEgY8wgYww
+VQYIKwYBBQUHMAKGSWh0dHA6Ly9pY3AtYnJhc2lsLnZhbGlkY2VydGlmaWNhZG9yYS5jb20uYnIv
+YWMtdmFsaWRyZmIvYWMtdmFsaWRyZmJ2NS5wN2IwMwYIKwYBBQUHMAGGJ2h0dHA6Ly9vY3NwdjUu
+dmFsaWRjZXJ0aWZpY2Fkb3JhLmNvbS5icjAJBgNVHRMEAjAAMB8GA1UdIwQYMBaAFFPLpeR1UJlA
+LL5bFUXJvsswqonFMHAGA1UdIARpMGcwZQYGYEwBAgElMFswWQYIKwYBBQUHAgEWTWh0dHA6Ly9p
+Y3AtYnJhc2lsLnZhbGlkY2VydGlmaWNhZG9yYS5jb20uYnIvYWMtdmFsaWRyZmIvZHBjLWFjLXZh
+bGlkcmZidjUucGRmMIG2BgNVHR8Ega4wgaswU6BRoE+GTWh0dHA6Ly9pY3AtYnJhc2lsLnZhbGlk
+Y2VydGlmaWNhZG9yYS5jb20uYnIvYWMtdmFsaWRyZmIvbGNyLWFjLXZhbGlkcmZidjUuY3JsMFSg
+UqBQhk5odHRwOi8vaWNwLWJyYXNpbDIudmFsaWRjZXJ0aWZpY2Fkb3JhLmNvbS5ici9hYy12YWxp
+ZHJmYi9sY3ItYWMtdmFsaWRyZmJ2NS5jcmwwDgYDVR0PAQH/BAQDAgXgMB0GA1UdJQQWMBQGCCsG
+AQUFBwMCBggrBgEFBQcDBDCBuwYDVR0RBIGzMIGwgSFmaXNjYWxAY29udGVudGFyZXN0YXVyYW50
+ZS5jb20uYnKgOAYFYEwBAwSgLwQtMTYwOTE5ODA4MTc5MjgxNjA0OTAwMDAwMDAwMDAwMDAwMDAw
+MDAwMDAwMDAwoB0GBWBMAQMCoBQEEkFSQUNFTEkgS1JVTUVOQVVFUqAZBgVgTAEDA6AQBA4xNTEw
+NTcyMjAwMDE4OKAXBgVgTAEDB6AOBAwwMDAwMDAwMDAwMDAwDQYJKoZIhvcNAQELBQADggIBAHZ5
+Ueod+2kYC5gc94eqN41fRLTf0sIzRSebK1Gxe03ipFfMlnxiVuiwgWxHEJUDAtONHNIBslwzBNqI
+QrPdGNoPJraEOD+8XuPNr6ov8YUyal3TZzdQCPAgRtN4cCwOEkzuqOMQQh09mTxheDUtdJJC4zOm
+KykJLIuRBap6hyw2Ok0ZbSCh1b1swkXf52A0B7ztLkAXg8/MvJgoDJqpSBLoPYPbxbvEVTXQB3Y9
+1fMn2BUBQhLUiyX9dlHu15qLpNXvRkoMe3x+TEzM2CEf2NKMcc3bQQqChrJLXt2AWJyG2g1Dr/yL
+KMwYQnDnBHgd60YSI+SC6Inzf2zKfj3nyMceTcf7ThqhBPArFYZH9M7MlMvnW6WkTTFLJrt6lL+t
+z6wuwWy0xE9g4ypd98K9HH2fAzsqK4Tvz8dFIWeOyv+2630FeSP0UwIEgoeTlQ40XdZUbis/Hlcd
+av3e1QoQaqCXsg5YX8QptET1maaZ79A3UQTKF7EWa60c0EnDjgn5R0jFaeoS5d+A/dgzyJO63a4R
+sn6KOpICkQtiolCVOHueUgylDQYv2jIg4q6tykvbhdkuazKseaQbPXp7vVpKv6d0MPq9wFf4sez7
+AHOf8gDQzf/5/0joOZcuKjJSoeTc9BJEKgSLLf4VYpT/avbjAyyTyxrXZMA7gZ1c9oR/mgW4</X509Certificate></X509Data></KeyInfo></Signature></NFe><protNFe versao="4.00"><infProt><tpAmb>1</tpAmb><verAplic>RS2412041334DR</verAplic><chNFe>43250115105722000188550010000069941203897819</chNFe><dhRecbto>2025-01-27T13:14:06-03:00</dhRecbto><nProt>243250025505568</nProt><digVal>P8h3VohHIQKf2A1Hz7Ua9ts2yBQ=</digVal><cStat>100</cStat><xMotivo>Autorizado o uso da NF-e</xMotivo></infProt></protNFe></nfeProc>

@@ -42,10 +42,14 @@ DIRECTORY = os.path.join(current_dir, "anexos")
 
 
 def decode_header_value(header_value):
-    decoded, encoding = decode_header(header_value)[0]
-    if isinstance(decoded, bytes):
-        return decoded.decode(encoding if encoding else "utf-8", errors="ignore")
-    return decoded
+    decoded_fragments = decode_header(header_value)
+    decoded_string = ""
+    for fragment, encoding in decoded_fragments:
+        if isinstance(fragment, bytes):
+            decoded_string += fragment.decode(encoding or "utf-8")
+        else:
+            decoded_string += fragment
+    return decoded_string
 
 
 def normalize_text(text):
@@ -131,7 +135,8 @@ def check_emails(nmr_nota):
             raw_message = b"\n".join(lines).decode("utf-8", errors="ignore")
             email_message = parser.Parser().parsestr(raw_message)
             subject = decode_header_value(email_message["subject"])
-            sender = parseaddr(decode_header_value(email_message["from"]))[1]  # Captura o endereço de e-mail completo
+            from_header = decode_header_value(email_message["from"])
+            sender = parseaddr(from_header)[1]
             email_id = email_message["Message-ID"]
 
             if email_id in processed_emails:
@@ -352,6 +357,7 @@ def send_email_error(dani, destinatario, erro, nmr_nota):
         )
     )
     dani.push(mensagem).push(mensagem_assinatura).flush()
+    sys.exit(1)
 
 
 def send_success_message(dani, destinatario, nmr_nota):
@@ -505,7 +511,7 @@ class SystemNF:
             x, y, width, height = janela_left + 500, janela_top + 323, 120, 21
             screenshot = gui.screenshot(region=(x, y, width, height))
             screenshot = screenshot.convert("L")
-            threshold = 150
+            threshold = 190
             screenshot = screenshot.point(lambda p: p > threshold and 255)
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
