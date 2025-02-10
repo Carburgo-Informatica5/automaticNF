@@ -553,6 +553,12 @@ class SystemNF:
             gui.press("tab")
             gui.write(modelo)
             gui.press("tab", presses=18)
+            
+            # A partir daqui que deve ser implementado a nota de serviço
+            
+            # Se arquivo endswitch (.pdf)
+            
+            # Se arquivo endswitch (.xml)
             gui.press("right", presses=2)
             gui.press("tab", presses=5)
             gui.press("enter")

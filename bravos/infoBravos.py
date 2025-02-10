@@ -1,4 +1,3 @@
-# Bibliotecas que Yuri utiliza para abrir o Bravos
 import time
 import yaml
 import pyperclip
