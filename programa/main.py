@@ -13,12 +13,14 @@ import json
 import logging
 import unicodedata
 import re
-from logging.handlers import TimedRotatingFileHandler
+
 from email.utils import parseaddr
 
 from processar_xml import *
 from db_connection import *
 from DANImail import Queue, WriteTo
+from gemini_api import GeminiAPI
+from gemini_main import *
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -81,6 +83,8 @@ def extract_values(text):
         "cc": None,
         "rateio": None,
         "cod_item": None,
+        "data_vencimento": None,
+        "tipo_imposto": None
     }
     lines = text.lower().splitlines()
     for line in lines:
@@ -97,6 +101,10 @@ def extract_values(text):
             values["rateio"] = line.split(":", 1)[1].strip()
         elif line.startswith("código de tributação:"):
             values["cod_item"] = line.split(":", 1)[1].strip()
+        elif line.startswith("data vencimento:"):
+            values["data_vencimento"] = line.split(":", 1)[1].strip()
+        elif line.startswith("tipo imposto:"):
+            values["tipo_imposto"] = line.split(":", 1)[1].strip()
     return values
 
 
@@ -179,6 +187,8 @@ def check_emails(nmr_nota):
                                     )
                                     rateio = valores_extraidos["rateio"]
                                     cod_item = valores_extraidos["cod_item"]
+                                    data_vencimento = valores_extraidos["data_vencimento"]
+                                    tipo_imposto = valores_extraidos["tipo_imposto"]
                                     if not dados_nota_fiscal["valor_total"]:
                                         raise ValueError(
                                             "Valor total não encontrado na nota fiscal"
@@ -212,6 +222,8 @@ def check_emails(nmr_nota):
                                         "email_id": email_id,  # Adiciona o ID do e-mail
                                         "parcelas": dados_nota_fiscal["pagamento_parcelado"],
                                         "serie": dados_nota_fiscal["serie"],
+                                        "data_vencimento": data_vencimento,
+                                        "tipo_imposto": tipo_imposto,
                                     }
                                     
                                     logging.info(f"Dados carregados: {dados_nota_fiscal}")
@@ -254,15 +266,11 @@ def check_emails(nmr_nota):
 def save_attachment(part, directory):
     filename = decode_header_value(part.get_filename())
     if not filename:
-        filename = "untitled.xml"
-    elif not filename.lower().endswith(".xml"):
-        logging.info(f"Ignorando anexo não XML: {filename}")
-        return None  # Ignorar anexos que não são XML
+        return None
+    elif not filename.lower().endswith((".xml", ".pdf")):
+        return None
     content_type = part.get_content_type()
     logging.info(f"Tipo de conteúdo do anexo: {content_type}")
-    if not content_type == "application/xml" and not filename.endswith(".xml"):
-        logging.info(f"O anexo não é um arquivo XML: {filename}")
-        return None
     if not os.path.exists(directory):
         os.makedirs(directory)
     filepath = os.path.join(directory, filename)
@@ -270,15 +278,45 @@ def save_attachment(part, directory):
     with open(filepath, "wb") as f:
         f.write(part.get_payload(decode=True))
     logging.info(f"Anexo salvo em: {filepath}")
-    dados_nota_fiscal = parse_nota_fiscal(filepath)
-    if dados_nota_fiscal:
-        salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
-        return dados_nota_fiscal
-    else:
-        logging.error(f"Erro ao parsear o XML da nota fiscal: {filepath}")
+    if filename.lower().endswith(".xml"):
+        dados_nota_fiscal = parse_nota_fiscal(filepath)
+        if dados_nota_fiscal:
+            return dados_nota_fiscal
+        else:
+            return None
+    elif filename.lower().endswith(".pdf"):
+        process_pdf(filepath)
         return None
 
-
+def process_pdf():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    pdf_folder = os.path.join(base_dir, 'anexos')
+    json_folder = os.path.join(base_dir, 'NOTAS EM JSON')
+    
+    os.makedirs(json_folder, exist_ok=True)
+    os.makedirs(pdf_folder, exist_ok=True)
+    
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        logging.error('API key not found')
+        return
+    
+    gemini_api = GeminiAPI(api_key)
+    
+    for pdf_file in os.listdir(pdf_folder):
+        if pdf_file.endswith(".pdf"):
+            pdf_path = os.path.join(pdf_folder, pdf_file)
+            logging.info(f'Processando PDF: {pdf_path}')
+            upload_response = gemini_api.upload_pdf(pdf_path)
+            if upload_response.get('success'):
+                file_id = upload_response.get('file_id')
+                gemini_api.check_processing_status(file_id)
+                extracted_info = gemini_api.extract_info(file_id)
+                json_filename = pdf_file.replace('.pdf', '.json')
+                json_path = os.path.join(json_folder, json_filename)
+                with open(json_path, 'w') as json_file:
+                    json.dump(extracted_info, json_file)
+                logging.info(f'Informações extraídas salvas em: {json_path}')
 
 def process_cost_centers(cc_texto, valor_total):
     valor_total = float(valor_total)
@@ -417,6 +455,11 @@ def processar_parcelas(parcelas):
         gui.write(valor_parcela.replace(".", ","))
         gui.press("enter")
         gui.press("enter")
+
+def restart_program():
+    logging.info("Reiniciando o programa...")
+    python = sys.executable
+    os.execl(python, python, *sys.argv)
 
 dados_nota_fiscal = None
 
@@ -635,6 +678,13 @@ if __name__ == "__main__":
                 logging.info("Executando automação GUI")
                 logging.info(f"Conteúdo completo de dados_email: {dados_email}")
 
+                pdf_path = os.path.join(DIRECTORY, "anexos")
+                extracted_info = process_pdf(pdf_path)
+                if extracted_info:
+                    process_pdf() # Aqui colocar a extração de dados do pdf
+                else:
+                    logging.error("Erro ao precessar o PDF")
+                
                 departamento = dados_email.get("departamento")
                 origem = dados_email.get("origem")
                 descricao = dados_email.get("descricao")
