@@ -67,7 +67,7 @@ class GeminiAPI:
                      "- IR\n"
                      "- CSLL\n"
                      "Se algum imposto não estiver presente, retorne o valor '0.00'.\n"
-                     "Certifique-se de que o JSON esteja formatado corretamente e sem caracteres fictícios.\n"},
+                     "Certifique-se de que o JSON esteja formatado corretamente e sem caracteres fictícios e com assentos.\n"},
             file_obj  # Passa o objeto do arquivo diretamente
         ])
 

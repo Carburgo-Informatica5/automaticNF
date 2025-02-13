@@ -219,10 +219,10 @@ def check_emails(nmr_nota):
                                         "destinatario": dados_nota_fiscal["destinatario"],
                                         "rateio": rateio,
                                         "sender": sender,
-                                        "email_id": email_id,  # Adiciona o ID do e-mail
+                                        "email_id": email_id, 
                                         "parcelas": dados_nota_fiscal["pagamento_parcelado"],
                                         "serie": dados_nota_fiscal["serie"],
-                                        "data_vencimento": data_vencimento,
+                                        "data_venc_nfs": data_vencimento,
                                         "tipo_imposto": tipo_imposto,
                                     }
                                     
@@ -263,6 +263,70 @@ def check_emails(nmr_nota):
         )
         return None
 
+import json
+import re
+import os
+import logging
+
+def clean_extracted_json(json_data):
+    """ Remove duplicatas e ajusta formatação do JSON extraído. """
+    if "ISS Retido" in json_data:
+        if isinstance(json_data["ISS Retido"], str) and json_data["ISS Retido"].lower() == "não":
+            json_data["ISS Retido"] = "Não"
+        else:
+            json_data["ISS Retido"] = f"{float(json_data['ISS Retido']):.2f}"
+    return json_data
+
+def process_pdf(pdf_path):
+    json_folder = os.path.join(current_dir, '..', '..', 'NOTA EM JSON')
+    os.makedirs(json_folder, exist_ok=True)
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        logging.error('API key not found')
+        return
+
+    gemini_api = GeminiAPI(api_key)
+
+    # Verifica se o PDF é um arquivo válido
+    if not os.path.isfile(pdf_path) or not pdf_path.endswith(".pdf"):
+        logging.error(f"O caminho {pdf_path} não é um arquivo PDF válido")
+        return
+
+    try:
+        upload_response = gemini_api.upload_pdf(pdf_path)
+        if not upload_response.get("success"):
+            logging.error(f"Erro ao fazer upload do PDF: {pdf_path}")
+            return
+        
+        file_id = upload_response["file_id"]
+
+        status_response = gemini_api.check_processing_status(file_id)
+        if status_response.get("state") != "ACTIVE":
+            logging.error(f"Erro no processamento do arquivo {pdf_path}")
+            return
+
+        extracted_text = gemini_api.extract_info(file_id)
+        if not extracted_text:
+            logging.error(f"Erro ao extrair informações do PDF: {pdf_path}")
+            return
+        
+        extracted_text = re.sub(r"^```json", "", extracted_text).strip()  # Remove o ```json do início
+        extracted_text = re.sub(r"```$", "", extracted_text).strip()  # Remove o ``` do final
+        
+        extracted_json = json.loads(extracted_text)  # Converte string JSON para dicionário
+        extracted_json = clean_extracted_json(extracted_json)  # Agora chamamos a função corretamente
+        
+        json_path = os.path.join(json_folder, f"{os.path.splitext(os.path.basename(pdf_path))[0]}.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(extracted_json, f, ensure_ascii=False, indent=4)  # Salva como JSON formatado
+        logging.info(f"JSON extraído salvo em: {json_path}")
+
+    except json.JSONDecodeError:
+        logging.error(f"Erro: A resposta da API não é um JSON válido após limpeza: {extracted_text}")
+    except Exception as e:
+        logging.error(f"Erro ao processar PDF {pdf_path}: {e}")
+
 def save_attachment(part, directory):
     filename = decode_header_value(part.get_filename())
     if not filename:
@@ -287,36 +351,6 @@ def save_attachment(part, directory):
     elif filename.lower().endswith(".pdf"):
         process_pdf(filepath)
         return None
-
-def process_pdf():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    pdf_folder = os.path.join(base_dir, 'anexos')
-    json_folder = os.path.join(base_dir, 'NOTAS EM JSON')
-    
-    os.makedirs(json_folder, exist_ok=True)
-    os.makedirs(pdf_folder, exist_ok=True)
-    
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if not api_key:
-        logging.error('API key not found')
-        return
-    
-    gemini_api = GeminiAPI(api_key)
-    
-    for pdf_file in os.listdir(pdf_folder):
-        if pdf_file.endswith(".pdf"):
-            pdf_path = os.path.join(pdf_folder, pdf_file)
-            logging.info(f'Processando PDF: {pdf_path}')
-            upload_response = gemini_api.upload_pdf(pdf_path)
-            if upload_response.get('success'):
-                file_id = upload_response.get('file_id')
-                gemini_api.check_processing_status(file_id)
-                extracted_info = gemini_api.extract_info(file_id)
-                json_filename = pdf_file.replace('.pdf', '.json')
-                json_path = os.path.join(json_folder, json_filename)
-                with open(json_path, 'w') as json_file:
-                    json.dump(extracted_info, json_file)
-                logging.info(f'Informações extraídas salvas em: {json_path}')
 
 def process_cost_centers(cc_texto, valor_total):
     valor_total = float(valor_total)
@@ -395,7 +429,6 @@ def send_email_error(dani, destinatario, erro, nmr_nota):
         )
     )
     dani.push(mensagem).push(mensagem_assinatura).flush()
-    sys.exit(1)
 
 
 def send_success_message(dani, destinatario, nmr_nota):
@@ -456,11 +489,6 @@ def processar_parcelas(parcelas):
         gui.press("enter")
         gui.press("enter")
 
-def restart_program():
-    logging.info("Reiniciando o programa...")
-    python = sys.executable
-    os.execl(python, python, *sys.argv)
-
 dados_nota_fiscal = None
 
 logging.info("Carregando dados da nota fiscal")
@@ -503,6 +531,9 @@ class SystemNF:
         rateio,
         parcelas,
         serie,
+        data_venc_nfs,
+        tipo_imposto,
+        
     ):
         if not parcelas:
             logging.warning("As parcelas estão vazias ao entrar em automation_gui")
@@ -523,6 +554,8 @@ class SystemNF:
         logging.info(f"Rateio: {rateio}")
         logging.info(f"Série: {serie}")
         logging.info(f"Parcelas: {parcelas}")
+        logging.info(f"Data vencimento NFs: {data_venc_nfs}")
+        logging.info(f"Tipo de Imposto: {tipo_imposto}")
 
         try:
             data_atual = datetime.now()
@@ -597,41 +630,72 @@ class SystemNF:
             gui.write(modelo)
             gui.press("tab", presses=18)
             
-            # A partir daqui que deve ser implementado a nota de serviço
+            anexo = dados_email.get("anexo", "")
             
-            # Se arquivo endswitch (.pdf)
+            gui.PAUSE = 1
             
-            # Se arquivo endswitch (.xml)
-            gui.press("right", presses=2)
-            gui.press("tab", presses=5)
-            gui.press("enter")
-            gui.press("tab", presses=4)
-            if (modelo == "55" or modelo == "43" or modelo == "22") and cod_item != "7":
-                send_email_error(
-                    dani, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), "Erro: Modelo de nota fiscal inválido para o código de tributação informado.", nmr_nota, 
-                )
-            gui.write(cod_item)
-            gui.press("tab", presses=10)
-            gui.write("1")
-            gui.press("tab")
-            logging.info(f"Valor total: {valor_total}")
-            gui.write(valor_total)
-            gui.press("tab", presses=26)
-            gui.write(descricao)
-            gui.press(["tab", "enter"])
-            gui.press("tab", presses=11)
-            gui.press("left", presses=2)
-            gui.press("tab", presses=5)
-            gui.press("enter")
-            
-            logging.info(f"Processando parcelas: {parcelas}")
-            gui.press("tab")
-            gui.press("enter")
-            processar_parcelas(parcelas)
-            
-            gui.press("tab", presses=3)
-            gui.press(["enter", "tab", "tab", "tab", "enter"])
-            gui.press("tab", presses=35)
+            if anexo.endswith(".pdf"):
+                # Se arquivo endswitch (.pdf)
+                gui.press("right", presses=1)
+                gui.press("tab", presses=20)
+                gui.write(cod_item)
+                gui.press("tab", presses=10)
+                gui.write("1")
+                gui.press("tab")
+                gui.write(valor_total)
+                gui.press("tab", presses=34)
+                gui.write(descricao)
+                
+                # TODO: Alterar variaveis para variaveis NF-S
+                gui.press("tab", presses=43)
+                gui.write("Valor total") #!
+                gui.press("tab")
+                gui.write("Valor do PIS") #!
+                gui.press("tab", presses=5)
+                gui.write("Valor do total") #!
+                gui.press("tab")
+                gui.write("Valor do COFINS") #!
+                gui.press("tab", presses=5)
+                gui.write("Valor do total") #!
+                gui.press("tab")
+                gui.write("Valor do CSLL") #!
+                gui.press("tab", presses=9)
+                gui.write("Valor do total") #!
+                gui.press("tab", presses=7)
+                gui.write("Valor do ISS") #!
+                pass
+            elif anexo.endswith(".xml"):
+                # Se arquivo endswitch (.xml)
+                gui.press("right", presses=2)
+                gui.press("tab", presses=5)
+                gui.press("enter")
+                gui.press("tab", presses=4)
+                if (modelo == "55" or modelo == "43" or modelo == "22") and cod_item != "7":
+                    send_email_error(
+                        dani, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), "Erro: Modelo de nota fiscal inválido para o código de tributação informado.", nmr_nota, 
+                    )
+                gui.write(cod_item)
+                gui.press("tab", presses=10)
+                gui.write("1")
+                gui.press("tab")
+                logging.info(f"Valor total: {valor_total}")
+                gui.write(valor_total)
+                gui.press("tab", presses=26)
+                gui.write(descricao)
+                gui.press(["tab", "enter"])
+                gui.press("tab", presses=11)
+                gui.press("left", presses=2)
+                gui.press("tab", presses=5)
+                gui.press("enter")
+
+                logging.info(f"Processando parcelas: {parcelas}")
+                gui.press("tab")
+                gui.press("enter")
+                processar_parcelas(parcelas)
+
+                gui.press("tab", presses=3)
+                gui.press(["enter", "tab", "tab", "tab", "enter"])
+                gui.press("tab", presses=35)
             if rateio.lower() == "sim":
                 gui.press("enter")
                 gui.press("tab", presses=8)
@@ -680,8 +744,8 @@ if __name__ == "__main__":
 
                 pdf_path = os.path.join(DIRECTORY, "anexos")
                 extracted_info = process_pdf(pdf_path)
-                if extracted_info:
-                    process_pdf() # Aqui colocar a extração de dados do pdf
+                if os.path.exists(pdf_path):
+                    extracted_info = process_pdf(pdf_path)
                 else:
                     logging.error("Erro ao precessar o PDF")
                 
@@ -695,6 +759,8 @@ if __name__ == "__main__":
                 rateio = dados_email.get("rateio")
                 parcelas = dados_email.get("parcelas", [])
                 serie = dados_email.get("serie")
+                data_venc_nfs = dados_email.get("data_venc_nfs")
+                tipo_imposto = dados_email.get("tipo_imposto")
                 if "parcelas" in dados_email:
                     parcelas = dados_email["parcelas"]
                 else:
@@ -729,42 +795,48 @@ if __name__ == "__main__":
                     )
                     continue
 
-                # Verificação de campos obrigatórios
-                campos_obrigatorios = [
-                    departamento,
-                    origem,
-                    descricao,
-                    cc,
-                    cod_item,
-                    valor_total,
-                    dados_centros_de_custo,
-                ]
-                if not all(campos_obrigatorios):
-                    mensagem_erro = (
-                        "Faltando campos obrigatórios para o lançamento:\n"
-                    )
-                    if not departamento:
-                        mensagem_erro += "- Departamento\n"
-                    if not origem:
-                        mensagem_erro += "- Origem\n"
-                    if not descricao:
-                        mensagem_erro += "- Descrição\n"
-                    if not cc:
-                        mensagem_erro += "- CC\n"
-                    if not cod_item:
-                        mensagem_erro += "- Código de tributação do item\n"
-                    if not valor_total:
-                        mensagem_erro += "- Valor Total\n"
-                    if not dados_centros_de_custo:
-                        mensagem_erro += "- Dados dos Centros de Custo\n"
-                    logging.error(mensagem_erro)
-                    send_email_error(
-                        dani,
-                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        mensagem_erro,
-                        nmr_nota,
-                    )
-                    continue
+                def verificar_campos_obrigatorios(departamento, origem, descricao, cc, cod_item, valor_total, dados_centros_de_custo, data_venc_nfs, anexo):
+                    campos_obrigatorios = [
+                        departamento,
+                        origem,
+                        descricao,
+                        cc,
+                        cod_item,
+                        valor_total,
+                        dados_centros_de_custo,
+                    ]
+
+                    if not all(campos_obrigatorios):
+                        mensagem_erro = "Faltando campos obrigatórios para o lançamento:\n"
+                        if not departamento:
+                            mensagem_erro += "- Departamento\n"
+                        if not origem:
+                            mensagem_erro += "- Origem\n"
+                        if not descricao:
+                            mensagem_erro += "- Descrição\n"
+                        if not cc:
+                            mensagem_erro += "- CC\n"
+                        if not cod_item:
+                            mensagem_erro += "- Código de tributação do item\n"
+                        if not valor_total:
+                            mensagem_erro += "- Valor Total\n"
+                        if not dados_centros_de_custo:
+                            mensagem_erro += "- Dados dos Centros de Custo\n"
+
+                        # Verifica se o anexo é um PDF e se a data de vencimento está preenchida
+                        if anexo.endswith('.pdf') and not data_venc_nfs:
+                            mensagem_erro += "- Data de Vencimento\n"
+
+                        logging.error(mensagem_erro)
+                        send_email_error(
+                            dani,
+                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                            mensagem_erro,
+                            nmr_nota,
+                        )
+
+                        # Exemplo de chamada da função
+                        verificar_campos_obrigatorios(departamento, origem, descricao, cc, cod_item, valor_total, dados_centros_de_custo, data_venc_nfs, anexo)
 
                 # Executando a parte de revenda primeiro
                 if cnpj_dest:
@@ -832,7 +904,9 @@ if __name__ == "__main__":
                         modelo,
                         rateio,
                         parcelas,
-                        serie, 
+                        serie,
+                        data_venc_nfs,
+                        tipo_imposto,
                     )
                     # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
                     processed_emails = load_processed_emails()

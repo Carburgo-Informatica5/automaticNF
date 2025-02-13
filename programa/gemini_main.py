@@ -53,8 +53,8 @@ def verificar_impostos(json_data):
 def main():
     # Caminho absoluto para a pasta 'anexos'
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    pdf_folder = os.path.join(base_dir, '..', 'anexos')
-    json_folder = os.path.join(base_dir, '..', 'json_output')
+    pdf_folder = os.path.join(base_dir, 'anexos')
+    json_folder = os.path.join(base_dir, '...', 'NOTAS EM JSON')
 
     os.makedirs(pdf_folder, exist_ok=True)
     os.makedirs(json_folder, exist_ok=True)
