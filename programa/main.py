@@ -106,7 +106,7 @@ def extract_values(text):
             data_vencimento = line.split(":", 1)[1].strip()
             data_vencimento_sem_barras = data_vencimento.replace("/", "")
             values["data_vencimento"] = data_vencimento_sem_barras
-            logging.info(f"Data de vencimento extraída: {values['data_vencimento']}")
+            logging.info(f"Data de vencimento EXTRAÍDA: {values['data_vencimento']}")
         elif line.startswith("tipo imposto:"):
             values["tipo_imposto"] = line.split(":", 1)[1].strip()
     return values
@@ -234,9 +234,7 @@ def check_emails(nmr_nota):
                                                 ]
                                             },
                                             "data_venc": {
-                                                "data_venc": json_data["data_venc"][
-                                                    "data_venc"
-                                                ]
+                                                "data_venc": json_data.get("data_venc", {}).get("data_venc") or dados_email.get("data_venc_nfs")
                                             },
                                             "chave_acesso": {
                                                 "chave": json_data["chave_acesso"][
@@ -254,9 +252,15 @@ def check_emails(nmr_nota):
                                                     "cnpj"
                                                 ],
                                             },
-                                            "pagamento_parcelado": [],  # Adicione aqui as parcelas, se necessário
-                                            "serie": "",  # Adicione a série, se necessário
+                                            "pagamento_parcelado": [],
+                                            "serie": "",  
                                         }
+
+                                    logging.info(f"Valor de json_data['data_venc']: {json_data.get('data_venc')}")
+                                    logging.info(f"Valor de dados_email['data_venc_nfs']: {dados_email.get('data_venc_nfs')}")
+                                    logging.info(f"Valor de data_venc_nfs ao criar dados_email: {data_vencimento}")
+
+
 
                                     if not dados_nota_fiscal["valor_total"]:
                                         raise ValueError(
@@ -275,6 +279,7 @@ def check_emails(nmr_nota):
                                         f"Dados dos centros de custo: {dados_centros_de_custo}"
                                     )
 
+                                    logging.info(f"Data de vencimento antes de ser adicionada ao JSON: {data_vencimento}")
                                     dados_email = {
                                         "departamento": departamento,
                                         "origem": origem,
@@ -304,6 +309,8 @@ def check_emails(nmr_nota):
                                         "data_venc_nfs": data_vencimento,
                                         "tipo_imposto": tipo_imposto,
                                     }
+                                    logging.info(f"JSON final enviado para automação: {json.dumps(dados_email, indent=4)}")
+
 
                                     logging.info(
                                         f"Dados carregados: {dados_nota_fiscal}"
@@ -364,6 +371,8 @@ def clean_extracted_json(json_data):
 
 
 def map_json_fields(json_data, dados_email):
+    
+    logging.info(f"Data de vencimento mapeada: {data_venc}, {data_venc_nfs}")
     mapped_data = {
         "emitente": {
             "cnpj": json_data.get("CNPJ do prestador de serviço"),
@@ -377,7 +386,7 @@ def map_json_fields(json_data, dados_email):
             "numero_nota": json_data.get("Numero da nota"),
         },
         "data_venc": {
-            "data_venc": json_data.get("data_venc") or dados_email.get("data_venc_nfs")
+            "data_venc": dados_email.get("data_venc_nfs"), 
         },
         "data_emi": {
             "data_emissao": json_data.get("Data da emissão"),
