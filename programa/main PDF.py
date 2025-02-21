@@ -133,8 +133,8 @@ def save_processed_emails(processed_emails):
         json.dump(processed_emails, file)
 
 
-def check_emails(nmr_nota):
-    sender = None 
+def check_emails(nmr_nota, extract_values):
+    sender = None
     dados_email = {}
     try:
         server = poplib.POP3_SSL(HOST, PORT)
@@ -184,7 +184,9 @@ def check_emails(nmr_nota):
                             body = decode_body(part.get_payload(decode=True), charset)
                         elif part.get("Content-Disposition") is not None:
                             logging.info("Encontrado anexo no e-mail")
-                            dados_nota_fiscal = save_attachment(part, DIRECTORY, dados_email)
+                            dados_nota_fiscal = save_attachment(
+                                part, DIRECTORY, dados_email
+                            )
                             if dados_nota_fiscal:
                                 try:
                                     valores_extraidos = extract_values(body)
@@ -204,58 +206,38 @@ def check_emails(nmr_nota):
 
                                     # Verifica se o anexo é um PDF (contém o caminho do JSON)
                                     if "json_path" in dados_nota_fiscal:
-                                        # Carrega os dados do JSON salvo
-                                        with open(
-                                            dados_nota_fiscal["json_path"], "r"
-                                        ) as f:
+                                        with open(dados_nota_fiscal["json_path"], "r") as f:
                                             json_data = json.load(f)
 
-                                        # Mapeia os campos do JSON para o formato esperado
                                         dados_nota_fiscal = {
                                             "valor_total": [
-                                                {
-                                                    "valor_total": json_data[
-                                                        "valor_total"
-                                                    ]["valor_total"]
-                                                }
+                                                {"valor_total": json_data["valor_total"]["valor_total"]}
                                             ],
                                             "emitente": {
                                                 "nome": json_data["emitente"]["nome"],
                                                 "cnpj": json_data["emitente"]["cnpj"],
                                             },
                                             "num_nota": {
-                                                "numero_nota": json_data["num_nota"][
-                                                    "numero_nota"
-                                                ]
+                                                "numero_nota": json_data["num_nota"]["numero_nota"]
                                             },
                                             "data_emi": {
-                                                "data_emissao": json_data["data_emi"][
-                                                    "data_emissao"
-                                                ]
+                                                "data_emissao": json_data["data_emi"]["data_emissao"]
                                             },
                                             "data_venc": {
-                                                "data_venc": json_data["data_venc"][
-                                                    "data_venc"
-                                                ]
+                                                "data_venc": valores_extraidos["data_vencimento"]
                                             },
                                             "chave_acesso": {
-                                                "chave": json_data["chave_acesso"][
-                                                    "chave"
-                                                ]
+                                                "chave": json_data["chave_acesso"]["chave"]
                                             },
                                             "modelo": {
                                                 "modelo": json_data["modelo"]["modelo"]
                                             },
                                             "destinatario": {
-                                                "nome": json_data["destinatario"][
-                                                    "nome"
-                                                ],
-                                                "cnpj": json_data["destinatario"][
-                                                    "cnpj"
-                                                ],
+                                                "nome": json_data["destinatario"]["nome"],
+                                                "cnpj": json_data["destinatario"]["cnpj"],
                                             },
-                                            "pagamento_parcelado": [],  # Adicione aqui as parcelas, se necessário
-                                            "serie": "",  # Adicione a série, se necessário
+                                            "pagamento_parcelado": [],
+                                            "serie": "",
                                         }
 
                                     if not dados_nota_fiscal["valor_total"]:
@@ -287,23 +269,18 @@ def check_emails(nmr_nota):
                                         "num_nota": dados_nota_fiscal["num_nota"],
                                         "data_emi": dados_nota_fiscal["data_emi"],
                                         "data_venc": dados_nota_fiscal["data_venc"],
-                                        "chave_acesso": dados_nota_fiscal[
-                                            "chave_acesso"
-                                        ],
+                                        "chave_acesso": dados_nota_fiscal["chave_acesso"],
                                         "modelo": dados_nota_fiscal["modelo"],
-                                        "destinatario": dados_nota_fiscal[
-                                            "destinatario"
-                                        ],
+                                        "destinatario": dados_nota_fiscal["destinatario"],
                                         "rateio": rateio,
                                         "sender": sender,
                                         "email_id": email_id,
-                                        "parcelas": dados_nota_fiscal.get(
-                                            "pagamento_parcelado", []
-                                        ),
+                                        "parcelas": dados_nota_fiscal.get("pagamento_parcelado", []),
                                         "serie": dados_nota_fiscal.get("serie", ""),
-                                        "data_venc_nfs": data_vencimento,
-                                        "tipo_imposto": tipo_imposto,
+                                        "data_venc_nfs": valores_extraidos["data_vencimento"],
+                                        "tipo_imposto": valores_extraidos["tipo_imposto"],
                                     }
+
 
                                     logging.info(
                                         f"Dados carregados: {dados_nota_fiscal}"
@@ -363,7 +340,11 @@ def clean_extracted_json(json_data):
     return json_data
 
 
-def map_json_fields(json_data, dados_email):
+def map_json_fields(json_data, body):
+    
+    valores_extraidos = extract_values(body)
+    data_vencimento = valores_extraidos["data_vencimento"]
+    
     mapped_data = {
         "emitente": {
             "cnpj": json_data.get("CNPJ do prestador de serviço"),
@@ -377,7 +358,7 @@ def map_json_fields(json_data, dados_email):
             "numero_nota": json_data.get("Numero da nota"),
         },
         "data_venc": {
-            "data_venc": dados_email.get("data_venc_nfs")
+            "data_venc": data_vencimento
         },
         "data_emi": {
             "data_emissao": json_data.get("Data da emissão"),
@@ -408,10 +389,9 @@ def map_json_fields(json_data, dados_email):
     }
     return mapped_data
 
-
 def process_pdf(pdf_path, dados_email):
     json_folder = os.path.abspath(
-        os.path.join("C:/Users/VAS MTZ/Desktop/Caetano Apollo/NOTA EM JSON")
+        os.path.join("C:/Users/VAS MTZ/Desktop/Caetano Apollo/NOTAS EM JSON")
     )
 
     os.makedirs(json_folder, exist_ok=True)
@@ -423,7 +403,6 @@ def process_pdf(pdf_path, dados_email):
 
     gemini_api = GeminiAPI(api_key)
 
-    # Verifica se o PDF é um arquivo válido
     if not os.path.isfile(pdf_path) or not pdf_path.endswith(".pdf"):
         logging.error(f"O caminho {pdf_path} não é um arquivo PDF válido")
         return
@@ -446,31 +425,33 @@ def process_pdf(pdf_path, dados_email):
             logging.error(f"Erro ao extrair informações do PDF: {pdf_path}")
             return
 
-        extracted_text = re.sub(
-            r"^```json", "", extracted_text
-        ).strip()  # Remove o ```json do início
-        extracted_text = re.sub(
-            r"```$", "", extracted_text
-        ).strip()  # Remove o ``` do final
+        extracted_text = re.sub(r"^```json", "", extracted_text).strip()
+        extracted_text = re.sub(r"```$", "", extracted_text).strip()
 
-        extracted_json = json.loads(
-            extracted_text
-        )  # Converte string JSON para dicionário
-        cleaned_json = clean_extracted_json(extracted_json)  # Limpa o JSON
-        mapped_json = map_json_fields(cleaned_json, dados_email)  # Mapeia os campos do JSON
+        extracted_json = json.loads(extracted_text)
+        cleaned_json = clean_extracted_json(extracted_json)
         
-        json_path = os.path.join(json_folder, f"{os.path.splitext(os.path.basename(pdf_path))[0]}.json")
+        # Pass dados_email to map_json_fields to access data_vencimento
+        mapped_json = map_json_fields(cleaned_json, dados_email)
+
+        json_path = os.path.join(
+            json_folder, f"{os.path.splitext(os.path.basename(pdf_path))[0]}.json"
+        )
+        
+        # Log the mapped JSON before saving
+        logging.info(f"Mapped JSON before saving: {mapped_json}")
+        
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(mapped_json, f, ensure_ascii=False, indent=4)
-        logging.info(f"JSON final gerado: {mapped_json}")
+            
+        logging.info(f"JSON saved to: {json_path}")
+        return mapped_json
 
-    except json.JSONDecodeError:
-        logging.error(
-            f"Erro: A resposta da API não é um JSON válido após limpeza: {extracted_text}"
-        )
+    except json.JSONDecodeError as e:
+        logging.error(f"Erro: A resposta da API não é um JSON válido após limpeza: {extracted_text}")
+        logging.error(f"JSON decode error: {e}")
     except Exception as e:
         logging.error(f"Erro ao processar PDF {pdf_path}: {e}")
-
 
 def save_attachment(part, directory, dados_email):
     filename = decode_header_value(part.get_filename())
@@ -992,7 +973,7 @@ if __name__ == "__main__":
         logging.info("Iniciando a automação")
         try:
             nmr_nota = ""
-            dados_email = check_emails(nmr_nota)
+            dados_email = check_emails(nmr_nota, extract_values)
             if dados_email is not None:
                 logging.info("Executando automação GUI")
                 logging.info(f"Conteúdo completo de dados_email: {dados_email}")
@@ -1014,7 +995,7 @@ if __name__ == "__main__":
                 rateio = dados_email.get("rateio")
                 parcelas = dados_email.get("parcelas", [])
                 serie = dados_email.get("serie")
-                data_venc_nfs = dados_email.get("data_venc_nfs")
+                data_venc_nfs = dados_email.get("data_vencimento")
                 tipo_imposto = dados_email.get("tipo_imposto")
                 if "parcelas" in dados_email:
                     parcelas = dados_email["parcelas"]

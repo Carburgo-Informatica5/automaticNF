@@ -485,7 +485,7 @@ class SystemNF:
             data_atual = datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
             time.sleep(3)
-            window = gw.getWindowsWithTitle("BRAVOS v5.17 Evolutivo")[0]
+            window = gw.getWindowsWithTitle("BRAVOS v5.18 Evolutivo")[0]
             if not window:
                 raise Exception("Janela do BRAVOS não encontrada")
             window.activate()
