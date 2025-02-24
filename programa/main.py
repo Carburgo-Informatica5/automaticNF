@@ -272,7 +272,7 @@ def save_attachment(part, directory):
     logging.info(f"Anexo salvo em: {filepath}")
     dados_nota_fiscal = parse_nota_fiscal(filepath)
     if dados_nota_fiscal:
-        salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTA EM JSON")
+        salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTAS EM JSON")
         return dados_nota_fiscal
     else:
         logging.error(f"Erro ao parsear o XML da nota fiscal: {filepath}")

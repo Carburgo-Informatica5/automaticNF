@@ -390,61 +390,57 @@ def map_json_fields(json_data, body):
     return mapped_data
 
 def process_pdf(pdf_path, dados_email):
-    json_folder = os.path.abspath(
-        os.path.join("C:/Users/VAS MTZ/Desktop/Caetano Apollo/NOTAS EM JSON")
-    )
+    # Verifique se pdf_path é uma string e termina com .pdf
+    if not isinstance(pdf_path, str) or not pdf_path.lower().endswith(".pdf"):
+        logging.error(f"O caminho {pdf_path} não é um arquivo PDF válido")
+        return None  # Retorne None para evitar erros posteriores
 
-    os.makedirs(json_folder, exist_ok=True)
+    json_folder = os.path.abspath(os.path.join("NOTAS EM JSON"))
+    os.makedirs(json_folder, exist_ok=True)  # Cria o diretório se não existir
 
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         logging.error("API key not found")
-        return
+        return None
 
     gemini_api = GeminiAPI(api_key)
-
-    if not os.path.isfile(pdf_path) or not pdf_path.endswith(".pdf"):
-        logging.error(f"O caminho {pdf_path} não é um arquivo PDF válido")
-        return
 
     try:
         upload_response = gemini_api.upload_pdf(pdf_path)
         if not upload_response.get("success"):
             logging.error(f"Erro ao fazer upload do PDF: {pdf_path}")
-            return
+            return None
 
         file_id = upload_response["file_id"]
 
         status_response = gemini_api.check_processing_status(file_id)
         if status_response.get("state") != "ACTIVE":
             logging.error(f"Erro no processamento do arquivo {pdf_path}")
-            return
+            return None
 
         extracted_text = gemini_api.extract_info(file_id)
+        if isinstance(extracted_text, dict):
+            extracted_text = json.dumps(extracted_text)
         if not extracted_text:
             logging.error(f"Erro ao extrair informações do PDF: {pdf_path}")
-            return
+            return None
 
-        extracted_text = re.sub(r"^```json", "", extracted_text).strip()
-        extracted_text = re.sub(r"```$", "", extracted_text).strip()
-
+        extracted_text = extracted_text.strip().lstrip("```json").rstrip("```").strip()
         extracted_json = json.loads(extracted_text)
         cleaned_json = clean_extracted_json(extracted_json)
         
-        # Pass dados_email to map_json_fields to access data_vencimento
         mapped_json = map_json_fields(cleaned_json, dados_email)
+        json_filename = re.sub(r'[<>:"/\\|?*]', '', os.path.splitext(os.path.basename(pdf_path))[0]) + ".json"
 
-        json_path = os.path.join(
-            json_folder, f"{os.path.splitext(os.path.basename(pdf_path))[0]}.json"
-        )
+        json_path = os.path.join(json_folder, json_filename)
         
-        # Log the mapped JSON before saving
         logging.info(f"Mapped JSON before saving: {mapped_json}")
-        
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(mapped_json, f, ensure_ascii=False, indent=4)
             
         logging.info(f"JSON saved to: {json_path}")
+        logging.info(f"Tipo de extracted_text: {type(extracted_text)}")
+
         return mapped_json
 
     except json.JSONDecodeError as e:
@@ -477,10 +473,12 @@ def save_attachment(part, directory, dados_email):
     elif filename.lower().endswith(".pdf"):
         process_pdf(filepath, dados_email)
         # Retorna um dicionário com o caminho do JSON salvo
-        json_filename = f"{os.path.splitext(os.path.basename(filepath))[0]}.json"
-        json_path = os.path.join(
-            "C:/Users/VAS MTZ/Desktop/Caetano Apollo/NOTA EM JSON", json_filename
-        )
+        json_folder = os.path.abspath(os.path.join("NOTAS EM JSON"))
+        os.makedirs(json_folder, exist_ok=True)  # Cria o diretório se não existir
+
+        # Remove caracteres inválidos do nome do arquivo
+        json_filename = re.sub(r'[<>:"/\\|?*]', '', os.path.splitext(os.path.basename(pdf_path))[0]) + ".json"
+        json_path = os.path.join(json_folder, json_filename)
         return {"json_path": json_path}
 
 
