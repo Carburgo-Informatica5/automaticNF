@@ -54,8 +54,11 @@ def decode_header_value(header_value):
             decoded_string += fragment
     return decoded_string
 
-
 def normalize_text(text):
+    if not isinstance(text, str):  # Garante que text seja string
+        logging.error(f"Erro: normalize_text recebeu {type(text)} em vez de string.")
+        return ""
+    
     return "".join(
         c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
     ).lower()
@@ -77,6 +80,10 @@ dani = Queue(config)
 
 
 def extract_values(text):
+    if not isinstance(text, str):  # Evita chamar `.lower()` em um dicionário
+        logging.error(f"Erro: extract_values recebeu {type(text)} em vez de string.")
+        return {}
+
     values = {
         "departamento": None,
         "origem": None,
@@ -87,29 +94,32 @@ def extract_values(text):
         "data_vencimento": None,
         "tipo_imposto": None,
     }
+
     lines = text.lower().splitlines()
     for line in lines:
-        if line.startswith("departamento:"):
-            values["departamento"] = line.split(":", 1)[1].strip()
-        elif line.startswith("origem:"):
-            values["origem"] = line.split(":", 1)[1].strip()
-        elif line.startswith("descrição:"):
-            values["descricao"] = line.split(":", 1)[1].strip()
-        elif line.startswith("cc:"):
-            values["cc"] = line.split(":", 1)[1].strip()
-            logging.info(f"CC extraído: {values['cc']}")
-        elif line.startswith("rateio:"):
-            values["rateio"] = line.split(":", 1)[1].strip()
-        elif line.startswith("código de tributação:"):
-            values["cod_item"] = line.split(":", 1)[1].strip()
-        elif "data vencimento" in line.lower():
-            data_vencimento = line.split(":", 1)[1].strip()
-            data_vencimento_sem_barras = data_vencimento.replace("/", "")
-            values["data_vencimento"] = data_vencimento_sem_barras
-            logging.info(f"Data de vencimento extraída: {values['data_vencimento']}")
-        elif line.startswith("tipo imposto:"):
-            values["tipo_imposto"] = line.split(":", 1)[1].strip()
+        if isinstance(line, str):  # Garante que cada linha é string
+            if line.startswith("departamento:"):
+                values["departamento"] = line.split(":", 1)[1].strip()
+            elif line.startswith("origem:"):
+                values["origem"] = line.split(":", 1)[1].strip()
+            elif line.startswith("descrição:"):
+                values["descricao"] = line.split(":", 1)[1].strip()
+            elif line.startswith("cc:"):
+                values["cc"] = line.split(":", 1)[1].strip()
+                logging.info(f"CC extraído: {values['cc']}")
+            elif line.startswith("rateio:"):
+                values["rateio"] = line.split(":", 1)[1].strip()
+            elif line.startswith("código de tributação:"):
+                values["cod_item"] = line.split(":", 1)[1].strip()
+            elif "data vencimento" in line.lower():
+                data_vencimento = line.split(":", 1)[1].strip()
+                values["data_vencimento"] = data_vencimento.replace("/", "")
+                logging.info(f"Data de vencimento extraída: {values['data_vencimento']}")
+            elif line.startswith("tipo imposto:"):
+                values["tipo_imposto"] = line.split(":", 1)[1].strip()
+    
     return values
+
 
 
 PROCESSED_EMAILS_FILE = os.path.join(current_dir, "processed_emails.json")
@@ -182,6 +192,7 @@ def check_emails(nmr_nota, extract_values):
                         if content_type == "text/plain":
                             charset = part.get_content_charset()
                             body = decode_body(part.get_payload(decode=True), charset)
+                            dados_email["body"] = body
                         elif part.get("Content-Disposition") is not None:
                             logging.info("Encontrado anexo no e-mail")
                             dados_nota_fiscal = save_attachment(
@@ -204,7 +215,6 @@ def check_emails(nmr_nota, extract_values):
                                     ]
                                     tipo_imposto = valores_extraidos["tipo_imposto"]
 
-                                    # Verifica se o anexo é um PDF (contém o caminho do JSON)
                                     if "json_path" in dados_nota_fiscal:
                                         with open(dados_nota_fiscal["json_path"], "r") as f:
                                             json_data = json.load(f)
@@ -250,9 +260,7 @@ def check_emails(nmr_nota, extract_values):
                                             "valor_total"
                                         ]
                                     ).replace(".", ",")
-                                    dados_centros_de_custo = process_cost_centers(
-                                        cc_texto, float(valor_total.replace(",", "."))
-                                    )
+                                    dados_centros_de_custo = process_cost_centers(cc_texto, float(valor_total.replace(",", ".")))
                                     logging.info(
                                         f"Dados dos centros de custo: {dados_centros_de_custo}"
                                     )
@@ -279,14 +287,51 @@ def check_emails(nmr_nota, extract_values):
                                         "serie": dados_nota_fiscal.get("serie", ""),
                                         "data_venc_nfs": valores_extraidos["data_vencimento"],
                                         "tipo_imposto": valores_extraidos["tipo_imposto"],
+                                        "impostos": json_data.get("impostos", {}),  # Adiciona os impostos extraídos
+                                        "valor_liquido": json_data.get("valor_liquido", {}),  # Adiciona o valor líquido extraído
                                     }
-
 
                                     logging.info(
                                         f"Dados carregados: {dados_nota_fiscal}"
                                     )
                                     logging.info(
                                         f"Parcelas carregadas: {dados_nota_fiscal.get('pagamento_parcelado')}"
+                                    )
+
+                                    # Chama a função de automação com os dados extraídos
+                                    sistema_nf = SystemNF()
+                                    sistema_nf.automation_gui(
+                                        departamento,
+                                        origem,
+                                        descricao,
+                                        cc_texto,
+                                        cod_item,
+                                        valor_total,
+                                        dados_centros_de_custo,
+                                        dados_nota_fiscal["emitente"]["cnpj"],
+                                        dados_nota_fiscal["num_nota"]["numero_nota"],
+                                        dados_nota_fiscal["data_emi"]["data_emissao"],
+                                        dados_nota_fiscal["data_venc"]["data_venc"],
+                                        dados_nota_fiscal["chave_acesso"]["chave"],
+                                        dados_nota_fiscal["modelo"]["modelo"],
+                                        rateio,
+                                        dados_nota_fiscal.get("pagamento_parcelado", []),
+                                        dados_nota_fiscal.get("serie", ""),
+                                        valores_extraidos["data_vencimento"],
+                                        tipo_imposto,
+                                        dados_email.get("impostos", {}).get("INSS", "0.00"),  # Passa o valor de INSS
+                                        dados_email.get("impostos", {}).get("IR", "0.00"),  # Passa o valor de IR
+                                        dados_email.get("valor_liquido", "0.00"),  # Passa o valor líquido
+                                    )
+
+                                    # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
+                                    processed_emails = load_processed_emails()
+                                    processed_emails.append(dados_email["email_id"])
+                                    save_processed_emails(processed_emails)
+                                    send_success_message(
+                                        dani,
+                                        sender,
+                                        nmr_nota,
                                     )
 
                                 except Exception as e:
@@ -312,6 +357,7 @@ def check_emails(nmr_nota, extract_values):
                 else:
                     charset = email_message.get_content_charset()
                     body = decode_body(email_message.get_payload(decode=True), charset)
+                    dados_email["body"] = body
 
         server.quit()
         logging.info("Nenhum e-mail com o assunto alvo encontrado")
@@ -326,25 +372,34 @@ def check_emails(nmr_nota, extract_values):
         )
         return None
 
-
 def clean_extracted_json(json_data):
-    """Remove duplicatas e ajusta formatação do JSON extraído."""
-    if "ISS Retido" in json_data:
-        if (
-            isinstance(json_data["ISS Retido"], str)
-            and json_data["ISS Retido"].lower() == "não"
-        ):
+    if not isinstance(json_data, dict):
+        logging.error(f"Erro: clean_extracted_json recebeu {type(json_data)} em vez de dict.")
+        return {}
+
+    if "ISS Retido" in json_data and isinstance(json_data["ISS Retido"], str):
+        if json_data["ISS Retido"].lower() == "não":
             json_data["ISS Retido"] = "Não"
         else:
-            json_data["ISS Retido"] = f"{float(json_data['ISS Retido']):.2f}"
+            try:
+                json_data["ISS Retido"] = f"{float(json_data['ISS Retido']):.2f}"
+            except ValueError:
+                logging.warning(f"Valor inválido para ISS Retido: {json_data['ISS Retido']}")
+    
     return json_data
 
 
+
 def map_json_fields(json_data, body):
-    
+    # Verifica se o body é uma string
+    if not isinstance(body, str):
+        logging.error(f"Erro: 'body' deveria ser uma string, mas recebeu {type(body)}.")
+        return {}
+
     valores_extraidos = extract_values(body)
+
     data_vencimento = valores_extraidos["data_vencimento"]
-    
+
     mapped_data = {
         "emitente": {
             "cnpj": json_data.get("CNPJ do prestador de serviço"),
@@ -390,17 +445,21 @@ def map_json_fields(json_data, body):
     return mapped_data
 
 def process_pdf(pdf_path, dados_email):
-    # Verifique se pdf_path é uma string e termina com .pdf
-    if not isinstance(pdf_path, str) or not pdf_path.lower().endswith(".pdf"):
-        logging.error(f"O caminho {pdf_path} não é um arquivo PDF válido")
-        return None  # Retorne None para evitar erros posteriores
+    logging.info(f"Iniciando processamento do PDF: {pdf_path}")
 
-    json_folder = os.path.abspath(os.path.join("NOTAS EM JSON"))
-    os.makedirs(json_folder, exist_ok=True)  # Cria o diretório se não existir
+    if not isinstance(pdf_path, str) or not pdf_path.lower().endswith(".pdf"):
+        logging.error(f"Erro: Caminho inválido para PDF: {pdf_path}")
+        return None
+    if not os.path.exists(pdf_path):
+        logging.error(f"Erro: Arquivo não encontrado: {pdf_path}")
+        return None
+
+    json_folder = os.path.abspath("NOTAS EM JSON")
+    os.makedirs(json_folder, exist_ok=True)
 
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        logging.error("API key not found")
+        logging.error("Erro: API key do Gemini não encontrada.")
         return None
 
     gemini_api = GeminiAPI(api_key)
@@ -408,79 +467,91 @@ def process_pdf(pdf_path, dados_email):
     try:
         upload_response = gemini_api.upload_pdf(pdf_path)
         if not upload_response.get("success"):
-            logging.error(f"Erro ao fazer upload do PDF: {pdf_path}")
+            logging.error(f"Erro no upload do PDF: {pdf_path}")
             return None
 
         file_id = upload_response["file_id"]
-
         status_response = gemini_api.check_processing_status(file_id)
         if status_response.get("state") != "ACTIVE":
-            logging.error(f"Erro no processamento do arquivo {pdf_path}")
+            logging.error(f"Erro no processamento do PDF: {pdf_path}")
             return None
 
         extracted_text = gemini_api.extract_info(file_id)
-        if isinstance(extracted_text, dict):
-            extracted_text = json.dumps(extracted_text)
         if not extracted_text:
             logging.error(f"Erro ao extrair informações do PDF: {pdf_path}")
             return None
 
-        extracted_text = extracted_text.strip().lstrip("```json").rstrip("```").strip()
-        extracted_json = json.loads(extracted_text)
-        cleaned_json = clean_extracted_json(extracted_json)
-        
-        mapped_json = map_json_fields(cleaned_json, dados_email)
-        json_filename = re.sub(r'[<>:"/\\|?*]', '', os.path.splitext(os.path.basename(pdf_path))[0]) + ".json"
+        try:
+            extracted_text = extracted_text.strip().lstrip("```json").rstrip("```").strip()
+            extracted_json = json.loads(extracted_text) if isinstance(extracted_text, str) else extracted_text
 
+            if not extracted_json:
+                logging.error("Erro: JSON extraído está vazio.")
+                return None
+        except json.JSONDecodeError:
+            logging.error(f"Erro ao decodificar JSON extraído: {extracted_text}")
+            return None
+
+        cleaned_json = clean_extracted_json(extracted_json)
+
+        # Verifica se o body é uma string antes de chamar map_json_fields
+        body = dados_email.get("body", "")
+        if not isinstance(body, str):
+            logging.error(f"Erro: 'body' deveria ser uma string, mas recebeu {type(body)}.")
+            return None
+
+        mapped_json = map_json_fields(cleaned_json, body)
+
+        if not mapped_json:
+            logging.error("Erro: JSON final está vazio, não será salvo.")
+            return None
+
+        json_filename = re.sub(r'[<>:"/\\|?*]', '', os.path.splitext(os.path.basename(pdf_path))[0]) + ".json"
         json_path = os.path.join(json_folder, json_filename)
-        
-        logging.info(f"Mapped JSON before saving: {mapped_json}")
+
+        if not os.path.exists(json_folder):
+            os.makedirs(json_folder, exist_ok=True)
+
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(mapped_json, f, ensure_ascii=False, indent=4)
-            
-        logging.info(f"JSON saved to: {json_path}")
-        logging.info(f"Tipo de extracted_text: {type(extracted_text)}")
 
-        return mapped_json
+        logging.info(f"JSON salvo em: {json_path}")
+        return {"json_path": json_path}
 
-    except json.JSONDecodeError as e:
-        logging.error(f"Erro: A resposta da API não é um JSON válido após limpeza: {extracted_text}")
-        logging.error(f"JSON decode error: {e}")
     except Exception as e:
-        logging.error(f"Erro ao processar PDF {pdf_path}: {e}")
+        logging.error(f"Erro inesperado ao processar PDF {pdf_path}: {e}")
+        return None
 
 def save_attachment(part, directory, dados_email):
     filename = decode_header_value(part.get_filename())
-    if not filename:
+    if not filename or not filename.lower().endswith((".xml", ".pdf")):
         return None
-    elif not filename.lower().endswith((".xml", ".pdf")):
-        return None
+
     content_type = part.get_content_type()
     logging.info(f"Tipo de conteúdo do anexo: {content_type}")
+
     if not os.path.exists(directory):
         os.makedirs(directory)
+
     filepath = os.path.join(directory, filename)
     logging.info(f"Salvando anexo em: {filepath}")
+
     with open(filepath, "wb") as f:
         f.write(part.get_payload(decode=True))
+
     logging.info(f"Anexo salvo em: {filepath}")
+
     if filename.lower().endswith(".xml"):
         dados_nota_fiscal = parse_nota_fiscal(filepath)
-        if dados_nota_fiscal:
-            return dados_nota_fiscal
-        else:
-            return None
+        return dados_nota_fiscal if dados_nota_fiscal else None
     elif filename.lower().endswith(".pdf"):
-        process_pdf(filepath, dados_email)
-        # Retorna um dicionário com o caminho do JSON salvo
-        json_folder = os.path.abspath(os.path.join("NOTAS EM JSON"))
-        os.makedirs(json_folder, exist_ok=True)  # Cria o diretório se não existir
+        json_result = process_pdf(filepath, dados_email)
 
-        # Remove caracteres inválidos do nome do arquivo
-        json_filename = re.sub(r'[<>:"/\\|?*]', '', os.path.splitext(os.path.basename(pdf_path))[0]) + ".json"
-        json_path = os.path.join(json_folder, json_filename)
-        return {"json_path": json_path}
+        if not json_result or "json_path" not in json_result:
+            logging.error("Erro: JSON do PDF não foi gerado corretamente.")
+            return None  # Evita tentar acessar um arquivo que não existe
 
+        return json_result  # Retorna o caminho do JSON gerado corretamente
 
 def process_cost_centers(cc_texto, valor_total):
     valor_total = float(valor_total)
@@ -995,6 +1066,10 @@ if __name__ == "__main__":
                 serie = dados_email.get("serie")
                 data_venc_nfs = dados_email.get("data_vencimento")
                 tipo_imposto = dados_email.get("tipo_imposto")
+                ISS_retido = dados_email.get("impostos", {}).get("ISS Retido")
+                INSS = dados_email.get("impostos", {}).get("INSS")
+                IR = dados_email.get("impostos", {}).get("IR")                       
+                valor_liquido = dados_email.get("valor_liquido")
                 if "parcelas" in dados_email:
                     parcelas = dados_email["parcelas"]
                 else:
@@ -1160,7 +1235,10 @@ if __name__ == "__main__":
                         parcelas,
                         serie,
                         data_venc_nfs,
-                        tipo_imposto,
+                        ISS_retido,
+                        INSS,
+                        IR,
+                        valor_liquido,
                     )
                     # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
                     processed_emails = load_processed_emails()
