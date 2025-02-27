@@ -36,7 +36,7 @@ PORT = 995  # Porta segura (SSL)
 USERNAME = "dani@carburgo.com.br"
 PASSWORD = "p@r!sA1856"
 # Assunto alvo para busca
-ASSUNTO_ALVO = "lançamento notas fiscais DANI"
+ASSUNTO_ALVO = "lançamento nota fiscal dani"
 # Diretório para salvar os anexos
 DIRECTORY = os.path.join(current_dir, "anexos")
 

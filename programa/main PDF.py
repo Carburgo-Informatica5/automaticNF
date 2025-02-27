@@ -106,24 +106,19 @@ def extract_values(text):
                 values["descricao"] = line.split(":", 1)[1].strip()
             elif line.startswith("cc:"):
                 values["cc"] = line.split(":", 1)[1].strip()
-                logging.info(f"CC extraído: {values['cc']}")
             elif line.startswith("rateio:"):
                 values["rateio"] = line.split(":", 1)[1].strip()
             elif line.startswith("código de tributação:"):
                 values["cod_item"] = line.split(":", 1)[1].strip()
             elif "data vencimento" in line.lower():
-                data_vencimento = line.split(":", 1)[1].strip()
-                values["data_vencimento"] = data_vencimento.replace("/", "")
-                logging.info(f"Data de vencimento extraída: {values['data_vencimento']}")
+                values["data_vencimento"] = line.split(":", 1)[1].strip()
             elif line.startswith("tipo imposto:"):
                 values["tipo_imposto"] = line.split(":", 1)[1].strip()
     
+    logging.info(f"Valores extraídos: {values}")
     return values
 
-
-
 PROCESSED_EMAILS_FILE = os.path.join(current_dir, "processed_emails.json")
-
 
 def load_processed_emails():
     if os.path.exists(PROCESSED_EMAILS_FILE):
@@ -739,7 +734,10 @@ class SystemNF:
         INSS,
         IR,
         valor_liquido,
+        tipo_imposto,
     ):
+        
+        logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         if not parcelas:
             logging.warning("As parcelas estão vazias ao entrar em automation_gui")
         logging.info("Entrou na parte da automação")
@@ -1037,6 +1035,8 @@ class SystemNF:
             print("Automação iniciada com os dados extraídos.")
 
 
+# ...existing code...
+
 if __name__ == "__main__":
     while True:
         logging.info("Iniciando a automação")
@@ -1052,7 +1052,7 @@ if __name__ == "__main__":
                 if os.path.exists(pdf_path):
                     extracted_info = process_pdf(pdf_path, dados_email)
                 else:
-                    logging.error("Erro ao precessar o PDF")
+                    logging.error("Erro ao processar o PDF")
 
                 departamento = dados_email.get("departamento")
                 origem = dados_email.get("origem")
@@ -1203,12 +1203,13 @@ if __name__ == "__main__":
                 logging.info(f"Código do Item: {cod_item}")
                 logging.info(f"Valor Total: {valor_total}")
                 logging.info(f"Dados dos Centros de Custo: {dados_centros_de_custo}")
-                logging.info(f"CNPJ Eminente: {cnpj_emitente}")
+                logging.info(f"CNPJ Emitente: {cnpj_emitente}")
                 logging.info(f"Número da Nota: {nmr_nota}")
                 logging.info(f"Data de Emissão: {data_emi}")
                 logging.info(f"Data de Vencimento: {data_venc}")
                 logging.info(f"Chave de Acesso: {chave_acesso}")
                 logging.info(f"Modelo: {modelo}")
+                logging.info(f"Tipo de Imposto: {tipo_imposto}")
 
                 sistema_nf = SystemNF()
 
@@ -1217,6 +1218,7 @@ if __name__ == "__main__":
                 )
 
                 try:
+                    logging.info(f"Chamando automation_gui com tipo_imposto: {tipo_imposto}")
                     sistema_nf.automation_gui(
                         departamento,
                         origem,
@@ -1239,6 +1241,7 @@ if __name__ == "__main__":
                         INSS,
                         IR,
                         valor_liquido,
+                        tipo_imposto,  # Passe o tipo_imposto aqui
                     )
                     # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
                     processed_emails = load_processed_emails()
@@ -1250,6 +1253,7 @@ if __name__ == "__main__":
                         nmr_nota,
                     )
                 except Exception as e:
+                    logging.error(f"Erro ao chamar automation_gui: {e}")
                     send_email_error(
                         dani,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
