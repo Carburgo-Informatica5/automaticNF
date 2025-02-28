@@ -116,6 +116,7 @@ def extract_values(text):
                 values["tipo_imposto"] = line.split(":", 1)[1].strip()
     
     logging.info(f"Valores extraídos: {values}")
+
     return values
 
 PROCESSED_EMAILS_FILE = os.path.join(current_dir, "processed_emails.json")
@@ -209,6 +210,7 @@ def check_emails(nmr_nota, extract_values):
                                         "data_vencimento"
                                     ]
                                     tipo_imposto = valores_extraidos["tipo_imposto"]
+                                    logging.info(f"Tipo de imposto extraído: {valores_extraidos.get('tipo_imposto')}")
 
                                     if "json_path" in dados_nota_fiscal:
                                         with open(dados_nota_fiscal["json_path"], "r") as f:
@@ -293,7 +295,13 @@ def check_emails(nmr_nota, extract_values):
                                         f"Parcelas carregadas: {dados_nota_fiscal.get('pagamento_parcelado')}"
                                     )
 
-                                    # Chama a função de automação com os dados extraídos
+                                    if tipo_imposto is None:
+                                        logging.error("Erro: tipo_imposto não foi encontrado nos dados extraídos!")
+                                    logging.info(f"Conteúdo de dados_email antes de automation_gui: {dados_email}")
+                                    logging.info(f"Tipo de imposto antes de chamar automation_gui: {tipo_imposto}")
+                                    
+                                    tipo_imposto = valores_extraidos.get("tipo_imposto", "NÃO INFORMADO")
+                                    
                                     sistema_nf = SystemNF()
                                     sistema_nf.automation_gui(
                                         departamento,
@@ -313,10 +321,10 @@ def check_emails(nmr_nota, extract_values):
                                         dados_nota_fiscal.get("pagamento_parcelado", []),
                                         dados_nota_fiscal.get("serie", ""),
                                         valores_extraidos["data_vencimento"],
-                                        tipo_imposto,
-                                        dados_email.get("impostos", {}).get("INSS", "0.00"),  # Passa o valor de INSS
-                                        dados_email.get("impostos", {}).get("IR", "0.00"),  # Passa o valor de IR
-                                        dados_email.get("valor_liquido", "0.00"),  # Passa o valor líquido
+                                        dados_email.get("impostos", {}).get("INSS", "0.00"), 
+                                        dados_email.get("impostos", {}).get("IR", "0.00"), 
+                                        dados_email.get("valor_liquido", "0.00"),  
+                                        valores_extraidos.get("tipo_imposto")
                                     )
 
                                     # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
@@ -712,29 +720,10 @@ class SystemNF:
         self.br = None
 
     def automation_gui(
-        self,
-        departamento,
-        origem,
-        descricao,
-        cc,
-        cod_item,
-        valor_total,
-        dados_centros_de_custo,
-        cnpj_emitente,
-        nmr_nota,
-        data_emi,
-        data_venc,
-        chave_acesso,
-        modelo,
-        rateio,
-        parcelas,
-        serie,
-        data_venc_nfs,
-        ISS_retido,
-        INSS,
-        IR,
-        valor_liquido,
-        tipo_imposto,
+        self, departamento, origem, descricao, cc, cod_item, valor_total,
+        dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
+        chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
+        ISS_retido, INSS, IR, valor_liquido, tipo_imposto
     ):
         
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
@@ -1241,7 +1230,7 @@ if __name__ == "__main__":
                         INSS,
                         IR,
                         valor_liquido,
-                        tipo_imposto,  # Passe o tipo_imposto aqui
+                        tipo_imposto
                     )
                     # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
                     processed_emails = load_processed_emails()
