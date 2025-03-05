@@ -714,8 +714,6 @@ else:
 
 
 class SystemNF:
-    logging.info("Entrou na classe do Sistema")
-
     def __init__(self, master=None):
         self.br = None
 
@@ -725,10 +723,10 @@ class SystemNF:
         chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
         ISS_retido, INSS, IR, valor_liquido, tipo_imposto
     ):
-        
+        logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         if not parcelas:
-            logging.warning("As parcelas estão vazias ao entrar em automation_gui")
+            logging.info("Nenhuma parcela recebida")
         logging.info("Entrou na parte da automação")
         logging.info(f"Departamento: {departamento}")
         logging.info(f"Origem: {origem}")
@@ -1023,9 +1021,6 @@ class SystemNF:
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
 
-
-# ...existing code...
-
 if __name__ == "__main__":
     while True:
         logging.info("Iniciando a automação")
@@ -1055,7 +1050,7 @@ if __name__ == "__main__":
                 serie = dados_email.get("serie")
                 data_venc_nfs = dados_email.get("data_vencimento")
                 tipo_imposto = dados_email.get("tipo_imposto")
-                ISS_retido = dados_email.get("impostos", {}).get("ISS Retido")
+                ISS_retido = dados_email.get("impostos", {}).get("ISS_retido")
                 INSS = dados_email.get("impostos", {}).get("INSS")
                 IR = dados_email.get("impostos", {}).get("IR")                       
                 valor_liquido = dados_email.get("valor_liquido")
@@ -1199,6 +1194,10 @@ if __name__ == "__main__":
                 logging.info(f"Chave de Acesso: {chave_acesso}")
                 logging.info(f"Modelo: {modelo}")
                 logging.info(f"Tipo de Imposto: {tipo_imposto}")
+                
+                logging.info(f"Dados disponíveis antes de chamar automation_gui: {dados_email}")
+                logging.info(f"Tipo de imposto extraído: {dados_email.get('tipo_imposto')}")
+
 
                 sistema_nf = SystemNF()
 
