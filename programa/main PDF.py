@@ -284,8 +284,8 @@ def check_emails(nmr_nota, extract_values):
                                         "serie": dados_nota_fiscal.get("serie", ""),
                                         "data_venc_nfs": valores_extraidos["data_vencimento"],
                                         "tipo_imposto": valores_extraidos["tipo_imposto"],
-                                        "impostos": json_data.get("impostos", {}),  # Adiciona os impostos extraídos
-                                        "valor_liquido": json_data.get("valor_liquido", {}),  # Adiciona o valor líquido extraído
+                                        "impostos": json_data.get("impostos", {}),  
+                                        "valor_liquido": json_data.get("valor_liquido", {}),  
                                     }
 
                                     logging.info(
@@ -321,10 +321,11 @@ def check_emails(nmr_nota, extract_values):
                                         dados_nota_fiscal.get("pagamento_parcelado", []),
                                         dados_nota_fiscal.get("serie", ""),
                                         valores_extraidos["data_vencimento"],
-                                        dados_email.get("impostos", {}).get("INSS", "0.00"), 
-                                        dados_email.get("impostos", {}).get("IR", "0.00"), 
-                                        dados_email.get("valor_liquido", "0.00"),  
-                                        valores_extraidos.get("tipo_imposto")
+                                        dados_email.get("impostos", {}).get("ISS_retido"),
+                                        dados_email.get("impostos", {}).get("INSS", "0.00"),
+                                        dados_email.get("impostos", {}).get("IR", "0.00"),
+                                        dados_email.get("valor_liquido", {}).get("valor_liquido", "0.00"),
+                                        tipo_imposto  # Agora é uma string formatada
                                     )
 
                                     # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
@@ -721,8 +722,14 @@ class SystemNF:
         self, departamento, origem, descricao, cc, cod_item, valor_total,
         dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
         chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
-        ISS_retido, INSS, IR, valor_liquido, tipo_imposto
+        ISS_retido, INSS, IR, valor_liquido, tipo_imposto, dados_email=None
     ):
+        # Validação dos dados necessários
+        if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
+            raise ValueError("Dados obrigatórios estão faltando")
+
+        logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
+        logging.info(f"Valores de impostos: ISS_retido={ISS_retido}, INSS={INSS}, IR={IR}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         if not parcelas:
@@ -1208,28 +1215,29 @@ if __name__ == "__main__":
                 try:
                     logging.info(f"Chamando automation_gui com tipo_imposto: {tipo_imposto}")
                     sistema_nf.automation_gui(
-                        departamento,
-                        origem,
-                        descricao,
-                        cc,
-                        cod_item,
-                        valor_total,
-                        dados_centros_de_custo,
-                        cnpj_emitente,
-                        nmr_nota,
-                        data_emi,
-                        data_venc,
-                        chave_acesso,
-                        modelo,
-                        rateio,
-                        parcelas,
-                        serie,
-                        data_venc_nfs,
-                        ISS_retido,
-                        INSS,
-                        IR,
-                        valor_liquido,
-                        tipo_imposto
+                        departamento,        
+                        origem,             
+                        descricao,         
+                        cc,                 
+                        cod_item,           
+                        valor_total,       
+                        dados_centros_de_custo,  
+                        cnpj_emitente,      
+                        nmr_nota,           
+                        data_emi,          
+                        data_venc,         
+                        chave_acesso,       
+                        modelo,            
+                        rateio,           
+                        parcelas,         
+                        serie,            
+                        data_venc_nfs,      
+                        dados_email["impostos"]["ISS_retido"], 
+                        dados_email["impostos"]["INSS"],        
+                        dados_email["impostos"]["IR"],         
+                        dados_email["valor_liquido"]["valor_liquido"], 
+                        tipo_imposto,     
+                        dados_email        
                     )
                     # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
                     processed_emails = load_processed_emails()
