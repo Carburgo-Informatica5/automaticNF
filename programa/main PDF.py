@@ -302,30 +302,21 @@ def check_emails(nmr_nota, extract_values):
                                     
                                     tipo_imposto = valores_extraidos.get("tipo_imposto", "NÃO INFORMADO")
                                     
+                                    if dados_email is None:
+                                        logging.error("Erro: `dados_email` já é None antes de chamar automation_gui")
+                                    else:
+                                        logging.info(f"`dados_email` antes de chamar automation_gui: {dados_email}")
+                                        logging.info(f"Referência de `dados_email`: {id(dados_email)}")
+                                    
                                     sistema_nf = SystemNF()
                                     sistema_nf.automation_gui(
-                                        departamento,
-                                        origem,
-                                        descricao,
-                                        cc_texto,
-                                        cod_item,
-                                        valor_total,
-                                        dados_centros_de_custo,
-                                        dados_nota_fiscal["emitente"]["cnpj"],
-                                        dados_nota_fiscal["num_nota"]["numero_nota"],
-                                        dados_nota_fiscal["data_emi"]["data_emissao"],
-                                        dados_nota_fiscal["data_venc"]["data_venc"],
-                                        dados_nota_fiscal["chave_acesso"]["chave"],
-                                        dados_nota_fiscal["modelo"]["modelo"],
-                                        rateio,
-                                        dados_nota_fiscal.get("pagamento_parcelado", []),
-                                        dados_nota_fiscal.get("serie", ""),
-                                        valores_extraidos["data_vencimento"],
-                                        dados_email.get("impostos", {}).get("ISS_retido"),
-                                        dados_email.get("impostos", {}).get("INSS", "0.00"),
-                                        dados_email.get("impostos", {}).get("IR", "0.00"),
-                                        dados_email.get("valor_liquido", {}).get("valor_liquido", "0.00"),
-                                        tipo_imposto  # Agora é uma string formatada
+                                        departamento, origem, descricao, cc, cod_item, valor_total,
+                                        dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi,
+                                        data_venc, chave_acesso, modelo, rateio, parcelas, serie,
+                                        data_venc_nfs, dados_email["impostos"].get("ISS_retido"),
+                                        dados_email["impostos"].get("INSS"), dados_email["impostos"].get("IR"),
+                                        dados_email["valor_liquido"].get("valor_liquido"), tipo_imposto,
+                                        dados_email 
                                     )
 
                                     # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
@@ -375,6 +366,8 @@ def check_emails(nmr_nota, extract_values):
             nmr_nota,
         )
         return None
+    logging.info(f"Conteúdo de dados_email antes de retornar: {dados_email}")
+    return dados_email
 
 def clean_extracted_json(json_data):
     if not isinstance(json_data, dict):
@@ -724,6 +717,18 @@ class SystemNF:
         chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
         ISS_retido, INSS, IR, valor_liquido, tipo_imposto, dados_email=None
     ):
+        logging.info(f"Referência de `dados_email` dentro de automation_gui: {id(dados_email)}")
+        logging.info(f"`dados_email` dentro de automation_gui antes da validação: {dados_email}")
+        
+        if dados_email is None:
+            logging.error("Erro: `dados_email` virou None dentro de automation_gui")
+            return
+        
+        if 'dados_email' in locals():
+            logging.info("`dados_email` está presente em locals() dentro de automation_gui")
+        else:
+            logging.error("`dados_email` desapareceu de locals() dentro de automation_gui")
+        
         # Validação dos dados necessários
         if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
             raise ValueError("Dados obrigatórios estão faltando")
@@ -1214,31 +1219,34 @@ if __name__ == "__main__":
 
                 try:
                     logging.info(f"Chamando automation_gui com tipo_imposto: {tipo_imposto}")
-                    sistema_nf.automation_gui(
-                        departamento,        
-                        origem,             
-                        descricao,         
-                        cc,                 
-                        cod_item,           
-                        valor_total,       
-                        dados_centros_de_custo,  
-                        cnpj_emitente,      
-                        nmr_nota,           
-                        data_emi,          
-                        data_venc,         
-                        chave_acesso,       
-                        modelo,            
-                        rateio,           
-                        parcelas,         
-                        serie,            
-                        data_venc_nfs,      
-                        dados_email["impostos"]["ISS_retido"], 
-                        dados_email["impostos"]["INSS"],        
-                        dados_email["impostos"]["IR"],         
-                        dados_email["valor_liquido"]["valor_liquido"], 
-                        tipo_imposto,     
-                        dados_email        
-                    )
+                    if dados_email is not None:
+                        sistema_nf.automation_gui(
+                            departamento,        
+                            origem,             
+                            descricao,         
+                            cc,                 
+                            cod_item,           
+                            valor_total,       
+                            dados_centros_de_custo,  
+                            cnpj_emitente,      
+                            nmr_nota,           
+                            data_emi,          
+                            data_venc,         
+                            chave_acesso,       
+                            modelo,            
+                            rateio,           
+                            parcelas,         
+                            serie,            
+                            data_venc_nfs,      
+                            dados_email["impostos"]["ISS_retido"], 
+                            dados_email["impostos"]["INSS"],        
+                            dados_email["impostos"]["IR"],         
+                            dados_email["valor_liquido"]["valor_liquido"], 
+                            tipo_imposto,     
+                            dados_email        
+                        )
+                    else:
+                        logging.error("Erro: Dados do e-mail é none. Verifique o processamento do e-mail")
                     # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
                     processed_emails = load_processed_emails()
                     processed_emails.append(dados_email["email_id"])
@@ -1258,6 +1266,7 @@ if __name__ == "__main__":
                     )
             else:
                 logging.info("Nenhum dado extraído, automação não será executada")
+                logging.error("Erro: dados_email é None. Verifique o processamento do e-mail.")
         except Exception as e:
             logging.error(f"Erro durante a automação: {e}")
             send_email_error(
