@@ -309,14 +309,53 @@ def check_emails(nmr_nota, extract_values):
                                         logging.info(f"Referência de `dados_email`: {id(dados_email)}")
                                     
                                     sistema_nf = SystemNF()
+                                    logging.info(f"Chamando automation_gui com os seguintes parâmetros:")
+                                    logging.info(f"departamento: {dados_email.get('departamento')}")
+                                    logging.info(f"origem: {dados_email.get('origem')}")
+                                    logging.info(f"descricao: {dados_email.get('descricao')}")
+                                    logging.info(f"cc: {dados_email.get('cc')}")
+                                    logging.info(f"cod_item: {dados_email.get('cod_item')}")
+                                    logging.info(f"valor_total: {dados_email.get('valor_total')}")
+                                    logging.info(f"dados_centros_de_custo: {dados_email.get('dados_centros_de_custo')}")
+                                    logging.info(f"cnpj_emitente: {dados_email.get('emitente', {}).get('cnpj')}")
+                                    logging.info(f"nmr_nota: {dados_email.get('num_nota', {}).get('numero_nota')}")
+                                    logging.info(f"data_emi: {dados_email.get('data_emi', {}).get('data_emissao')}")
+                                    logging.info(f"data_venc: {dados_email.get('data_venc', {}).get('data_venc')}")
+                                    logging.info(f"chave_acesso: {dados_email.get('chave_acesso', {}).get('chave')}")
+                                    logging.info(f"modelo: {dados_email.get('modelo', {}).get('modelo')}")
+                                    logging.info(f"rateio: {dados_email.get('rateio')}")
+                                    logging.info(f"parcelas: {dados_email.get('parcelas')}")
+                                    logging.info(f"serie: {dados_email.get('serie')}")
+                                    logging.info(f"data_venc_nfs: {dados_email.get('data_venc_nfs')}")
+                                    logging.info(f"ISS_retido: {dados_email.get('impostos', {}).get('ISS_retido')}")
+                                    logging.info(f"INSS: {dados_email.get('impostos', {}).get('INSS')}")
+                                    logging.info(f"IR: {dados_email.get('impostos', {}).get('IR')}")
+                                    logging.info(f"valor_liquido: {dados_email.get('valor_liquido', {}).get('valor_liquido')}")
+                                    logging.info(f"tipo_imposto: {dados_email.get('tipo_imposto')}")
                                     sistema_nf.automation_gui(
-                                        departamento, origem, descricao, cc, cod_item, valor_total,
-                                        dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi,
-                                        data_venc, chave_acesso, modelo, rateio, parcelas, serie,
-                                        data_venc_nfs, dados_email["impostos"].get("ISS_retido"),
-                                        dados_email["impostos"].get("INSS"), dados_email["impostos"].get("IR"),
-                                        dados_email["valor_liquido"].get("valor_liquido"), tipo_imposto,
-                                        dados_email 
+                                        dados_email.get('departamento'),
+                                        dados_email.get('origem'),
+                                        dados_email.get('descricao'),
+                                        dados_email.get('cc'),
+                                        dados_email.get('cod_item'),
+                                        dados_email.get('valor_total'),
+                                        dados_email.get('dados_centros_de_custo'),
+                                        dados_email.get('emitente', {}).get('cnpj'),
+                                        dados_email.get('num_nota', {}).get('numero_nota'),
+                                        dados_email.get('data_emi', {}).get('data_emissao'),
+                                        dados_email.get('data_venc', {}).get('data_venc'),
+                                        dados_email.get('chave_acesso', {}).get('chave'),
+                                        dados_email.get('modelo', {}).get('modelo'),
+                                        dados_email.get('rateio'),
+                                        dados_email.get('parcelas'),
+                                        dados_email.get('serie'),
+                                        dados_email.get('data_venc_nfs'),
+                                        dados_email.get('impostos', {}).get('ISS_retido'),
+                                        dados_email.get('impostos', {}).get('INSS'),
+                                        dados_email.get('impostos', {}).get('IR'),
+                                        dados_email.get('valor_liquido', {}).get('valor_liquido'),
+                                        dados_email.get('tipo_imposto'),
+                                        dados_email
                                     )
 
                                     # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
@@ -759,6 +798,33 @@ class SystemNF:
         logging.info(f"Data vencimento NFs: {data_venc_nfs}")
         logging.info(f"Tipo de Imposto: {tipo_imposto}")
 
+        # Executando a parte de revenda primeiro
+        cnpj_dest = dados_email.get("destinatario", {}).get("cnpj")
+        if cnpj_dest:
+            result = revenda(cnpj_dest)
+            if result:
+                empresa, revenda = result
+                logging.info(f"Empresa: {empresa}, Revenda: {revenda}")
+
+                # Acessando o menu
+                gui.press("alt")
+                gui.press("right")
+                gui.press("down")
+                gui.press("enter")
+                gui.press("down", presses=2)
+
+                gui.write(f"{empresa}.{revenda}")
+                gui.press("enter")
+                time.sleep(5)
+            else:
+                send_email_error(
+                    dani,
+                    dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                    "Erro, CNPJ do destinatário não encontrado",
+                    nmr_nota,
+                )
+                logging.error("Erro, CNPJ não encontrado")
+        
         try:
             data_atual = datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
@@ -1053,7 +1119,8 @@ if __name__ == "__main__":
                 departamento = dados_email.get("departamento")
                 origem = dados_email.get("origem")
                 descricao = dados_email.get("descricao")
-                cc = dados_email.get("cc")
+                cc = dados_email.get("cc")  # Corrigido aqui
+                logging.info(f"CC recebido: {cc}")
                 cod_item = dados_email.get("cod_item")
                 valor_total = dados_email.get("valor_total")
                 dados_centros_de_custo = dados_email.get("dados_centros_de_custo")
@@ -1064,7 +1131,7 @@ if __name__ == "__main__":
                 tipo_imposto = dados_email.get("tipo_imposto")
                 ISS_retido = dados_email.get("impostos", {}).get("ISS_retido")
                 INSS = dados_email.get("impostos", {}).get("INSS")
-                IR = dados_email.get("impostos", {}).get("IR")                       
+                IR = dados_email.get("impostos", {}).get("IR")
                 valor_liquido = dados_email.get("valor_liquido")
                 if "parcelas" in dados_email:
                     parcelas = dados_email["parcelas"]
@@ -1165,32 +1232,6 @@ if __name__ == "__main__":
                             anexo,
                         )
 
-                # Executando a parte de revenda primeiro
-                if cnpj_dest:
-                    result = revenda(cnpj_dest)
-                    if result:
-                        empresa, revenda = result
-                        logging.info(f"Empresa: {empresa}, Revenda: {revenda}")
-
-                        # Acessando o menu
-                        gui.press("alt")
-                        gui.press("right")
-                        gui.press("down")
-                        gui.press("enter")
-                        gui.press("down", presses=2)
-
-                        gui.write(f"{empresa}.{revenda}")
-                        gui.press("enter")
-                        time.sleep(5)
-                    else:
-                        send_email_error(
-                            dani,
-                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                            "Erro, CNPJ do destinatário não encontrado",
-                            nmr_nota,
-                        )
-                        logging.error("Erro, CNPJ não encontrado")
-
                 # Adicionando logs para verificar os dados extraídos
                 logging.info(f"Departamento: {departamento}")
                 logging.info(f"Origem: {origem}")
@@ -1210,7 +1251,6 @@ if __name__ == "__main__":
                 logging.info(f"Dados disponíveis antes de chamar automation_gui: {dados_email}")
                 logging.info(f"Tipo de imposto extraído: {dados_email.get('tipo_imposto')}")
 
-
                 sistema_nf = SystemNF()
 
                 logging.info(
@@ -1224,7 +1264,7 @@ if __name__ == "__main__":
                             departamento,        
                             origem,             
                             descricao,         
-                            cc,                 
+                            cc,                  # Corrigido aqui
                             cod_item,           
                             valor_total,       
                             dados_centros_de_custo,  
