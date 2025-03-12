@@ -14,11 +14,12 @@ import json
 import logging
 import unicodedata
 import re
+import yaml
 
 from email.utils import parseaddr
 
 from processar_xml import *
-from db_connection import *
+from db_connection import revenda
 from DANImail import Queue, WriteTo
 from gemini_api import GeminiAPI
 from gemini_main import *
@@ -244,7 +245,7 @@ def check_emails(nmr_nota, extract_values):
                                                 "cnpj": json_data["destinatario"]["cnpj"],
                                             },
                                             "pagamento_parcelado": [],
-                                            "serie": "",
+                                            "serie": json_data["serie"],
                                         }
 
                                     if not dados_nota_fiscal["valor_total"]:
@@ -463,9 +464,7 @@ def map_json_fields(json_data, body):
         "modelo": {
             "modelo": "01",
         },
-        "serie": {
-            "serie": "1",
-        },
+        "serie": "1",
         "chave_acesso": {
             "chave": "",
         },
@@ -756,17 +755,8 @@ class SystemNF:
         chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
         ISS_retido, INSS, IR, valor_liquido, tipo_imposto, dados_email=None
     ):
-        logging.info(f"Referência de `dados_email` dentro de automation_gui: {id(dados_email)}")
-        logging.info(f"`dados_email` dentro de automation_gui antes da validação: {dados_email}")
         
-        if dados_email is None:
-            logging.error("Erro: `dados_email` virou None dentro de automation_gui")
-            return
-        
-        if 'dados_email' in locals():
-            logging.info("`dados_email` está presente em locals() dentro de automation_gui")
-        else:
-            logging.error("`dados_email` desapareceu de locals() dentro de automation_gui")
+        gui.PAUSE = 1
         
         # Validação dos dados necessários
         if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
@@ -798,32 +788,41 @@ class SystemNF:
         logging.info(f"Data vencimento NFs: {data_venc_nfs}")
         logging.info(f"Tipo de Imposto: {tipo_imposto}")
 
-        # Executando a parte de revenda primeiro
         cnpj_dest = dados_email.get("destinatario", {}).get("cnpj")
-        if cnpj_dest:
-            result = revenda(cnpj_dest)
-            if result:
-                empresa, revenda = result
-                logging.info(f"Empresa: {empresa}, Revenda: {revenda}")
 
-                # Acessando o menu
+        if cnpj_dest:
+            try:
+                result = revenda(cnpj_dest) 
+                if result:
+                    empresa, revenda_nome = result
+                    logging.info(f"Empresa: {empresa}, Revenda: {revenda_nome}")
+                else:
+                    empresa, revenda_nome = "Desconhecido", "Desconhecido"
+                    logging.error(f"CNPJ {cnpj_dest} não encontrado no banco de dados.")
+            except Exception as e:
+                logging.error(f"Erro ao buscar revenda no banco de dados: {e}")
+                empresa, revenda_nome = "Erro", "Erro"
+        else:
+            logging.error("Erro: CNPJ do destinatário não foi fornecido.")
+            empresa, revenda_nome = "Sem CNPJ", "Sem CNPJ"
+        
+        
+        if revenda:
+            try:
                 gui.press("alt")
                 gui.press("right")
                 gui.press("down")
                 gui.press("enter")
                 gui.press("down", presses=2)
 
-                gui.write(f"{empresa}.{revenda}")
+                gui.write(f"{empresa}.{revenda_nome}")
                 gui.press("enter")
                 time.sleep(5)
-            else:
-                send_email_error(
-                    dani,
-                    dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                    "Erro, CNPJ do destinatário não encontrado",
-                    nmr_nota,
-                )
-                logging.error("Erro, CNPJ não encontrado")
+            except NameError as e:
+                logging.error(f"Erro: Variável revenda não definida: {e}")
+        else:
+            logging.error("Erro: Revenda não foi definida corretamente.")
+
         
         try:
             data_atual = datetime.now()
@@ -898,7 +897,10 @@ class SystemNF:
             gui.write(modelo)
             gui.press("tab", presses=18)
 
-            anexo = dados_email.get("anexo", "")
+            filename = decode_header_value(part.get_filename())
+            if not filename or not filename.lower().endswith((".xml", ".pdf")):
+                return None
+
 
             if anexo.endswith(".pdf"):
                 # Se arquivo endswitch (.pdf)
