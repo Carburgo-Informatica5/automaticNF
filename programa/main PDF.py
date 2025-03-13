@@ -286,7 +286,8 @@ def check_emails(nmr_nota, extract_values):
                                         "data_venc_nfs": valores_extraidos["data_vencimento"],
                                         "tipo_imposto": valores_extraidos["tipo_imposto"],
                                         "impostos": json_data.get("impostos", {}),  
-                                        "valor_liquido": json_data.get("valor_liquido", {}),  
+                                        "valor_liquido": json_data.get("valor_liquido", {}),
+                                        "tipo_arquivo": dados_email.get("tipo_arquivo", "DESCONHECIDO"),
                                     }
 
                                     logging.info(
@@ -302,6 +303,8 @@ def check_emails(nmr_nota, extract_values):
                                     logging.info(f"Tipo de imposto antes de chamar automation_gui: {tipo_imposto}")
                                     
                                     tipo_imposto = valores_extraidos.get("tipo_imposto", "NÃO INFORMADO")
+                                    tipo_arquivo = dados_email.get("tipo_arquivo")
+                                    logging.info(f"Tipo de arquivo a ser processado: {tipo_arquivo}")
                                     
                                     if dados_email is None:
                                         logging.error("Erro: `dados_email` já é None antes de chamar automation_gui")
@@ -356,7 +359,7 @@ def check_emails(nmr_nota, extract_values):
                                         dados_email.get('impostos', {}).get('IR'),
                                         dados_email.get('valor_liquido', {}).get('valor_liquido'),
                                         dados_email.get('tipo_imposto'),
-                                        dados_email
+                                        dados_email = dados_email
                                     )
 
                                     # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
@@ -559,11 +562,23 @@ def process_pdf(pdf_path, dados_email):
 
 def save_attachment(part, directory, dados_email):
     filename = decode_header_value(part.get_filename())
-    if not filename or not filename.lower().endswith((".xml", ".pdf")):
+    if not filename:
+        logging.error("Nome do arquivo anexado não foi encontrado.")
+        dados_email["tipo_arquivo"] = "DESCONHECIDO"  # Define um valor padrão
         return None
 
-    content_type = part.get_content_type()
-    logging.info(f"Tipo de conteúdo do anexo: {content_type}")
+    # Determina o tipo de arquivo (PDF ou XML)
+    if filename.lower().endswith(".pdf"):
+        tipo_arquivo = "PDF"
+    elif filename.lower().endswith(".xml"):
+        tipo_arquivo = "XML"
+    else:
+        tipo_arquivo = "DESCONHECIDO"  # Define um valor padrão para outros tipos de arquivo
+        logging.error(f"Arquivo anexado não é um XML ou PDF: {filename}")
+
+    # Armazena o tipo de arquivo no dicionário dados_email
+    dados_email["tipo_arquivo"] = tipo_arquivo
+    logging.info(f"Tipo de arquivo: {tipo_arquivo}")
 
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -576,17 +591,18 @@ def save_attachment(part, directory, dados_email):
 
     logging.info(f"Anexo salvo em: {filepath}")
 
-    if filename.lower().endswith(".xml"):
+    if tipo_arquivo == "XML":
         dados_nota_fiscal = parse_nota_fiscal(filepath)
         return dados_nota_fiscal if dados_nota_fiscal else None
-    elif filename.lower().endswith(".pdf"):
+    elif tipo_arquivo == "PDF":
         json_result = process_pdf(filepath, dados_email)
-
         if not json_result or "json_path" not in json_result:
             logging.error("Erro: JSON do PDF não foi gerado corretamente.")
-            return None  # Evita tentar acessar um arquivo que não existe
-
-        return json_result  # Retorna o caminho do JSON gerado corretamente
+            return None
+        return json_result
+    else:
+        logging.error(f"Tipo de arquivo não suportado: {tipo_arquivo}")
+        return None
 
 def process_cost_centers(cc_texto, valor_total):
     valor_total = float(valor_total)
@@ -753,7 +769,7 @@ class SystemNF:
         self, departamento, origem, descricao, cc, cod_item, valor_total,
         dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
         chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
-        ISS_retido, INSS, IR, valor_liquido, tipo_imposto, dados_email=None
+        ISS_retido, INSS, IR, PIS, COFINS, CSLL, valor_liquido, tipo_imposto, dados_email=None
     ):
         
         gui.PAUSE = 1
@@ -897,13 +913,10 @@ class SystemNF:
             gui.write(modelo)
             gui.press("tab", presses=18)
 
-            filename = decode_header_value(part.get_filename())
-            if not filename or not filename.lower().endswith((".xml", ".pdf")):
-                return None
+            tipo_arquivo = dados_email.get("tipo_arquivo", "DESCONHECIDO")
+            logging.info(f"Tipo de arquivo: {tipo_arquivo}")
 
-
-            if anexo.endswith(".pdf"):
-                # Se arquivo endswitch (.pdf)
+            if tipo_arquivo == "PDF":
                 gui.press("right", presses=1)
                 gui.press("tab", presses=20)
                 gui.write(cod_item)
@@ -915,27 +928,24 @@ class SystemNF:
                 gui.write(descricao)
 
                 impostos = dados_email.get("impostos", {})
-
-                def preencher_campo(valor, tabs):
-                    """Preenche o campo apenas se o valor for diferente de '0.00' e não for None"""
-                    if valor and valor != "0.00":
-                        gui.press("tab", presses=tabs)
-                        gui.write(valor)
-
-                        # Sequência de preenchimento com verificação
-                        gui.press("tab", presses=43)
-                        gui.write(valor_total)
-
-                        preencher_campo(impostos.get("PIS"), 1)
-                        preencher_campo(valor_total, 5)
-
-                        preencher_campo(impostos.get("COFINS"), 1)
-                        preencher_campo(valor_total, 5)
-
-                        preencher_campo(impostos.get("CSLL"), 1)
-                        preencher_campo(valor_total, 9)
-
-                        preencher_campo(impostos.get("ISS retido"), 7)
+                gui.press("tab", presses=16)
+                gui.write(valor_total)
+                gui.press("tab", presses=2)
+                gui.write(IR)
+                gui.press("tab", presses=24)
+                gui.write(valor_total)
+                gui.press("tab")
+                gui.write(PIS)
+                gui.press("tab", presses=5)
+                gui.write(valor_total)
+                gui.press("tab")
+                gui.write(COFINS)
+                gui.press("tab", presses=5)
+                gui.write(valor_total)
+                gui.press("tab")
+                gui.write(CSLL)
+                gui.press("tab", presses=40)
+                gui.press("left")
 
                 #! Calculo de dias para impostos
                 hoje = datetime.now()
@@ -1025,8 +1035,9 @@ class SystemNF:
                 gui.press("tab", presses=39)
                 gui.press("enter")
                 pass
-            elif anexo.endswith(".xml"):
-                # Se arquivo endswitch (.xml)
+
+
+            elif tipo_arquivo == "XML":
                 gui.press("right", presses=2)
                 gui.press("tab", presses=5)
                 gui.press("enter")
@@ -1111,6 +1122,18 @@ if __name__ == "__main__":
                 logging.info("Executando automação GUI")
                 logging.info(f"Conteúdo completo de dados_email: {dados_email}")
 
+                tipo_arquivo = dados_email.get("tipo_arquivo", "DESCONHECIDO")
+                logging.info(f"Tipo de arquivo a ser processado: {tipo_arquivo}")
+                
+                if tipo_arquivo == "DESCONHECIDO":
+                    logging.error("Tipo e arquivo desconhecido ou não especificado")
+                    send_email_error(
+                        dani,
+                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                        "Erro: Tipo de arquivo desconhecido ou não suportado",
+                        nmr_nota,
+                    )
+
                 pdf_path = os.path.join(DIRECTORY, "anexos")
                 extracted_info = process_pdf(pdf_path, dados_email)
                 if os.path.exists(pdf_path):
@@ -1121,7 +1144,7 @@ if __name__ == "__main__":
                 departamento = dados_email.get("departamento")
                 origem = dados_email.get("origem")
                 descricao = dados_email.get("descricao")
-                cc = dados_email.get("cc")  # Corrigido aqui
+                cc = dados_email.get("cc") 
                 logging.info(f"CC recebido: {cc}")
                 cod_item = dados_email.get("cod_item")
                 valor_total = dados_email.get("valor_total")
@@ -1134,6 +1157,9 @@ if __name__ == "__main__":
                 ISS_retido = dados_email.get("impostos", {}).get("ISS_retido")
                 INSS = dados_email.get("impostos", {}).get("INSS")
                 IR = dados_email.get("impostos", {}).get("IR")
+                PIS = dados_email.get("impostos", {}).get("PIS")
+                COFINS = dados_email.get("impostos", {}).get("COFINS")
+                CSLL = dados_email.get("impostos", {}).get("CSLL")
                 valor_liquido = dados_email.get("valor_liquido")
                 if "parcelas" in dados_email:
                     parcelas = dados_email["parcelas"]
@@ -1266,7 +1292,7 @@ if __name__ == "__main__":
                             departamento,        
                             origem,             
                             descricao,         
-                            cc,                  # Corrigido aqui
+                            cc,                
                             cod_item,           
                             valor_total,       
                             dados_centros_de_custo,  
@@ -1280,10 +1306,10 @@ if __name__ == "__main__":
                             parcelas,         
                             serie,            
                             data_venc_nfs,      
-                            dados_email["impostos"]["ISS_retido"], 
-                            dados_email["impostos"]["INSS"],        
-                            dados_email["impostos"]["IR"],         
-                            dados_email["valor_liquido"]["valor_liquido"], 
+                            PIS,
+                            COFINS,
+                            CSLL,
+                            valor_liquido,
                             tipo_imposto,     
                             dados_email        
                         )
