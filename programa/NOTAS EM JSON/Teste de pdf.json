@@ -1,0 +1,40 @@
+{
+    "emitente": {
+        "cnpj": "27249934000118",
+        "nome": "EDITORAZANE EDITORA EIRELLI ME"
+    },
+    "destinatario": {
+        "cnpj": "04682292000655",
+        "nome": "EIFFEL VEICULOS COMERCIO E IMPORTAÇÃO LTDA"
+    },
+    "num_nota": {
+        "numero_nota": "112"
+    },
+    "data_venc": {
+        "data_venc": "28/02/2025"
+    },
+    "data_emi": {
+        "data_emissao": "12122024"
+    },
+    "valor_total": {
+        "valor_total": "1000.00"
+    },
+    "valor_liquido": {
+        "valor_liquido": "1000.00"
+    },
+    "modelo": {
+        "modelo": "01"
+    },
+    "serie": "1",
+    "chave_acesso": {
+        "chave": ""
+    },
+    "impostos": {
+        "ISS_retido": null,
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    }
+}

@@ -311,6 +311,7 @@ def check_emails(nmr_nota, extract_values):
                                     else:
                                         logging.info(f"`dados_email` antes de chamar automation_gui: {dados_email}")
                                         logging.info(f"Referência de `dados_email`: {id(dados_email)}")
+                                        
                                     
                                     sistema_nf = SystemNF()
                                     logging.info(f"Chamando automation_gui com os seguintes parâmetros:")
@@ -336,6 +337,9 @@ def check_emails(nmr_nota, extract_values):
                                     logging.info(f"IR: {dados_email.get('impostos', {}).get('IR')}")
                                     logging.info(f"valor_liquido: {dados_email.get('valor_liquido', {}).get('valor_liquido')}")
                                     logging.info(f"tipo_imposto: {dados_email.get('tipo_imposto')}")
+                                    logging.info(f"PIS: {dados_email.get('impostos', {}).get('PIS')}")
+                                    logging.info(f"COFINS: {dados_email.get('impostos', {}).get('COFINS')}")
+                                    logging.info(f"CSLL: {dados_email.get('impostos', {}).get('CSLL')}")
                                     sistema_nf.automation_gui(
                                         dados_email.get('departamento'),
                                         dados_email.get('origem'),
@@ -357,9 +361,12 @@ def check_emails(nmr_nota, extract_values):
                                         dados_email.get('impostos', {}).get('ISS_retido'),
                                         dados_email.get('impostos', {}).get('INSS'),
                                         dados_email.get('impostos', {}).get('IR'),
+                                        dados_email.get('impostos', {}).get('PIS'),
+                                        dados_email.get('impostos', {}).get('COFINS'),
+                                        dados_email.get('impostos', {}).get('CSLL', "0.00"),
                                         dados_email.get('valor_liquido', {}).get('valor_liquido'),
                                         dados_email.get('tipo_imposto'),
-                                        dados_email = dados_email
+                                        dados_email
                                     )
 
                                     # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
@@ -477,7 +484,7 @@ def map_json_fields(json_data, body):
             "COFINS": json_data.get("COFINS"),
             "INSS": json_data.get("INSS"),
             "IR": json_data.get("IR"),
-            "CSLL": json_data.get("CSLL"),
+            "CSLL": json_data.get("CSLL", "0.00"),
         },
     }
     return mapped_data
@@ -769,7 +776,7 @@ class SystemNF:
         self, departamento, origem, descricao, cc, cod_item, valor_total,
         dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
         chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
-        ISS_retido, INSS, IR, PIS, COFINS, CSLL, valor_liquido, tipo_imposto, dados_email=None
+        ISS_retido, valor_liquido, tipo_imposto, impostos, dados_email=None
     ):
         
         gui.PAUSE = 1
@@ -777,9 +784,9 @@ class SystemNF:
         # Validação dos dados necessários
         if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
             raise ValueError("Dados obrigatórios estão faltando")
+        
 
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
-        logging.info(f"Valores de impostos: ISS_retido={ISS_retido}, INSS={INSS}, IR={IR}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         if not parcelas:
@@ -931,19 +938,19 @@ class SystemNF:
                 gui.press("tab", presses=16)
                 gui.write(valor_total)
                 gui.press("tab", presses=2)
-                gui.write(IR)
+                # gui.write(IR)
                 gui.press("tab", presses=24)
                 gui.write(valor_total)
                 gui.press("tab")
-                gui.write(PIS)
+                # gui.write(PIS)
                 gui.press("tab", presses=5)
                 gui.write(valor_total)
                 gui.press("tab")
-                gui.write(COFINS)
+                # gui.write(COFINS)
                 gui.press("tab", presses=5)
                 gui.write(valor_total)
                 gui.press("tab")
-                gui.write(CSLL)
+                # gui.write(CSLL)
                 gui.press("tab", presses=40)
                 gui.press("left")
 
@@ -980,7 +987,6 @@ class SystemNF:
                         float(valor) for valor in valores if valor and valor != "0.00"
                     )
 
-                # Calcula a soma de PIS, COFINS e CSLL (se forem diferentes de 0.00)
                 PCC = somar_impostos(
                     impostos.get("PIS"), impostos.get("COFINS"), impostos.get("CSLL")
                 )
@@ -988,15 +994,15 @@ class SystemNF:
                 # Exibe o valor calculado para depuração
                 logging.info(f"Valor de PCC calculado: {PCC:.2f}")
 
-                if INSS != "0.00":
+                if impostos.get("INSS") != "0.00":
                     gui.press("tab", presses=7)
                     gui.press("down")
                     gui.press("tab")
                     gui.write(dias_restantes)
                     gui.press("tab", presses=2)
-                    gui.write(INSS)
+                    gui.write(impostos.get("INSS"))
                     gui.press("tab", "enter")
-                if IR != "0.00":
+                if impostos.get("IR") != "0.00":
                     gui.press("tab", presses=7)
                     if tipo_imposto == "normal":
                         gui.press("down", presses=2)
@@ -1007,7 +1013,7 @@ class SystemNF:
                     gui.press("tab")
                     gui.write(dias_restantes)
                     gui.press("tab", presses=2)
-                    gui.write(IR)
+                    gui.write(impostos.get("IR"))
                     gui.press("tab", "enter")
                 if PCC != "0.00":
                     gui.press("tab", presses=7)
@@ -1153,14 +1159,9 @@ if __name__ == "__main__":
                 parcelas = dados_email.get("parcelas", [])
                 serie = dados_email.get("serie")
                 data_venc_nfs = dados_email.get("data_vencimento")
-                tipo_imposto = dados_email.get("tipo_imposto")
-                ISS_retido = dados_email.get("impostos", {}).get("ISS_retido")
-                INSS = dados_email.get("impostos", {}).get("INSS")
-                IR = dados_email.get("impostos", {}).get("IR")
-                PIS = dados_email.get("impostos", {}).get("PIS")
-                COFINS = dados_email.get("impostos", {}).get("COFINS")
-                CSLL = dados_email.get("impostos", {}).get("CSLL")
-                valor_liquido = dados_email.get("valor_liquido")
+                tipo_imposto = dados_email.get("tipo_imposto", "normal")
+                impostos = dados_email.get("impostos")
+                valor_liquido = dados_email.get("valor_liquido", "valor_total")
                 if "parcelas" in dados_email:
                     parcelas = dados_email["parcelas"]
                 else:
@@ -1286,7 +1287,11 @@ if __name__ == "__main__":
                 )
 
                 try:
-                    logging.info(f"Chamando automation_gui com tipo_imposto: {tipo_imposto}")
+                    logging.info(f"Impostos: {dados_email.get('impostos')}")
+                    logging.info(f"Valor Líquido: {valor_liquido}")
+                    logging.info(f"Tipo de Imposto: {tipo_imposto}")
+                    
+
                     if dados_email is not None:
                         sistema_nf.automation_gui(
                             departamento,        
@@ -1306,12 +1311,9 @@ if __name__ == "__main__":
                             parcelas,         
                             serie,            
                             data_venc_nfs,      
-                            PIS,
-                            COFINS,
-                            CSLL,
-                            valor_liquido,
+                            valor_liquido,  
                             tipo_imposto,     
-                            dados_email        
+                            dados_email       
                         )
                     else:
                         logging.error("Erro: Dados do e-mail é none. Verifique o processamento do e-mail")
