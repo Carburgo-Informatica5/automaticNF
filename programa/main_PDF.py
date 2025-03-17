@@ -15,6 +15,9 @@ import logging
 import unicodedata
 import re
 import yaml
+from typing import Callable, Any
+import ahk
+from ahk import AHK
 
 from email.utils import parseaddr
 
@@ -138,7 +141,58 @@ def load_processed_emails():
 def save_processed_emails(processed_emails):
     with open(PROCESSED_EMAILS_FILE, "w") as file:
         json.dump(processed_emails, file)
+        
 
+
+def ahk_busy_getWindowWithTitle(ahk: ahk.AHK, title: str, timeout_lenght: int = 5) -> ahk.Window:
+    start_time = time.time()
+    while True:
+        if time.time() - start_time > timeout_lenght: raise ValueError("Couldn't find window")
+        try:
+            result = ahk.find_window_by_title(title)
+            if (result is not None): return result 
+        except: ()
+
+def find_ctrl(cls: str, win: str | ahk.Window, ahk: AHK = None) -> ahk.Control:
+    if ahk is not None:
+        if isinstance(win, str): 
+            win = ahk_busy_getWindowWithTitle(ahk, win)
+        else:
+            win = ahk.find_window_by_title(win.title)  # Busca corretamente
+    
+    attempt = 0
+
+    def ctrl():
+        nonlocal attempt
+        try:
+            # Verifica se o objeto win suporta listagem de controles
+            controls = win.control_list() if hasattr(win, "control_list") else []
+            print(f"> [{(attempt := attempt+1)}] ({len(controls)}) Procurando Por {cls}")
+            control = next(control for control in controls if control.control_class == cls)
+            if control is None:
+                raise ValueError(f"Controle {cls} não encontrado")
+            return control
+        except Exception as e:
+            logging.error(f"Erro ao procurar controle: {e}")
+            return None
+
+    result = try_again(ctrl)
+    if result is None:
+        raise ValueError(f"Controle {cls} não encontrado após várias tentativas")
+    
+    print(f"> Encontrado: {result}")
+    return result
+
+
+def try_again(func: Callable, n_times: int = 30) -> Any:
+    for attempt in range(n_times):
+        try: return func()
+        except Exception as ex:
+            time.sleep(0.5)
+            if attempt == n_times-1: raise ex 
+        #fi
+    #fi
+#fi    
 
 def check_emails(nmr_nota, extract_values):
     sender = None
@@ -358,14 +412,9 @@ def check_emails(nmr_nota, extract_values):
                                         dados_email.get('parcelas'),
                                         dados_email.get('serie'),
                                         dados_email.get('data_venc_nfs'),
-                                        dados_email.get('impostos', {}).get('ISS_retido'),
-                                        dados_email.get('impostos', {}).get('INSS'),
-                                        dados_email.get('impostos', {}).get('IR'),
-                                        dados_email.get('impostos', {}).get('PIS'),
-                                        dados_email.get('impostos', {}).get('COFINS'),
-                                        dados_email.get('impostos', {}).get('CSLL', "0.00"),
                                         dados_email.get('valor_liquido', {}).get('valor_liquido'),
                                         dados_email.get('tipo_imposto'),
+                                        dados_email.get('impostos', {}),
                                         dados_email
                                     )
 
@@ -479,11 +528,11 @@ def map_json_fields(json_data, body):
             "chave": "",
         },
         "impostos": {
-            "ISS_retido": json_data.get("ISS retido"),
-            "PIS": json_data.get("PIS"),
-            "COFINS": json_data.get("COFINS"),
-            "INSS": json_data.get("INSS"),
-            "IR": json_data.get("IR"),
+            "ISS_retido": json_data.get("ISS retido", "0.00"),
+            "PIS": json_data.get("PIS", "0.00"),
+            "COFINS": json_data.get("COFINS", "0.00"),
+            "INSS": json_data.get("INSS", "0.00"),
+            "IR": json_data.get("IR", "0.00"),
             "CSLL": json_data.get("CSLL", "0.00"),
         },
     }
@@ -776,7 +825,7 @@ class SystemNF:
         self, departamento, origem, descricao, cc, cod_item, valor_total,
         dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
         chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
-        ISS_retido, valor_liquido, tipo_imposto, impostos, dados_email=None
+        valor_liquido, tipo_imposto, impostos, dados_email=None
     ):
         
         gui.PAUSE = 1
@@ -934,27 +983,38 @@ class SystemNF:
                 gui.press("tab", presses=34)
                 gui.write(descricao)
 
+                #! Continuar a partir daqui
+                window_nota = gw.getWindowsWithTitle("Manutenção de Nota Fiscal de Despesa")[0]
+
                 impostos = dados_email.get("impostos", {})
-                gui.press("tab", presses=16)
+                campo_ir = find_ctrl("TEditNumero30", window_nota).get_position()
+                logging.info(f"Posição do campo IR: {campo_ir}")
+                ahk.mouse_move(campo_ir.x, campo_ir.y + (campo_ir.height /2))
+                ahk.click()
+                
                 gui.write(valor_total)
                 gui.press("tab", presses=2)
-                # gui.write(IR)
+                gui.write(impostos.get("IR"))
                 gui.press("tab", presses=24)
                 gui.write(valor_total)
                 gui.press("tab")
-                # gui.write(PIS)
+                gui.write(impostos.get("PIS"))
                 gui.press("tab", presses=5)
                 gui.write(valor_total)
                 gui.press("tab")
-                # gui.write(COFINS)
+                gui.write(impostos.get("COFINS"))
                 gui.press("tab", presses=5)
                 gui.write(valor_total)
                 gui.press("tab")
-                # gui.write(CSLL)
+                gui.write(impostos.get("CSLL"))
                 gui.press("tab", presses=40)
                 gui.press("left")
 
-                #! Calculo de dias para impostos
+                gui.press("tab", presses=23)
+                gui.press("left")
+                gui.press("tab", presses=5)
+                gui.press("enter")
+
                 hoje = datetime.now()
 
                 # Determina o próximo mês
@@ -974,10 +1034,6 @@ class SystemNF:
                 # Calcula a diferença em dias
                 dias_restantes = (dia_20_proximo_mes - hoje).days
 
-                gui.press("tab", presses=23)
-                gui.press("left")
-                gui.press("tab", presses=5)
-                gui.press("enter")
 
                 impostos = dados_email.get("impostos", {})
 
@@ -994,14 +1050,6 @@ class SystemNF:
                 # Exibe o valor calculado para depuração
                 logging.info(f"Valor de PCC calculado: {PCC:.2f}")
 
-                if impostos.get("INSS") != "0.00":
-                    gui.press("tab", presses=7)
-                    gui.press("down")
-                    gui.press("tab")
-                    gui.write(dias_restantes)
-                    gui.press("tab", presses=2)
-                    gui.write(impostos.get("INSS"))
-                    gui.press("tab", "enter")
                 if impostos.get("IR") != "0.00":
                     gui.press("tab", presses=7)
                     if tipo_imposto == "normal":
@@ -1023,13 +1071,13 @@ class SystemNF:
                     gui.press("tab", presses=2)
                     gui.write(PCC)
                     gui.press("tab", "enter")
-                if ISS_retido != "0.00":
+                if impostos.get("ISS_retido") != "0.00":
                     gui.press("tab", presses=7)
                     gui.press("down", presses=4)
                     gui.press("tab")
                     gui.write(dias_restantes)
                     gui.press("tab", presses=2)
-                    gui.write(ISS_retido)
+                    gui.write(impostos.get("ISS_retido"))
                     gui.press("tab", "enter")
                 gui.press("tab", "enter")
                 gui.press("tab", presses=5)
@@ -1294,26 +1342,10 @@ if __name__ == "__main__":
 
                     if dados_email is not None:
                         sistema_nf.automation_gui(
-                            departamento,        
-                            origem,             
-                            descricao,         
-                            cc,                
-                            cod_item,           
-                            valor_total,       
-                            dados_centros_de_custo,  
-                            cnpj_emitente,      
-                            nmr_nota,           
-                            data_emi,          
-                            data_venc,         
-                            chave_acesso,       
-                            modelo,            
-                            rateio,           
-                            parcelas,         
-                            serie,            
-                            data_venc_nfs,      
-                            valor_liquido,  
-                            tipo_imposto,     
-                            dados_email       
+                            departamento, origem, descricao, cc, cod_item, valor_total,
+                            dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
+                            chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
+                            valor_liquido, tipo_imposto, impostos, dados_email     
                         )
                     else:
                         logging.error("Erro: Dados do e-mail é none. Verifique o processamento do e-mail")

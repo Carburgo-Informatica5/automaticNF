@@ -30,7 +30,7 @@
         "chave": ""
     },
     "impostos": {
-        "ISS_retido": null,
+        "ISS_retido": "0.00",
         "PIS": "0.00",
         "COFINS": "0.00",
         "INSS": "0.00",
