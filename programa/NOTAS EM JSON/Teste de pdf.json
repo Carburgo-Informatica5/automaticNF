@@ -20,7 +20,7 @@
         "valor_total": "1000.00"
     },
     "valor_liquido": {
-        "valor_liquido": "1000.00"
+        "valor_liquido": null
     },
     "modelo": {
         "modelo": "01"

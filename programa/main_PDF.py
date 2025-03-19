@@ -157,8 +157,10 @@ def find_ctrl(cls: str, win: str | ahk.Window, ahk: AHK = None) -> ahk.Control:
     if ahk is not None:
         if isinstance(win, str): 
             win = ahk_busy_getWindowWithTitle(ahk, win)
+            logging.INFO(f"Janela encontrada: {win}")
         else:
-            win = ahk.find_window_by_title(win.title)  # Busca corretamente
+            win = ahk.find_window_by_title(win.title)
+            logging.INFO(f"Janela encontrada: {win}")
     
     attempt = 0
 
@@ -167,10 +169,11 @@ def find_ctrl(cls: str, win: str | ahk.Window, ahk: AHK = None) -> ahk.Control:
         try:
             # Verifica se o objeto win suporta listagem de controles
             controls = win.control_list() if hasattr(win, "control_list") else []
-            print(f"> [{(attempt := attempt+1)}] ({len(controls)}) Procurando Por {cls}")
+            logging.info(f"Controles encontrados na janela: {[ctrl.control_class for ctrl in controls]}")
+            logging.info(f"> [{(attempt := attempt+1)}] ({len(controls)}) Procurando Por {cls}")
             control = next(control for control in controls if control.control_class == cls)
             if control is None:
-                raise ValueError(f"Controle {cls} não encontrado")
+                logging.error(f"Controle {cls} não encontrado na tentativa {attempt}")
             return control
         except Exception as e:
             logging.error(f"Erro ao procurar controle: {e}")
@@ -190,9 +193,8 @@ def try_again(func: Callable, n_times: int = 30) -> Any:
         except Exception as ex:
             time.sleep(0.5)
             if attempt == n_times-1: raise ex 
-        #fi
-    #fi
-#fi    
+        
+    
 
 def check_emails(nmr_nota, extract_values):
     sender = None
@@ -982,35 +984,36 @@ class SystemNF:
                 gui.write(valor_total)
                 gui.press("tab", presses=34)
                 gui.write(descricao)
-
-                #! Continuar a partir daqui
-                window_nota = gw.getWindowsWithTitle("Manutenção de Nota Fiscal de Despesa")[0]
-
-                impostos = dados_email.get("impostos", {})
-                campo_ir = find_ctrl("TEditNumero30", window_nota).get_position()
-                logging.info(f"Posição do campo IR: {campo_ir}")
-                ahk.mouse_move(campo_ir.x, campo_ir.y + (campo_ir.height /2))
-                ahk.click()
                 
-                gui.write(valor_total)
-                gui.press("tab", presses=2)
-                gui.write(impostos.get("IR"))
-                gui.press("tab", presses=24)
-                gui.write(valor_total)
-                gui.press("tab")
-                gui.write(impostos.get("PIS"))
-                gui.press("tab", presses=5)
-                gui.write(valor_total)
-                gui.press("tab")
-                gui.write(impostos.get("COFINS"))
-                gui.press("tab", presses=5)
-                gui.write(valor_total)
-                gui.press("tab")
-                gui.write(impostos.get("CSLL"))
-                gui.press("tab", presses=40)
-                gui.press("left")
+                
+                if impostos.get("IR") != "0.00":
+                    gui.press("tab", presses=17)
+                    gui.write(valor_total)
+                    gui.press("tab", presses=2)
+                    gui.write(impostos.get("IR"))
+                
+                elif impostos.get("PIS") != "0.00":
+                    gui.press("tab", presses=24)
+                    gui.write(valor_total)
+                    gui.press("tab")
+                    gui.write(impostos.get("PIS"))
+                
+                elif impostos.get("COFINS") != "0.00":
+                    gui.press("tab", presses=5)
+                    gui.write(valor_total)
+                    gui.press("tab")
+                    gui.write(impostos.get("COFINS"))
+                
+                elif impostos.get("CSLL") != "0.00":
+                    gui.press("tab", presses=5)
+                    gui.write(valor_total)
+                    gui.press("tab")
+                    gui.write(impostos.get("CSLL"))
+                    
+                    gui.press("tab", presses=40)
+                    gui.press("left")
 
-                gui.press("tab", presses=23)
+                gui.press("tab", presses=15)
                 gui.press("left")
                 gui.press("tab", presses=5)
                 gui.press("enter")
