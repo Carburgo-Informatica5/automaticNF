@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "14627859000130",
+        "nome": "KADIUM PERSONALIZACOES LTDA"
+    },
+    "destinatario": {
+        "cnpj": "09112414000187",
+        "nome": "Premiere Veiculos Ltda"
+    },
+    "chave_acesso": {
+        "chave": "43250114627859000130550010000008711150212817"
+    },
+    "num_nota": {
+        "numero_nota": "871"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "24012025"
+    },
+    "data_venc": {
+        "data_venc": "24022025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "885.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-02-24",
+            "valor_parcela": "885.00"
+        }
+    ],
+    "info_adicional": {}
+}

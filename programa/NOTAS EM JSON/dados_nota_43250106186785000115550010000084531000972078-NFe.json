@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "06186785000115",
+        "nome": "Dalmina, Paim & Cia Ltda"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "Carburgo Veiculos Ltda"
+    },
+    "chave_acesso": {
+        "chave": "43250106186785000115550010000084531000972078"
+    },
+    "num_nota": {
+        "numero_nota": "8453"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "24012025"
+    },
+    "data_venc": {
+        "data_venc": "21022025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "216.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-02-21",
+            "valor_parcela": "216.00"
+        }
+    ],
+    "info_adicional": {}
+}

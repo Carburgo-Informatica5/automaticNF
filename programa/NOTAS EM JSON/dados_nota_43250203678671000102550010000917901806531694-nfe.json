@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "03678671000102",
+        "nome": "HARTZ TINTAS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000599",
+        "nome": "CARBURGO VEICULOS LTDA - 5401"
+    },
+    "chave_acesso": {
+        "chave": "43250203678671000102550010000917901806531694"
+    },
+    "num_nota": {
+        "numero_nota": "91790"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "28022025"
+    },
+    "data_venc": {
+        "data_venc": "27032025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "175.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-03-27",
+            "valor_parcela": "175.00"
+        }
+    ],
+    "info_adicional": {}
+}

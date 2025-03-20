@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "92847219000149",
+        "nome": "SANDRI GROEHS E CIA LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000599",
+        "nome": "CARBURGO VEICULO LTDA"
+    },
+    "chave_acesso": {
+        "chave": "43250292847219000149550100001161051501611016"
+    },
+    "num_nota": {
+        "numero_nota": "116105"
+    },
+    "serie": "10",
+    "data_emi": {
+        "data_emissao": "26022025"
+    },
+    "data_venc": {
+        "data_venc": "13032025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "810.82"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-03-13",
+            "valor_parcela": "810.82"
+        }
+    ],
+    "info_adicional": {}
+}

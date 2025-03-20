@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "54367808000130",
+        "nome": "DANI COMERCIO DE TINTAS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000599",
+        "nome": "CARBURGO VEICULOS LTDA - 5401"
+    },
+    "chave_acesso": {
+        "chave": "43250254367808000130550030000010171480951471"
+    },
+    "num_nota": {
+        "numero_nota": "1017"
+    },
+    "serie": "3",
+    "data_emi": {
+        "data_emissao": "28022025"
+    },
+    "data_venc": {
+        "data_venc": "27032025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "2150.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-03-27",
+            "valor_parcela": "2150.00"
+        }
+    ],
+    "info_adicional": {}
+}

@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "48571348000165",
+        "nome": "FORMATTO SOLUCOES EM ESQUADRIAS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000599",
+        "nome": "CARBURGO VEICULOS LTDA"
+    },
+    "chave_acesso": {
+        "chave": "43250248571348000165550010000002321446746287"
+    },
+    "num_nota": {
+        "numero_nota": "232"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "19022025"
+    },
+    "data_venc": {
+        "data_venc": "27022025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "3090.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-02-27",
+            "valor_parcela": "3090.00"
+        }
+    ],
+    "info_adicional": {}
+}

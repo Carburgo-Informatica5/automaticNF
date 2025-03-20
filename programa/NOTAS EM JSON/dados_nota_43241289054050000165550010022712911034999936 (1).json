@@ -1,0 +1,30 @@
+{
+    "emitente": {
+        "cnpj": "89054050000165",
+        "nome": "FABESUL Comercio de Suprimentos Ltda"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA (6637)"
+    },
+    "chave_acesso": {
+        "chave": "43241289054050000165550010022712911034999936"
+    },
+    "num_nota": {
+        "numero_nota": "2271291"
+    },
+    "data_emi": {
+        "data_emissao": "26122024"
+    },
+    "data_venc": {
+        "data_venc": "23012025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "265.42"
+        }
+    ]
+}

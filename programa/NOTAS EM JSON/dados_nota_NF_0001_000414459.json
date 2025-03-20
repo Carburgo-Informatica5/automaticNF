@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "89614101000166",
+        "nome": "MOUTINHO E CIA LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000599",
+        "nome": "CARBURGO VEICULOS LTDA"
+    },
+    "chave_acesso": {
+        "chave": "43250289614101000166550010004144591954414017"
+    },
+    "num_nota": {
+        "numero_nota": "414459"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "26022025"
+    },
+    "data_venc": {
+        "data_venc": "26032025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "90.43"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-03-26",
+            "valor_parcela": "90.43"
+        }
+    ],
+    "info_adicional": {}
+}

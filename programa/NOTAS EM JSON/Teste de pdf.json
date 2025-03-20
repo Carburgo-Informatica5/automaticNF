@@ -11,7 +11,7 @@
         "numero_nota": "112"
     },
     "data_venc": {
-        "data_venc": "28/02/2025"
+        "data_venc": "28022025"
     },
     "data_emi": {
         "data_emissao": "12122024"
@@ -20,7 +20,7 @@
         "valor_total": "1000.00"
     },
     "valor_liquido": {
-        "valor_liquido": null
+        "valor_liquido": "1000.00"
     },
     "modelo": {
         "modelo": "01"

@@ -101,7 +101,7 @@ def extract_values(text):
 
     lines = text.lower().splitlines()
     for line in lines:
-        if isinstance(line, str):  # Garante que cada linha é string
+        if isinstance(line, str): 
             if line.startswith("departamento:"):
                 values["departamento"] = line.split(":", 1)[1].strip()
             elif line.startswith("origem:"):
@@ -115,7 +115,8 @@ def extract_values(text):
             elif line.startswith("código de tributação:"):
                 values["cod_item"] = line.split(":", 1)[1].strip()
             elif "data vencimento" in line.lower():
-                values["data_vencimento"] = line.split(":", 1)[1].strip()
+                data_vencimento = line.split(":", 1)[1].strip()
+                values["data_vencimento"] = data_vencimento.replace("/", "")
             elif line.startswith("tipo imposto:"):
                 values["tipo_imposto"] = line.split(":", 1)[1].strip()
     
@@ -667,6 +668,11 @@ def process_cost_centers(cc_texto, valor_total):
     centros_de_custo = []
     total_calculado = 0.0
 
+    # Verifica se cc_texto é uma string
+    if not isinstance(cc_texto, str):
+        logging.error(f"Erro: cc_texto deve ser uma string, mas recebeu {type(cc_texto)}.")
+        return centros_de_custo
+
     cc_texto = re.sub(r"[\u2013\u2014-]+", "-", cc_texto)
 
     if cc_texto.strip().isdigit():
@@ -685,9 +691,7 @@ def process_cost_centers(cc_texto, valor_total):
                 valor_calculado = float(valor.replace(",", "."))
 
             total_calculado += valor_calculado
-            centros_de_custo.append(
-                (cc, valor_calculado)
-            )  # Mantém valor como float temporariamente
+            centros_de_custo.append((cc, valor_calculado))
         except ValueError:
             logging.error(f"Erro ao processar centro de custo: {item}")
 
@@ -696,19 +700,14 @@ def process_cost_centers(cc_texto, valor_total):
     if abs(diferenca) > 0:
         if centros_de_custo:
             ultimo_cc, ultimo_valor = centros_de_custo[-1]
-            # Converte o último valor para float, se necessário
             if isinstance(ultimo_valor, str):
                 ultimo_valor = float(ultimo_valor.replace(",", "."))
-            diferenca_float = ultimo_valor + diferenca  # Soma corretamente
-            diferenca_str = f"{diferenca_float:.2f}".replace(
-                ".", ","
-            )  # Converte para string
+            diferenca_float = ultimo_valor + diferenca
+            diferenca_str = f"{diferenca_float:.2f}".replace(".", ",")
             centros_de_custo[-1] = (ultimo_cc, diferenca_str)
         else:
             logging.error("Nenhum centro de custo encontrado para aplicar a diferença")
-            raise ValueError(
-                "Erro: Nenhum centro de custo encontrado para aplicar a diferença"
-            )
+            raise ValueError("Erro: Nenhum centro de custo encontrado para aplicar a diferença")
 
     return centros_de_custo
 
@@ -1052,46 +1051,60 @@ class SystemNF:
 
                 # Exibe o valor calculado para depuração
                 logging.info(f"Valor de PCC calculado: {PCC:.2f}")
+                logging.info("Teste de verificação de erro")
 
                 if impostos.get("IR") != "0.00":
+                    logging.info("Entrei")
                     gui.press("tab", presses=7)
                     if tipo_imposto == "normal":
                         gui.press("down", presses=2)
+                        logging.info("Tipo de imposto normal")
                     elif tipo_imposto == "comissão":
                         gui.press("down", presses=7)
+                        logging.info("Tipo de imposto comissão")
                     else:
                         gui.press("down", presses=5)
+                        logging.info("Tipo de imposto não especificado")
                     gui.press("tab")
                     gui.write(dias_restantes)
                     gui.press("tab", presses=2)
                     gui.write(impostos.get("IR"))
+                    logging.info("Passou do if do IR")
                     gui.press("tab", "enter")
-                if PCC != "0.00":
+                if PCC != 0.00:
+                    logging.info("Entrei no if do PCC")
                     gui.press("tab", presses=7)
                     gui.press("down", presses=3)
                     gui.press("tab")
                     gui.write(dias_restantes)
                     gui.press("tab", presses=2)
                     gui.write(PCC)
+                    logging.info("Passou do elif do PCC")
                     gui.press("tab", "enter")
                 if impostos.get("ISS_retido") != "0.00":
+                    logging.info("Entrei no elif do ISS_retido")
                     gui.press("tab", presses=7)
                     gui.press("down", presses=4)
                     gui.press("tab")
                     gui.write(dias_restantes)
                     gui.press("tab", presses=2)
                     gui.write(impostos.get("ISS_retido"))
+                    logging.info("Passou do elif do ISS_retido")
                     gui.press("tab", "enter")
+                logging.info("Passou direto")
                 gui.press("tab", "enter")
                 gui.press("tab", presses=5)
                 gui.write(data_venc_nfs)
+                logging.info("Preenchendo a data de vencimento da NFS")
                 gui.press("tab", presses=4)
                 gui.write(valor_liquido)
+                logging.info("Preenchendo o valor liquido")
                 gui.press("tab", presses=3)
                 gui.press("enter")
+                logging.info("Saiu da parte de notas de despesas")
                 gui.press("tab", presses=39)
                 gui.press("enter")
-                pass
+                
 
 
             elif tipo_arquivo == "XML":

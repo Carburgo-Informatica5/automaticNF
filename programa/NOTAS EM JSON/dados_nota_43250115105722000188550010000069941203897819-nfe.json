@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "15105722000188",
+        "nome": "CONTENTA RESTAURANTE EMPRESARIAL LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA"
+    },
+    "chave_acesso": {
+        "chave": "43250115105722000188550010000069941203897819"
+    },
+    "num_nota": {
+        "numero_nota": "6994"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "27012025"
+    },
+    "data_venc": {
+        "data_venc": "03022025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "17805.25"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-02-03",
+            "valor_parcela": "17805.25"
+        }
+    ],
+    "info_adicional": {}
+}

@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "01002165000165",
+        "nome": "CIASUL DECORATIVOS VISUAIS LTDA - ME"
+    },
+    "destinatario": {
+        "cnpj": "91667618000599",
+        "nome": "CARBURGO VEICULOS LTDA - SAO LEOPOLDO"
+    },
+    "chave_acesso": {
+        "chave": "43250101002165000165550010000120971902472213"
+    },
+    "num_nota": {
+        "numero_nota": "12097"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "23012025"
+    },
+    "data_venc": {
+        "data_venc": "20022025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "450.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-02-20",
+            "valor_parcela": "450.00"
+        }
+    ],
+    "info_adicional": {}
+}

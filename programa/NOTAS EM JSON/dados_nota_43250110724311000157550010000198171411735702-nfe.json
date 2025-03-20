@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "10724311000157",
+        "nome": "ACRIL RS INDUSTRIA E COMERCIO DE PECAS EM ACRILICO LTDA"
+    },
+    "destinatario": {
+        "cnpj": "08680053000102",
+        "nome": "DWSUL VEICULOS E SERVICOS LTDA."
+    },
+    "chave_acesso": {
+        "chave": "43250110724311000157550010000198171411735702"
+    },
+    "num_nota": {
+        "numero_nota": "19817"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "27012025"
+    },
+    "data_venc": {
+        "data_venc": "24022025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "456.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-02-24",
+            "valor_parcela": "456.00"
+        }
+    ],
+    "info_adicional": {}
+}

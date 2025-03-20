@@ -1,0 +1,48 @@
+{
+    "emitente": {
+        "cnpj": "10312847000165",
+        "nome": "NET COMMERCE COMERCIO ELETRONICO LTDA"
+    },
+    "destinatario": {
+        "cnpj": "08680053000102",
+        "nome": "DWSUL VEICULOS E SERVS LTDA"
+    },
+    "chave_acesso": {
+        "chave": "43250110312847000165550010000000971061735560"
+    },
+    "num_nota": {
+        "numero_nota": "97"
+    },
+    "data_emi": {
+        "data_emissao": "09012025"
+    },
+    "data_venc": {
+        "data_venc": "19012025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "3005.70"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-01-19",
+            "valor_parcela": "1001.90"
+        },
+        {
+            "numero_parcela": "002",
+            "data_vencimento": "2025-02-08",
+            "valor_parcela": "1001.90"
+        },
+        {
+            "numero_parcela": "003",
+            "data_vencimento": "2025-03-10",
+            "valor_parcela": "1001.90"
+        }
+    ],
+    "info_adicional": {}
+}

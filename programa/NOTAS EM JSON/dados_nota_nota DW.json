@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "05251213000100",
+        "nome": "Simix Controle de Ponto Ltda"
+    },
+    "destinatario": {
+        "cnpj": "08680053000102",
+        "nome": "DWSUL Veiculos e Servicos Ltda"
+    },
+    "chave_acesso": {
+        "chave": "43250105251213000100550030000119191186744955"
+    },
+    "num_nota": {
+        "numero_nota": "77777"
+    },
+    "serie": "3",
+    "data_emi": {
+        "data_emissao": "13012025"
+    },
+    "data_venc": {
+        "data_venc": "20012025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "1745.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-01-20",
+            "valor_parcela": "581.67"
+        },
+        {
+            "numero_parcela": "002",
+            "data_vencimento": "2025-02-10",
+            "valor_parcela": "581.67"
+        },
+        {
+            "numero_parcela": "003",
+            "data_vencimento": "2025-02-24",
+            "valor_parcela": "581.66"
+        }
+    ],
+    "info_adicional": {}
+}

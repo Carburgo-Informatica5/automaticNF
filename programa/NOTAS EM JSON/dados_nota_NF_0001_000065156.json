@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "29209062000190",
+        "nome": "MUINTO DISTRIBUIDORA LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000599",
+        "nome": "CARBURGO VEICULOS LTDA."
+    },
+    "chave_acesso": {
+        "chave": "43250329209062000190550010000651561651560017"
+    },
+    "num_nota": {
+        "numero_nota": "65156"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "05032025"
+    },
+    "data_venc": {
+        "data_venc": "02042025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "182.20"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-04-02",
+            "valor_parcela": "182.20"
+        }
+    ],
+    "info_adicional": {}
+}

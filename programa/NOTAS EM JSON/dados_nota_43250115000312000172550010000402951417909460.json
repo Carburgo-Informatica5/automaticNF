@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "15000312000172",
+        "nome": "MEGA COMERCIAL DE PRODUTOS ELETRONICOS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "08680053000102",
+        "nome": "DWSUL VEICULOS E SERVS LTDA"
+    },
+    "chave_acesso": {
+        "chave": "43250115000312000172550010000402951417909460"
+    },
+    "num_nota": {
+        "numero_nota": "77777"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "17012025"
+    },
+    "data_venc": {
+        "data_venc": "27012025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "3005.70"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-01-27",
+            "valor_parcela": "1001.90"
+        },
+        {
+            "numero_parcela": "002",
+            "data_vencimento": "2025-02-16",
+            "valor_parcela": "1001.90"
+        },
+        {
+            "numero_parcela": "003",
+            "data_vencimento": "2025-03-18",
+            "valor_parcela": "1001.90"
+        }
+    ],
+    "info_adicional": {}
+}

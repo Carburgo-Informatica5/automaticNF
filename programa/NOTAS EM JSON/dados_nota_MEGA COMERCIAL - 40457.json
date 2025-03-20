@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "15000312000172",
+        "nome": "MEGA COMERCIAL DE PRODUTOS ELETRONICOS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000670",
+        "nome": "CARBURGO VEICULOS LTDA - SAP"
+    },
+    "chave_acesso": {
+        "chave": "43250115000312000172550010000404571422464225"
+    },
+    "num_nota": {
+        "numero_nota": "40457"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "28012025"
+    },
+    "data_venc": {
+        "data_venc": "07022025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "2490.90"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-02-07",
+            "valor_parcela": "830.32"
+        },
+        {
+            "numero_parcela": "002",
+            "data_vencimento": "2025-02-27",
+            "valor_parcela": "830.29"
+        },
+        {
+            "numero_parcela": "003",
+            "data_vencimento": "2025-03-29",
+            "valor_parcela": "830.29"
+        }
+    ],
+    "info_adicional": {}
+}
