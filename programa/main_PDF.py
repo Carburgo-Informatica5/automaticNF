@@ -1092,19 +1092,23 @@ class SystemNF:
                     logging.info("Passou do elif do ISS_retido")
                     gui.press("tab", "enter")
                 logging.info("Passou direto")
-                gui.press("tab", "enter")
-                gui.press("tab", presses=5)
-                gui.write(data_venc_nfs)
+                gui.press("tab")
+                gui.press("enter")
+                gui.press("tab")
+                gui.write("enter")
+                gui.press("tab", presses=10)
+                gui.write(str(data_venc_nfs))
                 logging.info("Preenchendo a data de vencimento da NFS")
                 gui.press("tab", presses=4)
                 gui.write(valor_liquido)
                 logging.info("Preenchendo o valor liquido")
+                gui.press("tab")
+                gui.press("enter")
                 gui.press("tab", presses=3)
                 gui.press("enter")
                 logging.info("Saiu da parte de notas de despesas")
                 gui.press("tab", presses=39)
                 gui.press("enter")
-                
 
 
             elif tipo_arquivo == "XML":
