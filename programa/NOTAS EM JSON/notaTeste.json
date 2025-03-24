@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "15000312000172",
+        "nome": "MEGA COMERCIAL DE PRODUTOS ELETRONICOS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "09112414000187",
+        "nome": "PREMIERE VEICULOS LTDA - NH"
+    },
+    "chave_acesso": {
+        "chave": "43241115000312000172550010000392061402054003"
+    },
+    "num_nota": {
+        "numero_nota": "77777"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "04112024"
+    },
+    "data_venc": {
+        "data_venc": "31122025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "268.30"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-12-31",
+            "valor_parcela": "268.30"
+        }
+    ],
+    "info_adicional": {}
+}

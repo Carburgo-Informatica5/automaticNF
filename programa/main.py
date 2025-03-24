@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import sys
 import time
 from datetime import datetime, timedelta
+import calendar
 import pyautogui as gui
 import pygetwindow as gw
 import pytesseract
@@ -13,12 +14,18 @@ import json
 import logging
 import unicodedata
 import re
-from logging.handlers import TimedRotatingFileHandler
+import yaml
+from typing import Callable, Any
+import ahk
+from ahk import AHK
+
 from email.utils import parseaddr
 
 from processar_xml import *
-from db_connection import *
+from db_connection import revenda
 from DANImail import Queue, WriteTo
+from gemini_api import GeminiAPI
+from gemini_main import *
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -36,7 +43,7 @@ PORT = 995  # Porta segura (SSL)
 USERNAME = "dani@carburgo.com.br"
 PASSWORD = "p@r!sA1856"
 # Assunto alvo para busca
-ASSUNTO_ALVO = "lançamento nota fiscal dani"
+ASSUNTO_ALVO = "lançamento nota fiscal DANI"
 # Diretório para salvar os anexos
 DIRECTORY = os.path.join(current_dir, "anexos")
 
@@ -51,8 +58,11 @@ def decode_header_value(header_value):
             decoded_string += fragment
     return decoded_string
 
-
 def normalize_text(text):
+    if not isinstance(text, str):  # Garante que text seja string
+        logging.error(f"Erro: normalize_text recebeu {type(text)} em vez de string.")
+        return ""
+    
     return "".join(
         c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
     ).lower()
@@ -74,6 +84,10 @@ dani = Queue(config)
 
 
 def extract_values(text):
+    if not isinstance(text, str):  # Evita chamar `.lower()` em um dicionário
+        logging.error(f"Erro: extract_values recebeu {type(text)} em vez de string.")
+        return {}
+
     values = {
         "departamento": None,
         "origem": None,
@@ -81,24 +95,34 @@ def extract_values(text):
         "cc": None,
         "rateio": None,
         "cod_item": None,
+        "data_vencimento": None,
+        "tipo_imposto": None,
     }
+
     lines = text.lower().splitlines()
     for line in lines:
-        if line.startswith("departamento:"):
-            values["departamento"] = line.split(":", 1)[1].strip()
-        elif line.startswith("origem:"):
-            values["origem"] = line.split(":", 1)[1].strip()
-        elif line.startswith("descrição:"):
-            values["descricao"] = line.split(":", 1)[1].strip()
-        elif line.startswith("cc:"):
-            values["cc"] = line.split(":", 1)[1].strip()
-            logging.info(f"CC extraído: {values['cc']}")
-        elif line.startswith("rateio:"):
-            values["rateio"] = line.split(":", 1)[1].strip()
-        elif line.startswith("código de tributação:"):
-            values["cod_item"] = line.split(":", 1)[1].strip()
-    return values
+        if isinstance(line, str): 
+            if line.startswith("departamento:"):
+                values["departamento"] = line.split(":", 1)[1].strip()
+            elif line.startswith("origem:"):
+                values["origem"] = line.split(":", 1)[1].strip()
+            elif line.startswith("descrição:"):
+                values["descricao"] = line.split(":", 1)[1].strip()
+            elif line.startswith("cc:"):
+                values["cc"] = line.split(":", 1)[1].strip()
+            elif line.startswith("rateio:"):
+                values["rateio"] = line.split(":", 1)[1].strip()
+            elif line.startswith("código de tributação:"):
+                values["cod_item"] = line.split(":", 1)[1].strip()
+            elif "data vencimento" in line.lower():
+                data_vencimento = line.split(":", 1)[1].strip()
+                values["data_vencimento"] = data_vencimento.replace("/", "")
+            elif line.startswith("tipo imposto:"):
+                values["tipo_imposto"] = line.split(":", 1)[1].strip()
+    
+    logging.info(f"Valores extraídos: {values}")
 
+    return values
 
 PROCESSED_EMAILS_FILE = os.path.join(current_dir, "processed_emails.json")
 
@@ -108,16 +132,20 @@ def load_processed_emails():
             try:
                 return json.load(file)
             except json.JSONDecodeError:
-                logging.error("Erro ao carregar processed_emails.json. O arquivo está vazio ou corrompido.")
+                logging.error(
+                    "Erro ao carregar processed_emails.json. O arquivo está vazio ou corrompido."
+                )
                 return []
     return []
+
 
 def save_processed_emails(processed_emails):
     with open(PROCESSED_EMAILS_FILE, "w") as file:
         json.dump(processed_emails, file)
 
-def check_emails(nmr_nota):
-    sender = None  # Inicializar a variável sender
+def check_emails(nmr_nota, extract_values):
+    sender = None
+    dados_email = {}
     try:
         server = poplib.POP3_SSL(HOST, PORT)
         server.user(USERNAME)
@@ -164,9 +192,12 @@ def check_emails(nmr_nota):
                         if content_type == "text/plain":
                             charset = part.get_content_charset()
                             body = decode_body(part.get_payload(decode=True), charset)
+                            dados_email["body"] = body
                         elif part.get("Content-Disposition") is not None:
                             logging.info("Encontrado anexo no e-mail")
-                            dados_nota_fiscal = save_attachment(part, DIRECTORY)
+                            dados_nota_fiscal = save_attachment(
+                                part, DIRECTORY, dados_email
+                            )
                             if dados_nota_fiscal:
                                 try:
                                     valores_extraidos = extract_values(body)
@@ -179,19 +210,69 @@ def check_emails(nmr_nota):
                                     )
                                     rateio = valores_extraidos["rateio"]
                                     cod_item = valores_extraidos["cod_item"]
+                                    data_vencimento = valores_extraidos[
+                                        "data_vencimento"
+                                    ]
+                                    tipo_imposto = valores_extraidos["tipo_imposto"]
+                                    logging.info(f"Tipo de imposto extraído: {valores_extraidos.get('tipo_imposto')}")
+
+                                    if not dados_nota_fiscal:
+                                        logging.error("Erro: 'dados_nota_fiscal' está vazio. O anexo pode não ter sido processado corretamente.")
+                                    elif "json_path" not in dados_nota_fiscal:
+                                        logging.error("Erro: 'dados_nota_fiscal' não contém 'json_path'.")
+                                    else:
+                                        with open(dados_nota_fiscal["json_path"], "r") as f:
+                                            json_data = json.load(f)
+                                            logging.info(f"Conteúdo de json_data['valor_total']: {json_data['valor_total']}")
+
+
+
+                                        dados_nota_fiscal = {
+                                            "valor_total": [
+                                                {"valor_total": json_data["valor_total"][0]["valor_total"]} if isinstance(json_data["valor_total"], list) else {"valor_total": json_data["valor_total"]["valor_total"]}
+                                            ],
+                                            "emitente": {
+                                                "nome": json_data["emitente"]["nome"],
+                                                "cnpj": json_data["emitente"]["cnpj"],
+                                            },
+                                            "num_nota": {
+                                                "numero_nota": json_data["num_nota"]["numero_nota"]
+                                            },
+                                            "data_emi": {
+                                                "data_emissao": json_data["data_emi"]["data_emissao"]
+                                            },
+                                            "data_venc": {
+                                                "data_venc": valores_extraidos["data_vencimento"]
+                                            },
+                                            "chave_acesso": {
+                                                "chave": json_data["chave_acesso"]["chave"]
+                                            },
+                                            "modelo": {
+                                                "modelo": json_data["modelo"]["modelo"]
+                                            },
+                                            "destinatario": {
+                                                "nome": json_data["destinatario"]["nome"],
+                                                "cnpj": json_data["destinatario"]["cnpj"],
+                                            },
+                                            "pagamento_parcelado": [],
+                                            "serie": json_data["serie"],
+                                        }
+
                                     if not dados_nota_fiscal["valor_total"]:
                                         raise ValueError(
                                             "Valor total não encontrado na nota fiscal"
                                         )
+
                                     valor_total = str(
-                                        dados_nota_fiscal["valor_total"][0]["valor_total"]
+                                        dados_nota_fiscal["valor_total"][0][
+                                            "valor_total"
+                                        ]
                                     ).replace(".", ",")
-                                    dados_centros_de_custo = process_cost_centers(
-                                        cc_texto, float(valor_total.replace(",", "."))
-                                    )
+                                    dados_centros_de_custo = process_cost_centers(cc_texto, float(valor_total.replace(",", ".")))
                                     logging.info(
                                         f"Dados dos centros de custo: {dados_centros_de_custo}"
                                     )
+
                                     dados_email = {
                                         "departamento": departamento,
                                         "origem": origem,
@@ -209,34 +290,124 @@ def check_emails(nmr_nota):
                                         "destinatario": dados_nota_fiscal["destinatario"],
                                         "rateio": rateio,
                                         "sender": sender,
-                                        "email_id": email_id,  # Adiciona o ID do e-mail
-                                        "parcelas": dados_nota_fiscal["pagamento_parcelado"],
-                                        "serie": dados_nota_fiscal["serie"],
+                                        "email_id": email_id,
+                                        "parcelas": dados_nota_fiscal.get("pagamento_parcelado", []),
+                                        "serie": dados_nota_fiscal.get("serie", ""),
+                                        "data_venc_nfs": valores_extraidos["data_vencimento"],
+                                        "tipo_imposto": valores_extraidos["tipo_imposto"],
+                                        "impostos": json_data.get("impostos", {}),  
+                                        "valor_liquido": json_data.get("valor_liquido", {}),
+                                        "tipo_arquivo": dados_email.get("tipo_arquivo", "DESCONHECIDO"),
                                     }
-                                    
-                                    logging.info(f"Dados carregados: {dados_nota_fiscal}")
-                                    logging.info(f"Parcelas carregadas: {dados_nota_fiscal.get('pagamento_parcelado')}")
 
+                                    logging.info(
+                                        f"Dados carregados: {dados_nota_fiscal}"
+                                    )
+                                    logging.info(
+                                        f"Parcelas carregadas: {dados_nota_fiscal.get('pagamento_parcelado')}"
+                                    )
+
+                                    if tipo_imposto is None:
+                                        logging.error("Erro: tipo_imposto não foi encontrado nos dados extraídos!")
+                                    logging.info(f"Conteúdo de dados_email antes de automation_gui: {dados_email}")
+                                    logging.info(f"Tipo de imposto antes de chamar automation_gui: {tipo_imposto}")
                                     
-                                    server.quit()
-                                    return dados_email  # Retorna os dados do primeiro e-mail encontrado
+                                    tipo_imposto = valores_extraidos.get("tipo_imposto", "NÃO INFORMADO")
+                                    tipo_arquivo = dados_email.get("tipo_arquivo")
+                                    logging.info(f"Tipo de arquivo a ser processado: {tipo_arquivo}")
+                                    
+                                    if dados_email is None:
+                                        logging.error("Erro: `dados_email` já é None antes de chamar automation_gui")
+                                    else:
+                                        logging.info(f"`dados_email` antes de chamar automation_gui: {dados_email}")
+                                        logging.info(f"Referência de `dados_email`: {id(dados_email)}")
+                                        
+                                    
+                                    sistema_nf = SystemNF()
+                                    logging.info(f"Chamando automation_gui com os seguintes parâmetros:")
+                                    logging.info(f"departamento: {dados_email.get('departamento')}")
+                                    logging.info(f"origem: {dados_email.get('origem')}")
+                                    logging.info(f"descricao: {dados_email.get('descricao')}")
+                                    logging.info(f"cc: {dados_email.get('cc')}")
+                                    logging.info(f"cod_item: {dados_email.get('cod_item')}")
+                                    logging.info(f"valor_total: {dados_email.get('valor_total')}")
+                                    logging.info(f"dados_centros_de_custo: {dados_email.get('dados_centros_de_custo')}")
+                                    logging.info(f"cnpj_emitente: {dados_email.get('emitente', {}).get('cnpj')}")
+                                    logging.info(f"nmr_nota: {dados_email.get('num_nota', {}).get('numero_nota')}")
+                                    logging.info(f"data_emi: {dados_email.get('data_emi', {}).get('data_emissao')}")
+                                    logging.info(f"data_venc: {dados_email.get('data_venc', {}).get('data_venc')}")
+                                    logging.info(f"chave_acesso: {dados_email.get('chave_acesso', {}).get('chave')}")
+                                    logging.info(f"modelo: {dados_email.get('modelo', {}).get('modelo')}")
+                                    logging.info(f"rateio: {dados_email.get('rateio')}")
+                                    logging.info(f"parcelas: {dados_email.get('parcelas')}")
+                                    logging.info(f"serie: {dados_email.get('serie')}")
+                                    logging.info(f"data_venc_nfs: {dados_email.get('data_venc_nfs')}")
+                                    logging.info(f"ISS_retido: {dados_email.get('impostos', {}).get('ISS_retido')}")
+                                    logging.info(f"INSS: {dados_email.get('impostos', {}).get('INSS')}")
+                                    logging.info(f"IR: {dados_email.get('impostos', {}).get('IR')}")
+                                    logging.info(f"valor_liquido: {dados_email.get('valor_liquido', {}).get('valor_liquido')}")
+                                    logging.info(f"tipo_imposto: {dados_email.get('tipo_imposto')}")
+                                    logging.info(f"PIS: {dados_email.get('impostos', {}).get('PIS')}")
+                                    logging.info(f"COFINS: {dados_email.get('impostos', {}).get('COFINS')}")
+                                    logging.info(f"CSLL: {dados_email.get('impostos', {}).get('CSLL')}")
+                                    sistema_nf.automation_gui(
+                                        dados_email.get('departamento'),
+                                        dados_email.get('origem'),
+                                        dados_email.get('descricao'),
+                                        dados_email.get('cc'),
+                                        dados_email.get('cod_item'),
+                                        dados_email.get('valor_total'),
+                                        dados_email.get('dados_centros_de_custo'),
+                                        dados_email.get('emitente', {}).get('cnpj'),
+                                        dados_email.get('num_nota', {}).get('numero_nota'),
+                                        dados_email.get('data_emi', {}).get('data_emissao'),
+                                        dados_email.get('data_venc', {}).get('data_venc'),
+                                        dados_email.get('chave_acesso', {}).get('chave'),
+                                        dados_email.get('modelo', {}).get('modelo'),
+                                        dados_email.get('rateio'),
+                                        dados_email.get('parcelas'),
+                                        dados_email.get('serie'),
+                                        dados_email.get('data_venc_nfs'),
+                                        dados_email.get('valor_liquido', {}).get('valor_liquido'),
+                                        dados_email.get('tipo_imposto'),
+                                        dados_email.get('impostos', {}),
+                                        dados_email
+                                    )
+
+                                    # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
+                                    processed_emails = load_processed_emails()
+                                    processed_emails.append(dados_email["email_id"])
+                                    save_processed_emails(processed_emails)
+                                    send_success_message(
+                                        dani,
+                                        sender,
+                                        nmr_nota,
+                                    )
+
                                 except Exception as e:
                                     logging.error(f"Erro ao processar o e-mail: {e}")
                                     send_email_error(
-                                        dani, sender, f"Erro ao processar o e-mail: {e}", nmr_nota,
+                                        dani,
+                                        sender,
+                                        f"Erro ao processar o e-mail: {e}",
+                                        nmr_nota,
                                     )
                                     server.quit()
                                     return None
                             else:
                                 logging.error("Erro ao salvar ou processar o anexo")
                                 send_email_error(
-                                    dani, sender, "Erro ao salvar ou processar o anexo", nmr_nota,
+                                    dani,
+                                    sender,
+                                    "Erro ao salvar ou processar o anexo",
+                                    nmr_nota,
                                 )
                                 server.quit()
                                 return None
                 else:
                     charset = email_message.get_content_charset()
                     body = decode_body(email_message.get_payload(decode=True), charset)
+                    dados_email["body"] = body
 
         server.quit()
         logging.info("Nenhum e-mail com o assunto alvo encontrado")
@@ -250,40 +421,228 @@ def check_emails(nmr_nota):
             nmr_nota,
         )
         return None
+    logging.info(f"Conteúdo de dados_email antes de retornar: {dados_email}")
+    return dados_email
 
-def save_attachment(part, directory):
+def clean_extracted_json(json_data):
+    if not isinstance(json_data, dict):
+        logging.error(f"Erro: clean_extracted_json recebeu {type(json_data)} em vez de dict.")
+        return {}
+
+    if "ISS Retido" in json_data and isinstance(json_data["ISS Retido"], str):
+        if json_data["ISS Retido"].lower() == "não":
+            json_data["ISS Retido"] = "Não"
+        else:
+            try:
+                json_data["ISS Retido"] = f"{float(json_data['ISS Retido']):.2f}"
+            except ValueError:
+                logging.warning(f"Valor inválido para ISS Retido: {json_data['ISS Retido']}")
+    
+    return json_data
+
+
+
+def map_json_fields(json_data, body):
+    # Verifica se o body é uma string
+    if not isinstance(body, str):
+        logging.error(f"Erro: 'body' deveria ser uma string, mas recebeu {type(body)}.")
+        return {}
+
+    valores_extraidos = extract_values(body)
+
+    data_vencimento = valores_extraidos["data_vencimento"]
+
+    mapped_data = {
+        "emitente": {
+            "cnpj": json_data.get("CNPJ do prestador de serviço"),
+            "nome": json_data.get("Nome do prestador de serviço"),
+        },
+        "destinatario": {
+            "cnpj": json_data.get("CNPJ do tomador do serviço"),
+            "nome": json_data.get("Nome do tomador do serviço"),
+        },
+        "num_nota": {
+            "numero_nota": json_data.get("Numero da nota"),
+        },
+        "data_venc": {
+            "data_venc": data_vencimento
+        },
+        "data_emi": {
+            "data_emissao": json_data.get("Data da emissão"),
+        },
+        "valor_total": {
+            "valor_total": json_data.get("Valor total"),
+        },
+        "valor_liquido": {
+            "valor_liquido": json_data.get("Valor líquido"),
+        },
+        "modelo": {
+            "modelo": "01",
+        },
+        "serie": "1",
+        "chave_acesso": {
+            "chave": "",
+        },
+        "impostos": {
+            "ISS_retido": json_data.get("ISS retido", "0.00"),
+            "PIS": json_data.get("PIS", "0.00"),
+            "COFINS": json_data.get("COFINS", "0.00"),
+            "INSS": json_data.get("INSS", "0.00"),
+            "IR": json_data.get("IR", "0.00"),
+            "CSLL": json_data.get("CSLL", "0.00"),
+        },
+    }
+    return mapped_data
+
+def process_pdf(pdf_path, dados_email):
+    logging.info(f"Iniciando processamento do PDF: {pdf_path}")
+
+    if not isinstance(pdf_path, str) or not pdf_path.lower().endswith(".pdf"):
+        logging.error(f"Erro: Caminho inválido para PDF: {pdf_path}")
+        return None
+    if not os.path.exists(pdf_path):
+        logging.error(f"Erro: Arquivo não encontrado: {pdf_path}")
+        return None
+
+    json_folder = os.path.abspath("NOTAS EM JSON")
+    os.makedirs(json_folder, exist_ok=True)
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        logging.error("Erro: API key do Gemini não encontrada.")
+        return None
+
+    gemini_api = GeminiAPI(api_key)
+
+    try:
+        upload_response = gemini_api.upload_pdf(pdf_path)
+        if not upload_response.get("success"):
+            logging.error(f"Erro no upload do PDF: {pdf_path}")
+            return None
+
+        file_id = upload_response["file_id"]
+        status_response = gemini_api.check_processing_status(file_id)
+        if status_response.get("state") != "ACTIVE":
+            logging.error(f"Erro no processamento do PDF: {pdf_path}")
+            return None
+
+        extracted_text = gemini_api.extract_info(file_id)
+        if not extracted_text:
+            logging.error(f"Erro ao extrair informações do PDF: {pdf_path}")
+            return None
+
+        try:
+            extracted_text = extracted_text.strip().lstrip("```json").rstrip("```").strip()
+            extracted_json = json.loads(extracted_text) if isinstance(extracted_text, str) else extracted_text
+
+            if not extracted_json:
+                logging.error("Erro: JSON extraído está vazio.")
+                return None
+        except json.JSONDecodeError:
+            logging.error(f"Erro ao decodificar JSON extraído: {extracted_text}")
+            return None
+
+        cleaned_json = clean_extracted_json(extracted_json)
+
+        # Verifica se o body é uma string antes de chamar map_json_fields
+        body = dados_email.get("body", "")
+        if not isinstance(body, str):
+            logging.error(f"Erro: 'body' deveria ser uma string, mas recebeu {type(body)}.")
+            return None
+
+        mapped_json = map_json_fields(cleaned_json, body)
+
+        if not mapped_json:
+            logging.error("Erro: JSON final está vazio, não será salvo.")
+            return None
+
+        json_filename = re.sub(r'[<>:"/\\|?*]', '', os.path.splitext(os.path.basename(pdf_path))[0]) + ".json"
+        json_path = os.path.join(json_folder, json_filename)
+
+        if not os.path.exists(json_folder):
+            os.makedirs(json_folder, exist_ok=True)
+
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(mapped_json, f, ensure_ascii=False, indent=4)
+
+        logging.info(f"JSON salvo em: {json_path}")
+        return {"json_path": json_path}
+
+    except Exception as e:
+        logging.error(f"Erro inesperado ao processar PDF {pdf_path}: {e}")
+        return None
+
+def save_attachment(part, directory, dados_email):
     filename = decode_header_value(part.get_filename())
     if not filename:
-        filename = "untitled.xml"
-    elif not filename.lower().endswith(".xml"):
-        logging.info(f"Ignorando anexo não XML: {filename}")
-        return None  # Ignorar anexos que não são XML
-    content_type = part.get_content_type()
-    logging.info(f"Tipo de conteúdo do anexo: {content_type}")
-    if not content_type == "application/xml" and not filename.endswith(".xml"):
-        logging.info(f"O anexo não é um arquivo XML: {filename}")
+        logging.error("Nome do arquivo anexado não foi encontrado.")
+        dados_email["tipo_arquivo"] = "DESCONHECIDO"  # Define um valor padrão
         return None
+
+    # Determina o tipo de arquivo (PDF ou XML)
+    if filename.lower().endswith(".pdf"):
+        tipo_arquivo = "PDF"
+    elif filename.lower().endswith(".xml"):
+        tipo_arquivo = "XML"
+    else:
+        tipo_arquivo = "DESCONHECIDO"  # Define um valor padrão para outros tipos de arquivo
+        logging.error(f"Arquivo anexado não é um XML ou PDF: {filename}")
+
+    # Armazena o tipo de arquivo no dicionário dados_email
+    dados_email["tipo_arquivo"] = tipo_arquivo
+    logging.info(f"Tipo de arquivo: {tipo_arquivo}")
+
     if not os.path.exists(directory):
         os.makedirs(directory)
+
     filepath = os.path.join(directory, filename)
     logging.info(f"Salvando anexo em: {filepath}")
+
     with open(filepath, "wb") as f:
         f.write(part.get_payload(decode=True))
+
     logging.info(f"Anexo salvo em: {filepath}")
-    dados_nota_fiscal = parse_nota_fiscal(filepath)
-    if dados_nota_fiscal:
-        salvar_dados_em_arquivo(dados_nota_fiscal, filename, "NOTAS EM JSON")
-        return dados_nota_fiscal
+
+    if tipo_arquivo == "XML":
+        dados_nota_fiscal = parse_nota_fiscal(filepath)
+
+        if not dados_nota_fiscal:
+            logging.error(f"Erro ao processar XML. Nenhum dado extraído.")
+            return None
+
+        json_folder = os.path.abspath("NOTAS EM JSON")
+        os.makedirs(json_folder, exist_ok=True)
+
+        json_filename = os.path.splitext(os.path.basename(filepath))[0] + ".json"
+        json_path = os.path.join(json_folder, json_filename)
+        
+        logging.info(f"Dados nota fiscal: {dados_nota_fiscal}")
+
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(dados_nota_fiscal, f, ensure_ascii=False, indent=4)
+
+        logging.info(f"JSON do XML salvo com sucesso: {json_path}")
+        return {"json_path": json_path}
+
+    elif tipo_arquivo == "PDF":
+        json_result = process_pdf(filepath, dados_email)
+        if not json_result or "json_path" not in json_result:
+            logging.error("Erro: JSON do PDF não foi gerado corretamente.")
+            return None
+        return json_result
     else:
-        logging.error(f"Erro ao parsear o XML da nota fiscal: {filepath}")
+        logging.error(f"Tipo de arquivo não suportado: {tipo_arquivo}")
         return None
-
-
 
 def process_cost_centers(cc_texto, valor_total):
     valor_total = float(valor_total)
     centros_de_custo = []
     total_calculado = 0.0
+
+    # Verifica se cc_texto é uma string
+    if not isinstance(cc_texto, str):
+        logging.error(f"Erro: cc_texto deve ser uma string, mas recebeu {type(cc_texto)}.")
+        return centros_de_custo
 
     cc_texto = re.sub(r"[\u2013\u2014-]+", "-", cc_texto)
 
@@ -303,9 +662,7 @@ def process_cost_centers(cc_texto, valor_total):
                 valor_calculado = float(valor.replace(",", "."))
 
             total_calculado += valor_calculado
-            centros_de_custo.append(
-                (cc, valor_calculado)
-            )  # Mantém valor como float temporariamente
+            centros_de_custo.append((cc, valor_calculado))
         except ValueError:
             logging.error(f"Erro ao processar centro de custo: {item}")
 
@@ -314,19 +671,14 @@ def process_cost_centers(cc_texto, valor_total):
     if abs(diferenca) > 0:
         if centros_de_custo:
             ultimo_cc, ultimo_valor = centros_de_custo[-1]
-            # Converte o último valor para float, se necessário
             if isinstance(ultimo_valor, str):
                 ultimo_valor = float(ultimo_valor.replace(",", "."))
-            diferenca_float = ultimo_valor + diferenca  # Soma corretamente
-            diferenca_str = f"{diferenca_float:.2f}".replace(
-                ".", ","
-            )  # Converte para string
+            diferenca_float = ultimo_valor + diferenca
+            diferenca_str = f"{diferenca_float:.2f}".replace(".", ",")
             centros_de_custo[-1] = (ultimo_cc, diferenca_str)
         else:
             logging.error("Nenhum centro de custo encontrado para aplicar a diferença")
-            raise ValueError(
-                "Erro: Nenhum centro de custo encontrado para aplicar a diferença"
-            )
+            raise ValueError("Erro: Nenhum centro de custo encontrado para aplicar a diferença")
 
     return centros_de_custo
 
@@ -348,16 +700,15 @@ def send_email_error(dani, destinatario, erro, nmr_nota):
         .add_text("DANI", tag="h1")
         .add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
         .add_text(
-            'Para reportar erros, envie um email para: ticket.dani@carburgo.com.br', 
-            tag="p"
+            "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
+            tag="p",
         )
         .add_text(
-            'Em caso de dúvidas, entre em contato com: suporte.dani@carburgo.com.br',
-            tag="p"
+            "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
+            tag="p",
         )
     )
     dani.push(mensagem).push(mensagem_assinatura).flush()
-    sys.exit(1)
 
 
 def send_success_message(dani, destinatario, nmr_nota):
@@ -377,16 +728,17 @@ def send_success_message(dani, destinatario, nmr_nota):
         .add_text("DANI", tag="h1")
         .add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
         .add_text(
-            'Para reportar erros, envie um email para: ticket.dani@carburgo.com.br', 
-            tag="p"
+            "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
+            tag="p",
         )
         .add_text(
-            'Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br',
-            tag="p"
+            "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
+            tag="p",
         )
     )
 
     dani.push(mensagem).push(mensagem_assinatura).flush()
+
 
 def processar_parcelas(parcelas):
     logging.info("Iniciando o processamento das parcelas")
@@ -418,6 +770,7 @@ def processar_parcelas(parcelas):
         gui.press("enter")
         gui.press("enter")
 
+
 dados_nota_fiscal = None
 
 logging.info("Carregando dados da nota fiscal")
@@ -437,32 +790,28 @@ else:
 
 
 class SystemNF:
-    logging.info("Entrou na classe do Sistema")
-
     def __init__(self, master=None):
         self.br = None
 
     def automation_gui(
-        self,
-        departamento,
-        origem,
-        descricao,
-        cc,
-        cod_item,
-        valor_total,
-        dados_centros_de_custo,
-        cnpj_emitente,
-        nmr_nota,
-        data_emi,
-        data_venc,
-        chave_acesso,
-        modelo,
-        rateio,
-        parcelas,
-        serie,
+        self, departamento, origem, descricao, cc, cod_item, valor_total,
+        dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
+        chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
+        valor_liquido, tipo_imposto, impostos, dados_email=None
     ):
+        
+        gui.PAUSE = 1
+        
+        # Validação dos dados necessários
+        if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
+            raise ValueError("Dados obrigatórios estão faltando")
+        
+
+        logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
+        logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
+        logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         if not parcelas:
-            logging.warning("As parcelas estão vazias ao entrar em automation_gui")
+            logging.info("Nenhuma parcela recebida")
         logging.info("Entrou na parte da automação")
         logging.info(f"Departamento: {departamento}")
         logging.info(f"Origem: {origem}")
@@ -480,7 +829,45 @@ class SystemNF:
         logging.info(f"Rateio: {rateio}")
         logging.info(f"Série: {serie}")
         logging.info(f"Parcelas: {parcelas}")
+        logging.info(f"Data vencimento NFs: {data_venc_nfs}")
+        logging.info(f"Tipo de Imposto: {tipo_imposto}")
 
+        cnpj_dest = dados_email.get("destinatario", {}).get("cnpj")
+
+        if cnpj_dest:
+            try:
+                result = revenda(cnpj_dest) 
+                if result:
+                    empresa, revenda_nome = result
+                    logging.info(f"Empresa: {empresa}, Revenda: {revenda_nome}")
+                else:
+                    empresa, revenda_nome = "Desconhecido", "Desconhecido"
+                    logging.error(f"CNPJ {cnpj_dest} não encontrado no banco de dados.")
+            except Exception as e:
+                logging.error(f"Erro ao buscar revenda no banco de dados: {e}")
+                empresa, revenda_nome = "Erro", "Erro"
+        else:
+            logging.error("Erro: CNPJ do destinatário não foi fornecido.")
+            empresa, revenda_nome = "Sem CNPJ", "Sem CNPJ"
+        
+        
+        if revenda:
+            try:
+                gui.press("alt")
+                gui.press("right")
+                gui.press("down")
+                gui.press("enter")
+                gui.press("down", presses=2)
+
+                gui.write(f"{empresa}.{revenda_nome}")
+                gui.press("enter")
+                time.sleep(5)
+            except NameError as e:
+                logging.error(f"Erro: Variável revenda não definida: {e}")
+        else:
+            logging.error("Erro: Revenda não foi definida corretamente.")
+
+        
         try:
             data_atual = datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
@@ -515,9 +902,7 @@ class SystemNF:
             screenshot = screenshot.point(lambda p: p > threshold and 255)
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
-            
-            # Modelo 55, 43 e 22 não podem ser código de tributação nunca é dez
-            
+
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
             gui.press("alt")
@@ -530,7 +915,7 @@ class SystemNF:
             gui.press("tab")
             gui.write(nmr_nota)
             gui.press("tab")
-            gui.write(serie) 
+            gui.write(serie)
             gui.press("tab")
             gui.press("down")
             gui.press("tab")
@@ -553,42 +938,184 @@ class SystemNF:
             gui.press("tab")
             gui.write(modelo)
             gui.press("tab", presses=18)
-            
-            # A partir daqui que deve ser implementado a nota de serviço
-            
-            # Se arquivo endswitch (.pdf)
-            
-            # Se arquivo endswitch (.xml)
-            gui.press("right", presses=2)
-            gui.press("tab", presses=5)
-            gui.press("enter")
-            gui.press("tab", presses=4)
-            if (modelo == "55" or modelo == "43" or modelo == "22") and cod_item != "7":
-                send_email_error(
-                    dani, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), "Erro: Modelo de nota fiscal inválido para o código de tributação informado.", nmr_nota, 
+
+            tipo_arquivo = dados_email.get("tipo_arquivo", "DESCONHECIDO")
+            logging.info(f"Tipo de arquivo: {tipo_arquivo}")
+
+            if tipo_arquivo == "PDF":
+                gui.press("right", presses=1)
+                gui.press("tab", presses=20)
+                gui.write(cod_item)
+                gui.press("tab", presses=10)
+                gui.write("1")
+                gui.press("tab")
+                gui.write(valor_total)
+                gui.press("tab", presses=34)
+                gui.write(descricao)
+                
+                
+                if impostos.get("IR") != "0.00":
+                    gui.press("tab", presses=17)
+                    gui.write(valor_total)
+                    gui.press("tab", presses=2)
+                    gui.write(impostos.get("IR"))
+                
+                elif impostos.get("PIS") != "0.00":
+                    gui.press("tab", presses=24)
+                    gui.write(valor_total)
+                    gui.press("tab")
+                    gui.write(impostos.get("PIS"))
+                
+                elif impostos.get("COFINS") != "0.00":
+                    gui.press("tab", presses=5)
+                    gui.write(valor_total)
+                    gui.press("tab")
+                    gui.write(impostos.get("COFINS"))
+                
+                elif impostos.get("CSLL") != "0.00":
+                    gui.press("tab", presses=5)
+                    gui.write(valor_total)
+                    gui.press("tab")
+                    gui.write(impostos.get("CSLL"))
+                    
+                    gui.press("tab", presses=40)
+                    gui.press("left")
+
+                gui.press("tab", presses=15)
+                gui.press("left")
+                gui.press("tab", presses=5)
+                gui.press("enter")
+
+                hoje = datetime.now()
+
+                # Determina o próximo mês
+                if hoje.month == 12:
+                    proximo_mes = 1
+                    ano = hoje.year + 1
+                else:
+                    proximo_mes = hoje.month + 1
+                    ano = hoje.year
+
+                # Calcula o primeiro dia do próximo mês
+                primeiro_dia_proximo_mes = datetime(ano, proximo_mes, 1)
+
+                # Determina o dia 20 do próximo mês
+                dia_20_proximo_mes = datetime(ano, proximo_mes, 20)
+
+                # Calcula a diferença em dias
+                dias_restantes = (dia_20_proximo_mes - hoje).days
+
+
+                impostos = dados_email.get("impostos", {})
+
+                # Função para somar apenas valores diferentes de "0.00" ou None
+                def somar_impostos(*valores):
+                    return sum(
+                        float(valor) for valor in valores if valor and valor != "0.00"
+                    )
+
+                PCC = somar_impostos(
+                    impostos.get("PIS"), impostos.get("COFINS"), impostos.get("CSLL")
                 )
-            gui.write(cod_item)
-            gui.press("tab", presses=10)
-            gui.write("1")
-            gui.press("tab")
-            logging.info(f"Valor total: {valor_total}")
-            gui.write(valor_total)
-            gui.press("tab", presses=26)
-            gui.write(descricao)
-            gui.press(["tab", "enter"])
-            gui.press("tab", presses=11)
-            gui.press("left", presses=2)
-            gui.press("tab", presses=5)
-            gui.press("enter")
-            
-            logging.info(f"Processando parcelas: {parcelas}")
-            gui.press("tab")
-            gui.press("enter")
-            processar_parcelas(parcelas)
-            
-            gui.press("tab", presses=3)
-            gui.press(["enter", "tab", "tab", "tab", "enter"])
-            gui.press("tab", presses=35)
+
+                # Exibe o valor calculado para depuração
+                logging.info(f"Valor de PCC calculado: {PCC:.2f}")
+                logging.info("Teste de verificação de erro")
+
+                if impostos.get("IR") != "0.00":
+                    logging.info("Entrei")
+                    gui.press("tab", presses=7)
+                    if tipo_imposto == "normal":
+                        gui.press("down", presses=2)
+                        logging.info("Tipo de imposto normal")
+                    elif tipo_imposto == "comissão":
+                        gui.press("down", presses=7)
+                        logging.info("Tipo de imposto comissão")
+                    else:
+                        gui.press("down", presses=5)
+                        logging.info("Tipo de imposto não especificado")
+                    gui.press("tab")
+                    gui.write(dias_restantes)
+                    gui.press("tab", presses=2)
+                    gui.write(impostos.get("IR"))
+                    logging.info("Passou do if do IR")
+                    gui.press("tab", "enter")
+                if PCC != 0.00:
+                    logging.info("Entrei no if do PCC")
+                    gui.press("tab", presses=7)
+                    gui.press("down", presses=3)
+                    gui.press("tab")
+                    gui.write(dias_restantes)
+                    gui.press("tab", presses=2)
+                    gui.write(PCC)
+                    logging.info("Passou do elif do PCC")
+                    gui.press("tab", "enter")
+                if impostos.get("ISS_retido") != "0.00":
+                    logging.info("Entrei no elif do ISS_retido")
+                    gui.press("tab", presses=7)
+                    gui.press("down", presses=4)
+                    gui.press("tab")
+                    gui.write(dias_restantes)
+                    gui.press("tab", presses=2)
+                    gui.write(impostos.get("ISS_retido"))
+                    logging.info("Passou do elif do ISS_retido")
+                    gui.press("tab", "enter")
+                logging.info("Passou direto")
+                gui.press("tab")
+                gui.press("enter")
+                gui.press("tab")
+                gui.write("enter")
+                gui.press("tab", presses=10)
+                gui.write(str(data_venc_nfs))
+                logging.info("Preenchendo a data de vencimento da NFS")
+                gui.press("tab", presses=4)
+                gui.write(valor_liquido)
+                logging.info("Preenchendo o valor liquido")
+                gui.press("tab")
+                gui.press("enter")
+                gui.press("tab", presses=3)
+                gui.press("enter")
+                logging.info("Saiu da parte de notas de despesas")
+                gui.press("tab", presses=39)
+                gui.press("enter")
+
+
+            elif tipo_arquivo == "XML":
+                gui.press("right", presses=2)
+                gui.press("tab", presses=5)
+                gui.press("enter")
+                gui.press("tab", presses=4)
+                if (
+                    modelo == "55" or modelo == "43" or modelo == "22"
+                ) and cod_item != "7":
+                    send_email_error(
+                        dani,
+                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                        "Erro: Modelo de nota fiscal inválido para o código de tributação informado.",
+                        nmr_nota,
+                    )
+                gui.write(cod_item)
+                gui.press("tab", presses=10)
+                gui.write("1")
+                gui.press("tab")
+                logging.info(f"Valor total: {valor_total}")
+                gui.write(valor_total)
+                gui.press("tab", presses=26)
+                gui.write(descricao)
+                gui.press(["tab", "enter"])
+                gui.press("tab", presses=11)
+                gui.press("left", presses=2)
+                gui.press("tab", presses=5)
+                gui.press("enter")
+
+                logging.info(f"Processando parcelas: {parcelas}")
+                gui.press("tab")
+                gui.press("enter")
+                processar_parcelas(parcelas)
+
+                gui.press("tab", presses=3)
+                gui.press(["enter", "tab", "tab", "tab", "enter"])
+                gui.press("tab", presses=35)
             if rateio.lower() == "sim":
                 gui.press("enter")
                 gui.press("tab", presses=8)
@@ -620,7 +1147,10 @@ class SystemNF:
 
         except Exception as e:
             send_email_error(
-                dani, dados_email.get("sender", "caetano.apollo@carburgo.com.br"), e, nmr_nota,
+                dani,
+                dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                e,
+                nmr_nota,
             )
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
@@ -629,22 +1159,46 @@ if __name__ == "__main__":
     while True:
         logging.info("Iniciando a automação")
         try:
-            nmr_nota = ''
-            dados_email = check_emails(nmr_nota)
+            nmr_nota = ""
+            dados_email = check_emails(nmr_nota, extract_values)
             if dados_email is not None:
                 logging.info("Executando automação GUI")
                 logging.info(f"Conteúdo completo de dados_email: {dados_email}")
 
+                tipo_arquivo = dados_email.get("tipo_arquivo", "DESCONHECIDO")
+                logging.info(f"Tipo de arquivo a ser processado: {tipo_arquivo}")
+                
+                if tipo_arquivo == "DESCONHECIDO":
+                    logging.error("Tipo e arquivo desconhecido ou não especificado")
+                    send_email_error(
+                        dani,
+                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                        "Erro: Tipo de arquivo desconhecido ou não suportado",
+                        nmr_nota,
+                    )
+
+                pdf_path = os.path.join(DIRECTORY, "anexos")
+                extracted_info = process_pdf(pdf_path, dados_email)
+                if os.path.exists(pdf_path):
+                    extracted_info = process_pdf(pdf_path, dados_email)
+                else:
+                    logging.error("Erro ao processar o PDF")
+
                 departamento = dados_email.get("departamento")
                 origem = dados_email.get("origem")
                 descricao = dados_email.get("descricao")
-                cc = dados_email.get("cc")
+                cc = dados_email.get("cc") 
+                logging.info(f"CC recebido: {cc}")
                 cod_item = dados_email.get("cod_item")
                 valor_total = dados_email.get("valor_total")
                 dados_centros_de_custo = dados_email.get("dados_centros_de_custo")
                 rateio = dados_email.get("rateio")
                 parcelas = dados_email.get("parcelas", [])
                 serie = dados_email.get("serie")
+                data_venc_nfs = dados_email.get("data_vencimento")
+                tipo_imposto = dados_email.get("tipo_imposto", "normal")
+                impostos = dados_email.get("impostos")
+                valor_liquido = dados_email.get("valor_liquido", "valor_total")
                 if "parcelas" in dados_email:
                     parcelas = dados_email["parcelas"]
                 else:
@@ -679,8 +1233,7 @@ if __name__ == "__main__":
                     )
                     continue
 
-                # Verificação de campos obrigatórios
-                campos_obrigatorios = [
+                def verificar_campos_obrigatorios(
                     departamento,
                     origem,
                     descricao,
@@ -688,61 +1241,62 @@ if __name__ == "__main__":
                     cod_item,
                     valor_total,
                     dados_centros_de_custo,
-                ]
-                if not all(campos_obrigatorios):
-                    mensagem_erro = (
-                        "Faltando campos obrigatórios para o lançamento:\n"
-                    )
-                    if not departamento:
-                        mensagem_erro += "- Departamento\n"
-                    if not origem:
-                        mensagem_erro += "- Origem\n"
-                    if not descricao:
-                        mensagem_erro += "- Descrição\n"
-                    if not cc:
-                        mensagem_erro += "- CC\n"
-                    if not cod_item:
-                        mensagem_erro += "- Código de tributação do item\n"
-                    if not valor_total:
-                        mensagem_erro += "- Valor Total\n"
-                    if not dados_centros_de_custo:
-                        mensagem_erro += "- Dados dos Centros de Custo\n"
-                    logging.error(mensagem_erro)
-                    send_email_error(
-                        dani,
-                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        mensagem_erro,
-                        nmr_nota,
-                    )
-                    continue
+                    data_venc_nfs,
+                    anexo,
+                ):
+                    campos_obrigatorios = [
+                        departamento,
+                        origem,
+                        descricao,
+                        cc,
+                        cod_item,
+                        valor_total,
+                        dados_centros_de_custo,
+                    ]
 
-                # Executando a parte de revenda primeiro
-                if cnpj_dest:
-                    result = revenda(cnpj_dest)
-                    if result:
-                        empresa, revenda = result
-                        logging.info(f"Empresa: {empresa}, Revenda: {revenda}")
+                    if not all(campos_obrigatorios):
+                        mensagem_erro = (
+                            "Faltando campos obrigatórios para o lançamento:\n"
+                        )
+                        if not departamento:
+                            mensagem_erro += "- Departamento\n"
+                        if not origem:
+                            mensagem_erro += "- Origem\n"
+                        if not descricao:
+                            mensagem_erro += "- Descrição\n"
+                        if not cc:
+                            mensagem_erro += "- CC\n"
+                        if not cod_item:
+                            mensagem_erro += "- Código de tributação do item\n"
+                        if not valor_total:
+                            mensagem_erro += "- Valor Total\n"
+                        if not dados_centros_de_custo:
+                            mensagem_erro += "- Dados dos Centros de Custo\n"
 
-                        # Acessando o menu
-                        gui.press("alt")
-                        gui.press("right")
-                        gui.press("down")
-                        gui.press("enter")
-                        gui.press("down", presses=2)
+                        # Verifica se o anexo é um PDF e se a data de vencimento está preenchida
+                        if anexo.endswith(".pdf") and not data_venc_nfs:
+                            mensagem_erro += "- Data de Vencimento\n"
 
-                        gui.write(f"{empresa}.{revenda}")
-                        gui.press("enter")
-                        time.sleep(5)
-                    else:
+                        logging.error(mensagem_erro)
                         send_email_error(
                             dani,
-                            dados_email.get(
-                                "sender", "caetano.apollo@carburgo.com.br"
-                            ),
-                            "Erro, CNPJ do destinatário não encontrado",
+                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                            mensagem_erro,
                             nmr_nota,
                         )
-                        logging.error("Erro, CNPJ não encontrado")
+
+                        # Exemplo de chamada da função
+                        verificar_campos_obrigatorios(
+                            departamento,
+                            origem,
+                            descricao,
+                            cc,
+                            cod_item,
+                            valor_total,
+                            dados_centros_de_custo,
+                            data_venc_nfs,
+                            anexo,
+                        )
 
                 # Adicionando logs para verificar os dados extraídos
                 logging.info(f"Departamento: {departamento}")
@@ -751,39 +1305,39 @@ if __name__ == "__main__":
                 logging.info(f"CC: {cc}")
                 logging.info(f"Código do Item: {cod_item}")
                 logging.info(f"Valor Total: {valor_total}")
-                logging.info(
-                    f"Dados dos Centros de Custo: {dados_centros_de_custo}"
-                )
-                logging.info(f"CNPJ Eminente: {cnpj_emitente}")
+                logging.info(f"Dados dos Centros de Custo: {dados_centros_de_custo}")
+                logging.info(f"CNPJ Emitente: {cnpj_emitente}")
                 logging.info(f"Número da Nota: {nmr_nota}")
                 logging.info(f"Data de Emissão: {data_emi}")
                 logging.info(f"Data de Vencimento: {data_venc}")
                 logging.info(f"Chave de Acesso: {chave_acesso}")
                 logging.info(f"Modelo: {modelo}")
+                logging.info(f"Tipo de Imposto: {tipo_imposto}")
+                
+                logging.info(f"Dados disponíveis antes de chamar automation_gui: {dados_email}")
+                logging.info(f"Tipo de imposto extraído: {dados_email.get('tipo_imposto')}")
 
                 sistema_nf = SystemNF()
 
-                logging.info(f"Parcelas a serem passadas para automation_gui: {parcelas}")
+                logging.info(
+                    f"Parcelas a serem passadas para automation_gui: {parcelas}"
+                )
 
                 try:
-                    sistema_nf.automation_gui(
-                        departamento,
-                        origem,
-                        descricao,
-                        cc,
-                        cod_item,
-                        valor_total,
-                        dados_centros_de_custo,
-                        cnpj_emitente,
-                        nmr_nota,
-                        data_emi,
-                        data_venc,
-                        chave_acesso,
-                        modelo,
-                        rateio,
-                        parcelas,
-                        serie, 
-                    )
+                    logging.info(f"Impostos: {dados_email.get('impostos')}")
+                    logging.info(f"Valor Líquido: {valor_liquido}")
+                    logging.info(f"Tipo de Imposto: {tipo_imposto}")
+                    
+
+                    if dados_email is not None:
+                        sistema_nf.automation_gui(
+                            departamento, origem, descricao, cc, cod_item, valor_total,
+                            dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
+                            chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
+                            valor_liquido, tipo_imposto, impostos, dados_email     
+                        )
+                    else:
+                        logging.error("Erro: Dados do e-mail é none. Verifique o processamento do e-mail")
                     # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
                     processed_emails = load_processed_emails()
                     processed_emails.append(dados_email["email_id"])
@@ -794,6 +1348,7 @@ if __name__ == "__main__":
                         nmr_nota,
                     )
                 except Exception as e:
+                    logging.error(f"Erro ao chamar automation_gui: {e}")
                     send_email_error(
                         dani,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
@@ -802,10 +1357,14 @@ if __name__ == "__main__":
                     )
             else:
                 logging.info("Nenhum dado extraído, automação não será executada")
+                logging.error("Erro: dados_email é None. Verifique o processamento do e-mail.")
         except Exception as e:
             logging.error(f"Erro durante a automação: {e}")
             send_email_error(
-                dani, "caetano.apollo@carburgo.com.br", e, nmr_nota,
+                dani,
+                "caetano.apollo@carburgo.com.br",
+                e,
+                nmr_nota,
             )
         logging.info("Esperando antes da nova verificação...")
         time.sleep(30)
