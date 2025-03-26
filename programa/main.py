@@ -16,8 +16,6 @@ import unicodedata
 import re
 import yaml
 from typing import Callable, Any
-import ahk
-from ahk import AHK
 
 from email.utils import parseaddr
 
@@ -226,7 +224,6 @@ def check_emails(nmr_nota, extract_values):
                                             logging.info(f"Conteúdo de json_data['valor_total']: {json_data['valor_total']}")
 
 
-
                                         dados_nota_fiscal = {
                                             "valor_total": [
                                                 {"valor_total": json_data["valor_total"][0]["valor_total"]} if isinstance(json_data["valor_total"], list) else {"valor_total": json_data["valor_total"]["valor_total"]}
@@ -254,7 +251,7 @@ def check_emails(nmr_nota, extract_values):
                                                 "nome": json_data["destinatario"]["nome"],
                                                 "cnpj": json_data["destinatario"]["cnpj"],
                                             },
-                                            "pagamento_parcelado": [],
+                                            "pagamento_parcelado": json_data["pagamento_parcelado"],
                                             "serie": json_data["serie"],
                                         }
 
@@ -906,7 +903,11 @@ class SystemNF:
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
             gui.press("alt")
-            gui.press("right", presses=6)
+            logging.info("Empresa e revenda" f"{empresa}.{revenda_nome}")
+            if revenda_nome == 4:
+                gui.press("right", presses=4)
+            else:
+                gui.press("right", presses=6)
             gui.press("down", presses=4)
             gui.press("enter")
             gui.press("down", presses=2)
@@ -1067,8 +1068,9 @@ class SystemNF:
                 gui.write("enter")
                 gui.press("tab", presses=10)
                 gui.write(str(data_venc_nfs))
+                gui.press("tab")
                 logging.info("Preenchendo a data de vencimento da NFS")
-                gui.press("tab", presses=4)
+                gui.press("tab", presses=3)
                 gui.write(valor_liquido)
                 logging.info("Preenchendo o valor liquido")
                 gui.press("tab")
