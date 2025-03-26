@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "10312847000165",
+        "nome": "NET COMMERCE COMERCIO ELETRONICO LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000750",
+        "nome": "CARBURGO VEICULOS LTDA - GRAV"
+    },
+    "chave_acesso": {
+        "chave": "43250310312847000165550010000001621144529302"
+    },
+    "num_nota": {
+        "numero_nota": "162"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "20032025"
+    },
+    "data_venc": {
+        "data_venc": "27032025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "2604.40"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-03-27",
+            "valor_parcela": "868.14"
+        },
+        {
+            "numero_parcela": "002",
+            "data_vencimento": "2025-04-17",
+            "valor_parcela": "868.13"
+        },
+        {
+            "numero_parcela": "003",
+            "data_vencimento": "2025-05-15",
+            "valor_parcela": "868.13"
+        }
+    ],
+    "info_adicional": {}
+}
