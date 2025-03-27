@@ -222,6 +222,9 @@ def check_emails(nmr_nota, extract_values):
                                         with open(dados_nota_fiscal["json_path"], "r") as f:
                                             json_data = json.load(f)
                                             logging.info(f"Conteúdo de json_data['valor_total']: {json_data['valor_total']}")
+                                            
+                                        tipo_arquivo = dados_email.get("tipo_arquivo")
+                                        logging.info(f"Tipo de arquivo extraído: {tipo_arquivo}")
 
 
                                         dados_nota_fiscal = {
@@ -251,7 +254,7 @@ def check_emails(nmr_nota, extract_values):
                                                 "nome": json_data["destinatario"]["nome"],
                                                 "cnpj": json_data["destinatario"]["cnpj"],
                                             },
-                                            "pagamento_parcelado": json_data["pagamento_parcelado"],
+                                            "pagamento_parcelado": None if tipo_arquivo == "pdf" else json_data.get('pagamento_parcelado', None),
                                             "serie": json_data["serie"],
                                         }
 
@@ -310,7 +313,6 @@ def check_emails(nmr_nota, extract_values):
                                     logging.info(f"Tipo de imposto antes de chamar automation_gui: {tipo_imposto}")
                                     
                                     tipo_imposto = valores_extraidos.get("tipo_imposto", "NÃO INFORMADO")
-                                    tipo_arquivo = dados_email.get("tipo_arquivo")
                                     logging.info(f"Tipo de arquivo a ser processado: {tipo_arquivo}")
                                     
                                     if dados_email is None:
@@ -471,7 +473,7 @@ def map_json_fields(json_data, body):
             "valor_total": json_data.get("Valor total"),
         },
         "valor_liquido": {
-            "valor_liquido": json_data.get("Valor líquido"),
+            "valor_liquido": json_data.get("Valor líquido", None),
         },
         "modelo": {
             "modelo": "01",
@@ -797,8 +799,6 @@ class SystemNF:
         valor_liquido, tipo_imposto, impostos, dados_email=None
     ):
         
-        gui.PAUSE = 1
-        
         # Validação dos dados necessários
         if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
             raise ValueError("Dados obrigatórios estão faltando")
@@ -1056,7 +1056,7 @@ class SystemNF:
                     gui.press("tab", presses=7)
                     gui.press("down", presses=4)
                     gui.press("tab")
-                    gui.write(dias_restantes)
+                    gui.write(dias_restantes - 5)
                     gui.press("tab", presses=2)
                     gui.write(impostos.get("ISS_retido"))
                     logging.info("Passou do elif do ISS_retido")
@@ -1071,6 +1071,10 @@ class SystemNF:
                 gui.press("tab")
                 logging.info("Preenchendo a data de vencimento da NFS")
                 gui.press("tab", presses=3)
+                
+                if valor_liquido == None:
+                    valor_liquido = valor_total
+                
                 gui.write(valor_liquido)
                 logging.info("Preenchendo o valor liquido")
                 gui.press("tab")
