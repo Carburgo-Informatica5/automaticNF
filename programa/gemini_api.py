@@ -48,27 +48,28 @@ class GeminiAPI:
         # Envia a mensagem inicial com referência ao arquivo
         response = chat_session.send_message([
             {"text": "Extraia as seguintes informações da nota fiscal em formato JSON:\n"
-                     "Numero da nota\n"
-                     "Data da emissão (formato DDMMYYYY, sem barras)\n"
-                     "Nome do prestador de serviço\n"
-                     "Nome do tomador do serviço\n"
-                     "CNPJ do prestador de serviço (somente números, sem pontos ou traços)\n"
-                     "CNPJ do tomador do serviço (somente números, sem pontos ou traços)\n"
-                     "Valor total (substituir vírgulas por pontos)\n"
-                     "Valor líquido (substituir vírgulas por pontos)\n"
-                     "Verifique se há ISS retido:\n"
-                     "- Se houver ISS retido, adicione o campo \"ISS Retido\": \"Sim\".\n"
-                     "- Caso contrário, adicione o campo \"ISS Retido\": \"Não\".\n"
-                     "Extraia os valores dos seguintes impostos retidos, se houver:\n"
-                     "- PIS\n"
-                     "- COFINS\n"
-                     "- INSS\n"
-                     "- ISS Retido (valor real, não o ISS total)\n"
-                     "- IR\n"
-                     "- CSLL\n"
-                     "Se algum imposto não estiver presente, retorne o valor '0.00'.\n"
-                     "Certifique-se de que o JSON esteja formatado corretamente e sem caracteres fictícios e com assentos.\n"},
-            file_obj  # Passa o objeto do arquivo diretamente
+                    "Numero da nota\n"
+                    "Data da emissão (formato DDMMYYYY, sem barras)\n"
+                    "Nome do prestador de serviço\n"
+                    "Nome do tomador do serviço\n"
+                    "CNPJ do prestador de serviço (somente números, sem pontos ou traços)\n"
+                    "CNPJ do tomador do serviço (somente números, sem pontos ou traços)\n"
+                    "Valor total (substituir vírgulas por pontos)\n"
+                    "Valor líquido (substituir vírgulas por pontos)\n"
+                    "Verifique se há ISS retido:\n"
+                    "- Se houver ISS retido, adicione o campo \"ISS Retido\": \"Sim\".\n"
+                    "- Caso contrário, adicione o campo \"ISS Retido\": \"Não\".\n"
+                    "Extraia os valores dos seguintes impostos retidos, se houver:\n"
+                    "- PIS\n"
+                    "- COFINS\n"
+                    "- INSS\n"
+                    "- ISS Retido (valor real, não o ISS total)\n"
+                    "- IR\n"
+                    "- CSLL\n"
+                    "Se algum imposto não estiver presente, retorne o valor '0.00'.\n"
+                    "Certifique-se de que o JSON esteja formatado corretamente e sem caracteres fictícios e com assentos.\n"},
+            file_obj
+            
         ])
 
         return response.text

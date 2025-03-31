@@ -1,0 +1,40 @@
+{
+    "emitente": {
+        "cnpj": null,
+        "nome": null
+    },
+    "destinatario": {
+        "cnpj": null,
+        "nome": null
+    },
+    "num_nota": {
+        "numero_nota": "64251"
+    },
+    "data_venc": {
+        "data_venc": "31032025"
+    },
+    "data_emi": {
+        "data_emissao": null
+    },
+    "valor_total": {
+        "valor_total": "496.45"
+    },
+    "valor_liquido": {
+        "valor_liquido": null
+    },
+    "modelo": {
+        "modelo": "01"
+    },
+    "serie": "1",
+    "chave_acesso": {
+        "chave": ""
+    },
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    }
+}

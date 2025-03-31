@@ -1,0 +1,40 @@
+{
+    "emitente": {
+        "cnpj": "02465738000150",
+        "nome": "Tec System Sistemas Eletrônicos Ltda"
+    },
+    "destinatario": {
+        "cnpj": "91667618000831",
+        "nome": "CARBURGO VEICULOS LTDA"
+    },
+    "num_nota": {
+        "numero_nota": "04161"
+    },
+    "data_venc": {
+        "data_venc": "31032025"
+    },
+    "data_emi": {
+        "data_emissao": "13032025"
+    },
+    "valor_total": {
+        "valor_total": "369.88"
+    },
+    "valor_liquido": {
+        "valor_liquido": "306.99"
+    },
+    "modelo": {
+        "modelo": "01"
+    },
+    "serie": "1",
+    "chave_acesso": {
+        "chave": ""
+    },
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    }
+}
