@@ -899,6 +899,8 @@ class SystemNF:
             screenshot = screenshot.point(lambda p: p > threshold and 255)
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
+            
+            gui.PAUSE = 1
 
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
@@ -1069,6 +1071,7 @@ class SystemNF:
                 gui.press("tab", presses=10)
                 gui.write(str(data_venc_nfs))
                 gui.press("tab")
+                gui.press("tab")
                 logging.info("Preenchendo a data de vencimento da NFS")
                 gui.press("tab", presses=3)
                 
@@ -1083,7 +1086,7 @@ class SystemNF:
                 gui.press("enter")
                 logging.info("Saiu da parte de notas de despesas")
                 gui.press("tab", presses=39)
-                gui.press("enter")
+                # gui.press("enter")
 
 
             elif tipo_arquivo == "XML":
