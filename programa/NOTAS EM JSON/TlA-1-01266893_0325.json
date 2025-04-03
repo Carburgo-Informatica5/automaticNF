@@ -8,7 +8,7 @@
         "nome": null
     },
     "num_nota": {
-        "numero_nota": "04161"
+        "numero_nota": "TIA-1-01266893"
     },
     "data_venc": {
         "data_venc": "31032025"
@@ -17,7 +17,7 @@
         "data_emissao": null
     },
     "valor_total": {
-        "valor_total": "369.88"
+        "valor_total": "2910.22"
     },
     "valor_liquido": {
         "valor_liquido": null
@@ -31,8 +31,8 @@
     },
     "impostos": {
         "ISS_retido": "0.00",
-        "PIS": "0.00",
-        "COFINS": "0.00",
+        "PIS": "48.02",
+        "COFINS": "221.18",
         "INSS": "0.00",
         "IR": "0.00",
         "CSLL": "0.00"
