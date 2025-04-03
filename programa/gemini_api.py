@@ -53,7 +53,7 @@ class GeminiAPI:
                     "Nome do prestador de serviço\n"
                     "Nome do tomador do serviço\n"
                     "CNPJ do prestador de serviço (somente números, sem pontos ou traços) se não extrair pare o processo\n"
-                    "CNPJ do tomador do serviço (somente números, sem pontos ou traços)  se não extrair pare o processo\n"
+                    "CNPJ do tomador do serviço (somente números, sem pontos ou traços) se não extrair pare o processo\n"
                     "Valor total (substituir vírgulas por pontos)\n"
                     "Valor líquido (substituir vírgulas por pontos)\n"
                     "Verifique se há ISS retido:\n"
