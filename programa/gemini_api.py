@@ -1,8 +1,9 @@
-import os
 import time
 import google.generativeai as genai
 import unicodedata
 import requests
+import logging
+import json
 
 class GeminiAPI:
     def __init__(self, api_key):
@@ -55,7 +56,6 @@ class GeminiAPI:
             return "Desconhecido"
 
     def extract_info(self, file_id):
-        """Extrai as informações do PDF usando Gemini."""
         generation_config = {
             "temperature": 0.1,
             "top_p": 0.95,
@@ -71,94 +71,99 @@ class GeminiAPI:
         file_obj = genai.get_file(file_id)
         chat_session = model.start_chat(history=[])
 
-        # Envia uma mensagem detalhada de extração
         response = chat_session.send_message([
-            {"text": """
-Por favor, extraia as seguintes informações de uma nota fiscal em PDF e retorne os dados em formato JSON. 
-Certifique-se de processar corretamente os dados, especialmente considerando que a nota pode conter diferentes tipos de informação, como valores de impostos e informações fiscais. Caso algum dado esteja ausente, substitua com o valor '0.00' ou 'Não', conforme indicado. Detalhe as etapas de extração de forma clara:
+        {"text": """
+        Você receberá um arquivo PDF contendo informações de um documento financeiro. Sua tarefa é extrair os dados relevantes e retornar um JSON bem formatado e válido. Certifique-se de seguir as instruções abaixo:
 
-1. Número da nota fiscal ou Número da Conta (Apenas números, sem caracteres especiais e traços)
-2. Data da emissão (formato DDMMYYYY, sem barras ou outros caracteres)
-3. Nome completo do prestador de serviço
-4. Nome completo do tomador do serviço
-5. CNPJ do prestador de serviço (apenas números, sem pontos ou traços) se não houver CNPJ quero que você pesquise a razão social e retorne o CNPJ
-6. CNPJ do tomador de serviço (apenas números, sem pontos ou traços) se não houver CNPJ quero que você pesquise a razão social e retorne o CNPJ
-7. Valor total da nota fiscal (substitua vírgulas por pontos para valores decimais)
-8. Valor líquido (substitua vírgulas por pontos para valores decimais)
-9. Verifique se há ISS retido: 'Sim' ou 'Não'. Caso esteja presente, inclua o campo 'ISS Retido': 'Sim'. Caso contrário, 'ISS Retido': 'Não'.
-10. Extração dos valores dos seguintes impostos, se presentes. Caso algum imposto não esteja presente, retorne '0.00' para esse imposto:
-    - PIS
-    - COFINS
-    - INSS
-    - ISS Retido (valor real, não o ISS total)
-    - IR
-    - CSLL
-11. Certifique-se de que o JSON esteja corretamente formatado, sem caracteres inválidos ou faltantes. A formatação deve ser limpa e seguir a estrutura solicitada.
-12. Caso o PDF contenha imagens ou informações ilegíveis, retorne um campo indicando 'Dados não legíveis' ou 'Informação ausente' conforme o caso.
-13. Adicione também o campo 'Tipo de Documento' para identificar se é uma nota fiscal, boleto ou fatura, caso haja esse tipo de informação disponível no PDF.
+        1. Extraia as seguintes informações, se disponíveis:
+            - Número da nota fiscal ou número da conta (apenas números, sem caracteres especiais ou traços).
+            - Data de emissão (formato DDMMYYYY, sem barras ou outros caracteres).
+            - Nome completo do prestador de serviço.
+            - Nome completo do tomador de serviço.
+            - CNPJ do prestador de serviço (apenas números, sem pontos ou traços). Caso o CNPJ não esteja presente, retorne "Não encontrado".
+            - CNPJ do tomador de serviço (apenas números, sem pontos ou traços). Caso o CNPJ não esteja presente, retorne "Não encontrado".
+            - Endereço do tomador de serviço (Somente número e cidade).
+            - Valor total da nota fiscal (substitua vírgulas por pontos para valores decimais).
+            - Valor líquido (substitua vírgulas por pontos para valores decimais).
+            - Verifique se há ISS retido: "Sim" ou "Não". Caso esteja presente, inclua o campo "ISS Retido": "Sim". Caso contrário, "ISS Retido": "Não".
+            - Valores dos seguintes impostos, se presentes. Caso algum imposto não esteja presente, retorne "0.00" para esse imposto:
+                - PIS
+                - COFINS
+                - INSS
+                - ISS Retido (valor real, não o ISS total)
+                - IR
+                - CSLL
+            - Tipo de documento (identifique se é uma "Nota Fiscal", "Boleto" ou "Fatura").
 
-Exemplo de JSON esperado:
+        2. Caso o PDF contenha informações ilegíveis ou ausentes, retorne um campo indicando "Dados não legíveis" ou "Informação ausente".
 
-{
-    "emitente": {
-        "cnpj": "27249934000118",
-        "nome": "EDITORAZANE EDITORA EIRELLI ME"
-    },
-    "destinatario": {
-        "cnpj": "04682292000655",
-        "nome": "EIFFEL VEICULOS COMERCIO E IMPORTAÇÃO LTDA"
-    },
-    "num_nota": {
-        "numero_nota": "112"
-    },
-    "data_venc": {
-        "data_venc": "31032025"
-    },
-    "data_emi": {
-        "data_emissao": "12122024"
-    },
-    "valor_total": {
-        "valor_total": "1000.00"
-    },
-    "valor_liquido": {
-        "valor_liquido": "1000.00"
-    },
-    "modelo": {
-        "modelo": "01"
-    },
-    "serie": "1",
-    "chave_acesso": {
-        "chave": ""
-    },
-    "impostos": {
-        "ISS_retido": "0.00",
-        "PIS": "0.00",
-        "COFINS": "0.00",
-        "INSS": "0.00",
-        "IR": "0.00",
-        "CSLL": "0.00"
-    }
-}
+        3. Certifique-se de que o JSON esteja bem formatado, sem caracteres inválidos ou erros de sintaxe.
+
+        Exemplo de JSON esperado:
+
+        {
+            "emitente": {
+                "cnpj": "12345678000195",
+                "nome": "Empresa Prestadora de Serviços LTDA"
+            },
+            "destinatario": {
+                "cnpj": "98765432000112",
+                "nome": "Empresa Tomadora de Serviços SA"
+                "endereco": "123, Cidade Exemplo"
+            },
+            "num_nota": "12345",
+            "data_emissao": "01042025",
+            "valor_total": "1500.00",
+            "valor_liquido": "1400.00",
+            "ISS_retido": "Sim",
+            "impostos": {
+                "PIS": "50.00",
+                "COFINS": "100.00",
+                "INSS": "0.00",
+                "ISS_retido": "50.00",
+                "IR": "0.00",
+                "CSLL": "0.00"
+            },
+            "tipo_documento": "Nota Fiscal"
+        }
+
+        Retorne apenas o JSON como resposta, sem explicações adicionais.
             """},
             file_obj
-        ])
+    ])
 
         # Processa a resposta do modelo
-        extracted_data = self.normalize_text(response.text)
-        
-        # Identifica o tipo de documento
-        document_type = self.identify_document_type(extracted_data)
-        
-        # Verifica se a extração do CNPJ do tomador está ausente e tenta buscar pelo nome
-        cnpj_tomador = None
-        if "destinatario" in extracted_data and "nome" in extracted_data["destinatario"]:
-            razao_social_tomador = extracted_data["destinatario"]["nome"]
-            cnpj_tomador = self.get_cnpj_by_razao_social(razao_social_tomador)
-        
-        if cnpj_tomador:
-            extracted_data["destinatario"]["cnpj"] = cnpj_tomador
-        else:
-            extracted_data["destinatario"]["cnpj"] = "Não encontrado"
-        
-        # Retorna o JSON de resposta
-        return extracted_data
+        extracted_text = self.normalize_text(response.text)
+        logging.info(f"Texto extraído do PDF: {extracted_text}")
+
+        try:
+            # Tenta converter o texto extraído para JSON
+            extracted_json = json.loads(extracted_text)
+            
+            if not isinstance(extracted_json, dict):
+                logging.error("Erro: O JSON extraído não é um dicionário.")
+                return None
+            
+            tomador = extracted_json.get("destinatario", {})
+            cnpj_tomador = tomador.get("cnpj", "Não encontrado")
+            if cnpj_tomador == "Não encontrado":
+                razao_social = tomador.get("nome", "")
+                endereco = tomador.get("endereco", "")
+                cidade = tomador.get("cidade", "")
+
+                # Concatena as informações para buscar o CNPJ
+                busca_cnpj = f"{razao_social}, {endereco}, {cidade}"
+                logging.info(f"Buscando CNPJ do tomador com as informações: {busca_cnpj}")
+                cnpj_tomador = self.get_cnpj_by_razao_social(busca_cnpj)
+
+            # Atualiza o JSON com o CNPJ encontrado
+            if cnpj_tomador:
+                tomador["cnpj"] = cnpj_tomador
+            else:
+                logging.warning("Não foi possível encontrar o CNPJ do tomador.")
+
+            logging.info(f"JSON extraído e atualizado: {extracted_json}")
+            return extracted_json
+        except json.JSONDecodeError as e:
+            logging.error(f"Erro ao decodificar JSON: {e}")
+            raise ValueError("O texto extraído não é um JSON válido.")
