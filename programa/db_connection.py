@@ -1,6 +1,7 @@
 import os
 import yaml
 import oracledb
+import logging
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,3 +28,16 @@ def revenda(cnpj):
     cursor.close()
     conn.close()
     return result
+
+def cnpj(num_endereco, cidade):
+    db_config = load_db_config()
+    conn = connect_to_db(db_config)
+    cursor = conn.cursor()
+    query = "SELECT emp.cnpj FROM ger_revenda emp WHERE emp.NRO_ENDERECO = :num_endereco AND emp.CIDADE = :cidade"
+    logging.info(f"Executando consulta: {query} com parâmetros: num_endereco={num_endereco}, cidade={cidade}")
+    cursor.execute(query, [num_endereco, cidade])
+    result = cursor.fetchone()
+    logging.info(f"Resultado da consulta: {result}")
+    cursor.close()
+    conn.close()
+    return result[0] if result else None

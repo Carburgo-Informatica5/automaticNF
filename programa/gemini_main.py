@@ -11,22 +11,27 @@ def verificar_impostos(json_data):
     """
     Verifica se os impostos retidos batem com a diferença entre o valor total e o valor líquido.
     Se o valor total for igual ao valor líquido, não deve haver impostos retidos.
+    Atualizado para trabalhar com a estrutura JSON retornada pela API.
     """
-
     try:
+        # Acessa os valores usando as chaves corretas do JSON retornado
+        valor_total_str = json_data.get("valor_total", "0")
+        valor_liquido_str = json_data.get("valor_liquido", "0")
+        iss_retido = json_data.get("ISS_retido", "Não")
+
         # Converte valores para Decimal para precisão nos cálculos
-        valor_total = Decimal(json_data.get("Valor total", "0").replace(",", "."))
-        valor_liquido = Decimal(json_data.get("Valor líquido", "0").replace(",", "."))
-        iss_retido = json_data.get("ISS Retido", "Não")
+        valor_total = Decimal(str(valor_total_str).replace(",", "."))
+        valor_liquido = Decimal(str(valor_liquido_str).replace(",", "."))
 
         # Extrai os valores dos impostos retidos
+        impostos_data = json_data.get("impostos", {})
         impostos = {
-            "PIS": Decimal(json_data.get("PIS", "0").replace(",", ".")),
-            "COFINS": Decimal(json_data.get("COFINS", "0").replace(",", ".")),
-            "INSS": Decimal(json_data.get("INSS", "0").replace(",", ".")),
-            "ISS Retido": Decimal(json_data.get("ISS Retido", "0").replace(",", ".")),
-            "IR": Decimal(json_data.get("IR", "0").replace(",", ".")),
-            "CSLL": Decimal(json_data.get("CSLL", "0").replace(",", ".")),
+            "PIS": Decimal(str(impostos_data.get("PIS", "0")).replace(",", ".")),
+            "COFINS": Decimal(str(impostos_data.get("COFINS", "0")).replace(",", ".")),
+            "INSS": Decimal(str(impostos_data.get("INSS", "0")).replace(",", ".")),
+            "ISS_retido": Decimal(str(impostos_data.get("ISS_retido", "0")).replace(",", ".")),
+            "IR": Decimal(str(impostos_data.get("IR", "0")).replace(",", ".")),
+            "CSLL": Decimal(str(impostos_data.get("CSLL", "0")).replace(",", ".")),
         }
 
         total_impostos = sum(impostos.values())
@@ -42,7 +47,7 @@ def verificar_impostos(json_data):
             if abs(diferenca - total_impostos) > Decimal("0.01"):
                 logging.error(f"Diferença ({diferenca}) não bate com impostos ({total_impostos}). Verifique possíveis erros.")
 
-            if iss_retido == "Sim" and impostos["ISS Retido"] == Decimal("0.00"):
+            if iss_retido == "Sim" and impostos["ISS_retido"] == Decimal("0.00"):
                 logging.warning("O Gemini indicou que há ISS Retido, mas o valor extraído foi 0.00.")
 
             logging.info(f"Impostos ({total_impostos}) correspondem à diferença ({diferenca}).")
@@ -54,7 +59,7 @@ def main():
     # Caminho absoluto para a pasta 'anexos'
     base_dir = os.path.dirname(os.path.abspath(__file__))
     pdf_folder = os.path.join(base_dir, 'anexos')
-    json_folder = os.path.join(base_dir, '...', 'NOTAS EM JSON')
+    json_folder = os.path.join(base_dir, '..', 'NOTAS EM JSON')  # Corrigido o caminho relativo
 
     os.makedirs(pdf_folder, exist_ok=True)
     os.makedirs(json_folder, exist_ok=True)
@@ -71,27 +76,33 @@ def main():
             pdf_path = os.path.join(pdf_folder, pdf_file)
             logging.info(f"Processando PDF: {pdf_path}")
 
-            upload_response = gemini_api.upload_pdf(pdf_path)
-            if upload_response and upload_response.get("success"):
-                file_id = upload_response["file_id"]
+            try:
+                upload_response = gemini_api.upload_pdf(pdf_path)
+                if upload_response and upload_response.get("success"):
+                    file_id = upload_response["file_id"]
 
-                status_response = gemini_api.check_processing_status(file_id)
-                if status_response and status_response.get("state") == "ACTIVE":
-                    info = gemini_api.extract_info(file_id)
-                    if info and isinstance(info, str):
-                        try:
-                            info_clean = re.sub(r"```json|```", "", info).strip()
-                            json_data = json.loads(info_clean)
+                    status_response = gemini_api.check_processing_status(file_id)
+                    if status_response and status_response.get("state") == "ACTIVE":
+                        info = gemini_api.extract_info(file_id)
+                        
+                        if info and isinstance(info, dict):  # Agora esperamos um dicionário
+                            try:
+                                # Verifica a consistência dos impostos
+                                verificar_impostos(info)
 
-                            # Verifica a consistência dos impostos
-                            verificar_impostos(json_data)
-
-                            json_filename = os.path.splitext(pdf_file)[0] + ".json"
-                            with open(os.path.join(json_folder, json_filename), "w", encoding="utf-8") as f:
-                                json.dump(json_data, f, ensure_ascii=False, indent=4)
-                            logging.info(f"Informações extraídas e salvas em: {json_filename}")
-                        except json.JSONDecodeError:
-                            logging.error(f"A resposta da API não é um JSON válido após limpeza: {info_clean}")
+                                json_filename = os.path.splitext(pdf_file)[0] + ".json"
+                                json_path = os.path.join(json_folder, json_filename)
+                                
+                                with open(json_path, "w", encoding="utf-8") as f:
+                                    json.dump(info, f, ensure_ascii=False, indent=4)
+                                logging.info(f"Informações extraídas e salvas em: {json_path}")
+                                
+                            except Exception as e:
+                                logging.error(f"Erro ao processar ou salvar JSON para {pdf_file}: {str(e)}")
+                        else:
+                            logging.error(f"A resposta da API não é um dicionário válido para {pdf_file}")
+            except Exception as e:
+                logging.error(f"Erro inesperado ao processar PDF {pdf_path}: {str(e)}")
 
 if __name__ == "__main__":
     main()
