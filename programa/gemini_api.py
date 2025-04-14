@@ -120,25 +120,42 @@ class GeminiAPI:
             logging.error("Resposta da API não é uma string")
             return None
 
-        # Limpeza inicial do texto
-        extracted_text = self.normalize_text(response.text)
-        extracted_text = extracted_text.strip()
-        
-        # Removendo possíveis marcadores de código (```json)
-        extracted_text = re.sub(r'^```json|```$', '', extracted_text, flags=re.IGNORECASE).strip()
-
-        # Conversão para JSON/dicionário
         try:
-            extracted_json = json.loads(extracted_text)
-            if not isinstance(extracted_json, dict):
-                logging.error("JSON extraído não é um dicionário")
+            # Limpeza inicial do texto
+            extracted_text = self.normalize_text(response.text)
+            extracted_text = extracted_text.replace("\n", " ").replace("\r", "")
+
+            # Removendo possíveis marcadores de código (```json)
+            extracted_text = re.sub(r'^```json|```$', '', extracted_text, flags=re.IGNORECASE)
+
+            # Verificar se há múltiplos objetos JSON concatenados
+            if extracted_text.count("{") > 1 and extracted_text.count("}") > 1:
+                logging.warning("Texto contém múltiplos objetos JSON. Tentando corrigir...")
+                extracted_text = extracted_text[extracted_text.find("{"):extracted_text.rfind("}") + 1]
+
+            try:
+                extracted_json = json.loads(extracted_text)
+                if not isinstance(extracted_json, dict):
+                    logging.error("JSON extraído não é um dicionário")
+                    return None
+
+                # Log para verificar o JSON extraído
+                logging.info(f"JSON extraído: {extracted_json}")
+
+                # Garantir que valor_total esteja presente
+                if "valor_total" not in extracted_json or not extracted_json["valor_total"]:
+                    logging.warning("Campo 'valor_total' ausente ou vazio no JSON extraído.")
+                    extracted_json["valor_total"] = "0.00"  # Valor padrão
+            except json.JSONDecodeError as e:
+                logging.error(f"Falha ao decodificar JSON: {e}")
+                logging.error(f"Conteúdo problemático: {extracted_text}")
                 return None
         except json.JSONDecodeError as e:
             logging.error(f"Falha ao decodificar JSON: {e}")
-            logging.error(f"Conteúdo problemático: {extracted_text}...")
+            logging.error(f"Conteúdo problemático: {extracted_text}")
             return None
 
-        # Busca de CNPJ se necessário
+        # Atualizar o CNPJ se necessário
         tomador = extracted_json.get("destinatario", {})
         cnpj_tomador = tomador.get("cnpj", "Nao encontrado")
 
@@ -149,9 +166,19 @@ class GeminiAPI:
                 if num_endereco and cidade:
                     result = cnpj(num_endereco=num_endereco, cidade=cidade)
                     cnpj_tomador = result if result else "Não encontrado"
+                    extracted_json["destinatario"]["cnpj"] = cnpj_tomador
+                    logging.info(f"Consultando CNPJ com número: {num_endereco}, cidade: {cidade}")
+                    if cnpj_tomador != "Nao encontrado":
+                        logging.info(f"CNPJ atualizado: {cnpj_tomador}")
+                        logging.info(f"JSON atualizado: {extracted_json}")
+                    else:
+                        logging.warning("CNPJ não encontrado no banco de dados.")
             except Exception as e:
                 logging.error(f"Erro ao buscar CNPJ: {e}")
-                cnpj_tomador = "Erro na consulta"
+                extracted_json["destinatario"]["cnpj"] = "Erro na consulta"
+        
+        valor_liquido = extracted_json.get("valor_liquido", "Informacao ausente")
+        if valor_liquido == "Informacao ausente":
+            extracted_json["valor_liquido"] = extracted_json.get("valor_total", "Informacao ausente")
 
-        extracted_json["destinatario"]["cnpj"] = cnpj_tomador
         return extracted_json

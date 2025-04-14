@@ -16,6 +16,9 @@ def verificar_impostos(json_data):
     try:
         # Acessa os valores usando as chaves corretas do JSON retornado
         valor_total_str = json_data.get("valor_total", "0")
+        if not valor_total_str or valor_total_str == "0":
+            logging.warning("Campo 'valor_total' ausente ou vazio no JSON extraído.")
+            valor_total_str = "0.00"
         valor_liquido_str = json_data.get("valor_liquido", "0")
         iss_retido = json_data.get("ISS_retido", "Não")
 

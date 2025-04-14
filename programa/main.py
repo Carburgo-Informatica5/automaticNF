@@ -409,8 +409,9 @@ def check_emails(nmr_nota, extract_values):
                     dados_email["body"] = body
 
         server.quit()
-        logging.info("Nenhum e-mail com o assunto alvo encontrado")
-        return None
+        if not dados_email:
+            logging.error("Erro: Nenhum dado extraído do e-mail.")
+            return None
     except Exception as e:
         logging.error(f"Erro ao verificar emails: {e}")
         send_email_error(
@@ -420,8 +421,6 @@ def check_emails(nmr_nota, extract_values):
             nmr_nota,
         )
         return None
-    logging.info(f"Conteúdo de dados_email antes de retornar: {dados_email}")
-    return dados_email
 
 def clean_extracted_json(json_data):
     if not isinstance(json_data, dict):
@@ -436,62 +435,61 @@ def clean_extracted_json(json_data):
                 json_data["ISS Retido"] = f"{float(json_data['ISS Retido']):.2f}"
             except ValueError:
                 logging.warning(f"Valor inválido para ISS Retido: {json_data['ISS Retido']}")
-    
+
     return json_data
 
+# def map_json_fields(json_data, body):
+#     # Verifica se o body é uma string
+#     if not isinstance(body, str):
+#         logging.error(f"Erro: 'body' deveria ser uma string, mas recebeu {type(body)}.")
+#         return {}
 
+#     valores_extraidos = extract_values(body)
 
-def map_json_fields(json_data, body):
-    # Verifica se o body é uma string
-    if not isinstance(body, str):
-        logging.error(f"Erro: 'body' deveria ser uma string, mas recebeu {type(body)}.")
-        return {}
+#     data_vencimento = valores_extraidos["data_vencimento"]
 
-    valores_extraidos = extract_values(body)
-
-    data_vencimento = valores_extraidos["data_vencimento"]
-
-    mapped_data = {
-        "emitente": {
-            "cnpj": json_data.get("CNPJ do prestador de serviço"),
-            "nome": json_data.get("Nome do prestador de serviço"),
-        },
-        "destinatario": {
-            "cnpj": json_data.get("CNPJ do tomador do serviço"),
-            "nome": json_data.get("Nome do tomador do serviço"),
-        },
-        "num_nota": {
-            "numero_nota": json_data.get("Numero da nota"),
-        },
-        "data_venc": {
-            "data_venc": data_vencimento
-        },
-        "data_emi": {
-            "data_emissao": json_data.get("Data da emissão"),
-        },
-        "valor_total": {
-            "valor_total": json_data.get("Valor total"),
-        },
-        "valor_liquido": {
-            "valor_liquido": json_data.get("Valor líquido", None),
-        },
-        "modelo": {
-            "modelo": "01",
-        },
-        "serie": "1",
-        "chave_acesso": {
-            "chave": "",
-        },
-        "impostos": {
-            "ISS_retido": json_data.get("ISS retido", "0.00"),
-            "PIS": json_data.get("PIS", "0.00"),
-            "COFINS": json_data.get("COFINS", "0.00"),
-            "INSS": json_data.get("INSS", "0.00"),
-            "IR": json_data.get("IR", "0.00"),
-            "CSLL": json_data.get("CSLL", "0.00"),
-        },
-    }
-    return mapped_data
+#     mapped_data = {
+#         "emitente": {
+#             "cnpj": json_data.get("CNPJ do prestador de serviço"),
+#             "nome": json_data.get("Nome do prestador de serviço"),
+#         },
+#         "destinatario": {
+#             "cnpj": json_data.get("CNPJ do tomador do serviço"),
+#             "nome": json_data.get("Nome do tomador do serviço"),
+#         },
+#         "num_nota": {
+#             "numero_nota": json_data.get("Numero da nota"),
+#         },
+#         "data_venc": {
+#             "data_venc": data_vencimento
+#         },
+#         "data_emi": {
+#             "data_emissao": json_data.get("Data da emissão"),
+#         },
+#         "valor_total": {
+#             "valor_total": json_data.get("Valor total", "0.00"),
+#         },
+#         "valor_liquido": {
+#             "valor_liquido": json_data.get("Valor líquido", "0.00"),
+#         },
+#         "modelo": {
+#             "modelo": "01",
+#         },
+#         "serie": "1",
+#         "chave_acesso": {
+#             "chave": "",
+#         },
+#         "impostos": {
+#             "ISS_retido": json_data.get("ISS retido", "0.00"),
+#             "PIS": json_data.get("PIS", "0.00"),
+#             "COFINS": json_data.get("COFINS", "0.00"),
+#             "INSS": json_data.get("INSS", "0.00"),
+#             "IR": json_data.get("IR", "0.00"),
+#             "CSLL": json_data.get("CSLL", "0.00"),
+#         },
+#     }
+#     logging.info(f"Conteúdo de json_data['valor_total']: {mapped_data['valor_total']}")
+#     return mapped_data
 
 def process_pdf(pdf_path, dados_email):
     logging.info(f"Iniciando processamento do PDF: {pdf_path}")
@@ -525,35 +523,69 @@ def process_pdf(pdf_path, dados_email):
             logging.error(f"Erro no processamento do PDF: {pdf_path}")
             return None
 
-        extracted_text = gemini_api.extract_info(file_id)
-        if not extracted_text:
-            logging.error(f"Erro ao extrair informações do PDF: {pdf_path}")
-            return None
-
         try:
-            extracted_text = extracted_text.strip().lstrip("```json").rstrip("```").strip()
-            extracted_json = json.loads(extracted_text) if isinstance(extracted_text, str) else extracted_text
+            extracted_text = gemini_api.extract_info(file_id)
+            if not extracted_text:
+                logging.error(f"Erro ao extrair informações do PDF: {pdf_path}")
+                return None
+
+            if "valor_total" not in extracted_text or not extracted_text["valor_total"]:
+                logging.warning("Campo 'valor_total' ausente ou vazio no JSON extraído.")
+                extracted_text["valor_total"] = "0.00"
+
+            logging.info(f"Conteúdo de 'valor_total' após extração: {extracted_text['valor_total']}" )
+
+            if isinstance(extracted_text, str):
+                extracted_text = extracted_text.strip().lstrip("```json").rstrip("```").strip()
+                extracted_json = json.loads(extracted_text)
+            elif isinstance(extracted_text, dict):
+                extracted_json = extracted_text
+            else:
+                logging.error("Erro: Formato inesperado para o texto extraído.")
+                return None
 
             if not extracted_json:
                 logging.error("Erro: JSON extraído está vazio.")
                 return None
-        except json.JSONDecodeError:
-            logging.error(f"Erro ao decodificar JSON extraído: {extracted_text}")
+        except json.JSONDecodeError as e:
+            logging.error(f"Erro ao decodificar JSON extraído: {e}")
+            return None
+        except Exception as e:
+            logging.error(f"Erro inesperado ao processar JSON: {e}")
             return None
 
         cleaned_json = clean_extracted_json(extracted_json)
 
-        # Verifica se o body é uma string antes de chamar map_json_fields
-        body = dados_email.get("body", "")
-        if not isinstance(body, str):
-            logging.error(f"Erro: 'body' deveria ser uma string, mas recebeu {type(body)}.")
-            return None
+        valores_extraidos = dados_email.get("valores_extraidos", {})
+        data_venc = valores_extraidos.get("data_vencimento")
 
-        mapped_json = map_json_fields(cleaned_json, body)
-
-        if not mapped_json:
-            logging.error("Erro: JSON final está vazio, não será salvo.")
-            return None
+        json_result = {
+            "emitente": cleaned_json.get("emitente", {}),
+            "destinatario": cleaned_json.get("destinatario", {}),
+            "chave_acesso": {
+                "chave": cleaned_json.get("chave_acesso", "")
+            },
+            "num_nota": {
+                "numero_nota": cleaned_json.get("num_nota", "")
+            },
+            "serie": cleaned_json.get("serie", "1"),
+            "data_emi": {
+                "data_emissao": cleaned_json.get("data_emissao", "")
+            },
+            "data_venc": {
+                "data_venc": data_venc or ""
+            },
+            "modelo": {
+                "modelo": cleaned_json.get("modelo", "01")
+            },
+            "valor_total": [
+                {
+                    "valor_total": cleaned_json.get("valor_total", "0.00")
+                }
+            ],
+            "pagamento_parcelado": cleaned_json.get("pagamento_parcelado", []),
+            "info_adicional": {}
+        }
 
         json_filename = re.sub(r'[<>:"/\\|?*]', '', os.path.splitext(os.path.basename(pdf_path))[0]) + ".json"
         json_path = os.path.join(json_folder, json_filename)
@@ -562,7 +594,7 @@ def process_pdf(pdf_path, dados_email):
             os.makedirs(json_folder, exist_ok=True)
 
         with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(mapped_json, f, ensure_ascii=False, indent=4)
+            json.dump(json_result, f, ensure_ascii=False, indent=4)
 
         logging.info(f"JSON salvo em: {json_path}")
         return {"json_path": json_path}
@@ -570,6 +602,7 @@ def process_pdf(pdf_path, dados_email):
     except Exception as e:
         logging.error(f"Erro inesperado ao processar PDF {pdf_path}: {e}")
         return None
+
 
 def save_attachment(part, directory, dados_email):
     filename = decode_header_value(part.get_filename())
@@ -628,6 +661,8 @@ def save_attachment(part, directory, dados_email):
         if not json_result or "json_path" not in json_result:
             logging.error("Erro: JSON do PDF não foi gerado corretamente.")
             return None
+        else:
+            logging.info(f"JSON gerado com sucesso: {json_result}")
         return json_result
     else:
         logging.error(f"Tipo de arquivo não suportado: {tipo_arquivo}")

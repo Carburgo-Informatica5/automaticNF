@@ -1,0 +1,35 @@
+{
+    "emitente": {
+        "cnpj": "02558157000162",
+        "nome": "Telefonica Brasil S.A"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA",
+        "Numero": "240",
+        "Cidade": "NOVO HAMBURGO"
+    },
+    "chave_acesso": {
+        "chave": ""
+    },
+    "num_nota": {
+        "numero_nota": "0355822246"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "28032025"
+    },
+    "data_venc": {
+        "data_venc": ""
+    },
+    "modelo": {
+        "modelo": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "4010.27"
+        }
+    ],
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}
