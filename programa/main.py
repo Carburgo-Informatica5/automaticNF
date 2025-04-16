@@ -95,6 +95,7 @@ def extract_values(text):
         "cod_item": None,
         "data_vencimento": None,
         "tipo_imposto": None,
+        "senha_arquivo": None,
     }
 
     lines = text.lower().splitlines()
@@ -112,12 +113,20 @@ def extract_values(text):
                 values["rateio"] = line.split(":", 1)[1].strip()
             elif line.startswith("código de tributação:"):
                 values["cod_item"] = line.split(":", 1)[1].strip()
+            
+            #somente para PDF
             elif "data vencimento" in line.lower():
                 data_vencimento = line.split(":", 1)[1].strip()
                 values["data_vencimento"] = data_vencimento.replace("/", "")
             elif line.startswith("tipo imposto:"):
                 values["tipo_imposto"] = line.split(":", 1)[1].strip()
-    
+            elif line.startswith("senha arquivo:"):
+                values["senha_arquivo"] = line.split(":", 1)[1].strip()
+            elif line.startswith("modelo:"):
+                values["modelo"] = line.split(":", 1)[1].strip()
+            elif line.startswith("tipo documento:"):
+                values["tipo_documento"] = line.split(":", 1)[1].strip()
+
     logging.info(f"Valores extraídos: {values}")
 
     return values
@@ -184,21 +193,26 @@ def check_emails(nmr_nota, extract_values):
                 if email_message.is_multipart():
                     for part in email_message.walk():
                         content_type = part.get_content_type()
-                        logging.info(
-                            f"Parte do e-mail com tipo de conteúdo: {content_type}"
-                        )
+                        logging.info(f"Parte do e-mail com tipo de conteúdo: {content_type}")
                         if content_type == "text/plain":
                             charset = part.get_content_charset()
                             body = decode_body(part.get_payload(decode=True), charset)
                             dados_email["body"] = body
+                            logging.info(f"Corpo do e-mail extraído: {dados_email.get('body')}")
+
+                            # Extrair valores do corpo do e-mail antes de processar o anexo
+                            valores_extraidos = extract_values(body)
+                            dados_email.update(valores_extraidos)
+                            logging.info(f"Dados do e-mail após extração: {dados_email}")
                         elif part.get("Content-Disposition") is not None:
                             logging.info("Encontrado anexo no e-mail")
-                            dados_nota_fiscal = save_attachment(
-                                part, DIRECTORY, dados_email
-                            )
+                            # Processar o anexo com os dados atualizados
+                            dados_nota_fiscal = save_attachment(part, DIRECTORY, dados_email)
                             if dados_nota_fiscal:
                                 try:
                                     valores_extraidos = extract_values(body)
+                                    dados_email.update(valores_extraidos)
+                                    logging.info(f"Dados do e-mail após extração: {dados_email}")
                                     departamento = valores_extraidos["departamento"]
                                     origem = valores_extraidos["origem"]
                                     descricao = valores_extraidos["descricao"]
@@ -208,9 +222,7 @@ def check_emails(nmr_nota, extract_values):
                                     )
                                     rateio = valores_extraidos["rateio"]
                                     cod_item = valores_extraidos["cod_item"]
-                                    data_vencimento = valores_extraidos[
-                                        "data_vencimento"
-                                    ]
+                                    data_vencimento = valores_extraidos["data_vencimento"]
                                     tipo_imposto = valores_extraidos["tipo_imposto"]
                                     logging.info(f"Tipo de imposto extraído: {valores_extraidos.get('tipo_imposto')}")
 
@@ -438,59 +450,6 @@ def clean_extracted_json(json_data):
 
     return json_data
 
-# def map_json_fields(json_data, body):
-#     # Verifica se o body é uma string
-#     if not isinstance(body, str):
-#         logging.error(f"Erro: 'body' deveria ser uma string, mas recebeu {type(body)}.")
-#         return {}
-
-#     valores_extraidos = extract_values(body)
-
-#     data_vencimento = valores_extraidos["data_vencimento"]
-
-#     mapped_data = {
-#         "emitente": {
-#             "cnpj": json_data.get("CNPJ do prestador de serviço"),
-#             "nome": json_data.get("Nome do prestador de serviço"),
-#         },
-#         "destinatario": {
-#             "cnpj": json_data.get("CNPJ do tomador do serviço"),
-#             "nome": json_data.get("Nome do tomador do serviço"),
-#         },
-#         "num_nota": {
-#             "numero_nota": json_data.get("Numero da nota"),
-#         },
-#         "data_venc": {
-#             "data_venc": data_vencimento
-#         },
-#         "data_emi": {
-#             "data_emissao": json_data.get("Data da emissão"),
-#         },
-#         "valor_total": {
-#             "valor_total": json_data.get("Valor total", "0.00"),
-#         },
-#         "valor_liquido": {
-#             "valor_liquido": json_data.get("Valor líquido", "0.00"),
-#         },
-#         "modelo": {
-#             "modelo": "01",
-#         },
-#         "serie": "1",
-#         "chave_acesso": {
-#             "chave": "",
-#         },
-#         "impostos": {
-#             "ISS_retido": json_data.get("ISS retido", "0.00"),
-#             "PIS": json_data.get("PIS", "0.00"),
-#             "COFINS": json_data.get("COFINS", "0.00"),
-#             "INSS": json_data.get("INSS", "0.00"),
-#             "IR": json_data.get("IR", "0.00"),
-#             "CSLL": json_data.get("CSLL", "0.00"),
-#         },
-#     }
-#     logging.info(f"Conteúdo de json_data['valor_total']: {mapped_data['valor_total']}")
-#     return mapped_data
-
 def process_pdf(pdf_path, dados_email):
     logging.info(f"Iniciando processamento do PDF: {pdf_path}")
 
@@ -573,16 +532,24 @@ def process_pdf(pdf_path, dados_email):
                 "data_emissao": cleaned_json.get("data_emissao", "")
             },
             "data_venc": {
-                "data_venc": data_venc or ""
+                "data_venc": data_venc
             },
             "modelo": {
-                "modelo": cleaned_json.get("modelo", "01")
+                "modelo": cleaned_json.get("modelo", f"{dados_email.get('modelo')}")
             },
             "valor_total": [
                 {
                     "valor_total": cleaned_json.get("valor_total", "0.00")
                 }
             ],
+            "impostos": {
+                "ISS_retido": cleaned_json.get("ISS retido", "0.00"),
+                "PIS": cleaned_json.get("PIS", "0.00"),
+                "COFINS": cleaned_json.get("COFINS", "0.00"),
+                "INSS": cleaned_json.get("INSS", "0.00"),
+                "IR": cleaned_json.get("IR", "0.00"),
+                "CSLL": cleaned_json.get("CSLL", "0.00"),
+            },
             "pagamento_parcelado": cleaned_json.get("pagamento_parcelado", []),
             "info_adicional": {}
         }
@@ -657,6 +624,32 @@ def save_attachment(part, directory, dados_email):
         return {"json_path": json_path}
 
     elif tipo_arquivo == "PDF":
+        senha_arquivo = dados_email.get("senha_arquivo")
+        logging.info(f"Senha recebida para desbloqueio do PDF: {senha_arquivo}")
+        if senha_arquivo:
+            logging.info(f"Tentando desbloquear arquivo PDF com senha: {senha_arquivo}")  
+            try:
+                from PyPDF2 import PdfReader, PdfWriter
+                
+                reader = PdfReader(filepath)
+                if reader.is_encrypted:
+                    reader.decrypt(senha_arquivo)
+                    writer = PdfWriter()
+                    for page in reader.pages:
+                        writer.add_page(page)
+                    
+                    unlocked_filepath = os.path.join(directory, "unlocked_" + filename)
+                    with open(unlocked_filepath, "wb") as f:
+                        writer.write(f)
+                    
+                    logging.info(f"Arquivo PDF desbloqueado e salvo como: {unlocked_filepath}")
+                    filepath = unlocked_filepath
+                else:
+                    logging.info("Arquivo PDF não está criptografado.")
+            except Exception as e:
+                logging.info(f"Erro ao desbloquear o PDF: {e}")
+                return None
+        
         json_result = process_pdf(filepath, dados_email)
         if not json_result or "json_path" not in json_result:
             logging.error("Erro: JSON do PDF não foi gerado corretamente.")
@@ -940,7 +933,6 @@ class SystemNF:
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
             gui.press("alt")
-            logging.info("Empresa e revenda" f"{empresa}.{revenda_nome}")
             if revenda_nome == 4:
                 gui.press("right", presses=4)
             else:
@@ -1058,10 +1050,8 @@ class SystemNF:
 
                 # Exibe o valor calculado para depuração
                 logging.info(f"Valor de PCC calculado: {PCC:.2f}")
-                logging.info("Teste de verificação de erro")
 
                 if impostos.get("IR") != "0.00":
-                    logging.info("Entrei")
                     gui.press("tab", presses=7)
                     if tipo_imposto == "normal":
                         gui.press("down", presses=2)
@@ -1079,26 +1069,21 @@ class SystemNF:
                     logging.info("Passou do if do IR")
                     gui.press("tab", "enter")
                 if PCC != 0.00:
-                    logging.info("Entrei no if do PCC")
                     gui.press("tab", presses=7)
                     gui.press("down", presses=3)
                     gui.press("tab")
                     gui.write(dias_restantes)
                     gui.press("tab", presses=2)
                     gui.write(PCC)
-                    logging.info("Passou do elif do PCC")
                     gui.press("tab", "enter")
                 if impostos.get("ISS_retido") != "0.00":
-                    logging.info("Entrei no elif do ISS_retido")
                     gui.press("tab", presses=7)
                     gui.press("down", presses=4)
                     gui.press("tab")
                     gui.write(dias_restantes - 5)
                     gui.press("tab", presses=2)
                     gui.write(impostos.get("ISS_retido"))
-                    logging.info("Passou do elif do ISS_retido")
                     gui.press("tab", "enter")
-                logging.info("Passou direto")
                 gui.press("tab")
                 gui.press("enter")
                 gui.press("tab")
@@ -1107,19 +1092,16 @@ class SystemNF:
                 gui.write(str(data_venc_nfs))
                 gui.press("tab")
                 gui.press("tab")
-                logging.info("Preenchendo a data de vencimento da NFS")
-                gui.press("tab", presses=3)
+                gui.press("tab", presses=2)
                 
                 if valor_liquido == None:
                     valor_liquido = valor_total
                 
                 gui.write(valor_liquido)
-                logging.info("Preenchendo o valor liquido")
                 gui.press("tab")
                 gui.press("enter")
                 gui.press("tab", presses=3)
                 gui.press("enter")
-                logging.info("Saiu da parte de notas de despesas")
                 gui.press("tab", presses=39)
                 # gui.press("enter")
 
