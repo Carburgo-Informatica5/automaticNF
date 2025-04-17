@@ -123,7 +123,7 @@ def extract_values(text):
             elif line.startswith("senha arquivo:"):
                 values["senha_arquivo"] = line.split(":", 1)[1].strip()
             elif line.startswith("modelo:"):
-                values["modelo"] = line.split(":", 1)[1].strip()
+                values["modelo_email"] = line.split(":", 1)[1].strip()
             elif line.startswith("tipo documento:"):
                 values["tipo_documento"] = line.split(":", 1)[1].strip()
 
@@ -310,6 +310,8 @@ def check_emails(nmr_nota, extract_values):
                                         "impostos": json_data.get("impostos", {}),  
                                         "valor_liquido": json_data.get("valor_liquido", {}),
                                         "tipo_arquivo": dados_email.get("tipo_arquivo", "DESCONHECIDO"),
+                                        "tipo_documento": json_data.get("tipo_documento", {}).get("tipo_documento"),
+                                        "modelo_email": json_data.get("modelo_email", {}).get("modelo_email"),
                                     }
 
                                     logging.info(
@@ -382,6 +384,8 @@ def check_emails(nmr_nota, extract_values):
                                         dados_email.get('valor_liquido', {}).get('valor_liquido'),
                                         dados_email.get('tipo_imposto'),
                                         dados_email.get('impostos', {}),
+                                        dados_email.get('tipo_documento'),
+                                        dados_email.get('modelo_email'),
                                         dados_email
                                     )
 
@@ -536,6 +540,12 @@ def process_pdf(pdf_path, dados_email):
             },
             "modelo": {
                 "modelo": cleaned_json.get("modelo", f"{dados_email.get('modelo')}")
+            },
+            "tipo_documento": {
+                "tipo_documento": cleaned_json.get("tipo_documento", f"{dados_email.get('tipo_documento')}")
+            },
+            "modelo_email": {
+                "modelo_email": cleaned_json.get("modelo_email", f"{dados_email.get('modelo_email')}")
             },
             "valor_total": [
                 {
@@ -824,7 +834,7 @@ class SystemNF:
         self, departamento, origem, descricao, cc, cod_item, valor_total,
         dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
         chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
-        valor_liquido, tipo_imposto, impostos, dados_email=None
+        valor_liquido, tipo_imposto, impostos, tipo_documento, modelo_email, dados_email=None
     ):
         
         # Validação dos dados necessários
@@ -856,6 +866,8 @@ class SystemNF:
         logging.info(f"Parcelas: {parcelas}")
         logging.info(f"Data vencimento NFs: {data_venc_nfs}")
         logging.info(f"Tipo de Imposto: {tipo_imposto}")
+        logging.info(f"Tipo do documento: {tipo_documento}")
+        logging.info(f"Modelo vindo do Email: {modelo_email}")
 
         cnpj_dest = dados_email.get("destinatario", {}).get("cnpj")
 
@@ -966,51 +978,64 @@ class SystemNF:
             if modelo == "55":
                 gui.write(chave_acesso)
             gui.press("tab")
-            gui.write(modelo)
+            if dados_email.get("tipo_arquivo") == "PDF":
+                gui.write(modelo_email)
+            else:
+                gui.write(modelo)
             gui.press("tab", presses=18)
 
             tipo_arquivo = dados_email.get("tipo_arquivo", "DESCONHECIDO")
             logging.info(f"Tipo de arquivo: {tipo_arquivo}")
 
             if tipo_arquivo == "PDF":
-                gui.press("right", presses=1)
-                gui.press("tab", presses=20)
+                if tipo_documento == "fatura" or tipo_documento == "boleto":
+                    gui.press("right", presses=2)
+                    gui.press("tab", presses=5)
+                    gui.press("enter")
+                    gui.press("tab", presses=4)
+                else:
+                    gui.press("right", presses=1)
+                    gui.press("tab", presses=20)
                 gui.write(cod_item)
                 gui.press("tab", presses=10)
                 gui.write("1")
                 gui.press("tab")
                 gui.write(valor_total)
-                gui.press("tab", presses=34)
+                if tipo_documento == "fatura" or tipo_documento == "boleto":
+                    gui.press("tab", presses=26)
+                else:
+                    gui.press("tab", presses=34)
                 gui.write(descricao)
-                
-                
-                if impostos.get("IR") != "0.00":
-                    gui.press("tab", presses=17)
-                    gui.write(valor_total)
-                    gui.press("tab", presses=2)
-                    gui.write(impostos.get("IR"))
-                
-                elif impostos.get("PIS") != "0.00":
-                    gui.press("tab", presses=24)
-                    gui.write(valor_total)
+                if tipo_documento == "fatura" or tipo_documento == "boleto":
                     gui.press("tab")
-                    gui.write(impostos.get("PIS"))
-                
-                elif impostos.get("COFINS") != "0.00":
-                    gui.press("tab", presses=5)
-                    gui.write(valor_total)
-                    gui.press("tab")
-                    gui.write(impostos.get("COFINS"))
-                
-                elif impostos.get("CSLL") != "0.00":
-                    gui.press("tab", presses=5)
-                    gui.write(valor_total)
-                    gui.press("tab")
-                    gui.write(impostos.get("CSLL"))
-                    
-                    gui.press("tab", presses=40)
-                    gui.press("left")
+                    gui.press("enter")
+                else:
+                    if impostos.get("IR") != "0.00":
+                        gui.press("tab", presses=17)
+                        gui.write(valor_total)
+                        gui.press("tab", presses=2)
+                        gui.write(impostos.get("IR"))
 
+                    elif impostos.get("PIS") != "0.00":
+                        gui.press("tab", presses=24)
+                        gui.write(valor_total)
+                        gui.press("tab")
+                        gui.write(impostos.get("PIS"))
+
+                    elif impostos.get("COFINS") != "0.00":
+                        gui.press("tab", presses=5)
+                        gui.write(valor_total)
+                        gui.press("tab")
+                        gui.write(impostos.get("COFINS"))
+
+                    elif impostos.get("CSLL") != "0.00":
+                        gui.press("tab", presses=5)
+                        gui.write(valor_total)
+                        gui.press("tab")
+                        gui.write(impostos.get("CSLL"))
+
+                        gui.press("tab", presses=40)
+                        gui.press("left")
                 gui.press("tab", presses=15)
                 gui.press("left")
                 gui.press("tab", presses=5)
@@ -1356,11 +1381,13 @@ if __name__ == "__main__":
                     
 
                     if dados_email is not None:
+                        modelo_email = dados_email.get("modelo_email", "DESCONHECIDO")
+                        tipo_documento = dados_email.get("tipo_documento", "DESCONHECIDO")
                         sistema_nf.automation_gui(
                             departamento, origem, descricao, cc, cod_item, valor_total,
                             dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
                             chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
-                            valor_liquido, tipo_imposto, impostos, dados_email     
+                            valor_liquido, tipo_imposto, impostos, tipo_documento, modelo_email, dados_email     
                         )
                     else:
                         logging.error("Erro: Dados do e-mail é none. Verifique o processamento do e-mail")

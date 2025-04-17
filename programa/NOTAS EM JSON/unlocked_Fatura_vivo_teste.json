@@ -23,7 +23,13 @@
         "data_venc": null
     },
     "modelo": {
-        "modelo": "01"
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "fatura"
+    },
+    "modelo_email": {
+        "modelo_email": "22"
     },
     "valor_total": [
         {

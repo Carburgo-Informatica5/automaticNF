@@ -73,7 +73,6 @@ class GeminiAPI:
                     - ISS Retido (valor real, não o ISS total)
                     - IR
                     - CSLL
-                - Tipo de documento (identifique se é uma "Nota Fiscal", "Boleto" ou "Fatura").
 
             2. Caso o PDF contenha informações ilegíveis ou ausentes, retorne um campo indicando "Dados não legíveis" ou "Informação ausente".
 
@@ -105,7 +104,6 @@ class GeminiAPI:
                     "IR": "0.00",
                     "CSLL": "0.00"
                 },
-                "tipo_documento": "Nota Fiscal"
             }
 
             Retorne apenas o JSON como resposta, sem explicações adicionais.
