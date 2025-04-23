@@ -1036,8 +1036,8 @@ class SystemNF:
 
                         gui.press("tab", presses=40)
                         gui.press("left")
-                gui.press("tab", presses=15)
-                gui.press("left")
+                gui.press("tab", presses=11)
+                gui.press("left", presses=2)
                 gui.press("tab", presses=5)
                 gui.press("enter")
 
