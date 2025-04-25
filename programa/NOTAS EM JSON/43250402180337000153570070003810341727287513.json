@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "02180337000153",
+        "nome": "REDE NACIONAL DE ENCOMENDAS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "72190127000121",
+        "nome": "BLANC MECANICA E AUTI PECAS LTDA",
+        "Numero": "533",
+        "Cidade": "MONTENEGRO"
+    },
+    "chave_acesso": {
+        "chave": "43250402180337000153570070003810341727287513"
+    },
+    "num_nota": {
+        "numero_nota": "381034"
+    },
+    "serie": "7",
+    "data_emi": {
+        "data_emissao": "22042025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "frete"
+    },
+    "modelo_email": {
+        "modelo_email": "57"
+    },
+    "valor_total": [
+        {
+            "valor_total": "80.00"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

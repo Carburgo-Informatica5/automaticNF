@@ -73,6 +73,8 @@ class GeminiAPI:
                     - ISS Retido (valor real, não o ISS total)
                     - IR
                     - CSLL
+                - Se for uma nota de Frete, quero que pegue o campo chave de acesso e coloque no campo "chave_acesso" do JSON.
+                - Se for uma nota de Frete, quero que pegue o campo SÉRIE (Não pegue o modelo da nota) e coloque no campo "serie" do json, nunca vai ser um número de 2 digítos.
 
             2. Caso o PDF contenha informações ilegíveis ou ausentes, retorne um campo indicando "Dados não legíveis" ou "Informação ausente".
 
@@ -96,6 +98,8 @@ class GeminiAPI:
                 "valor_total": "1500.00",
                 "valor_liquido": "1400.00",
                 "ISS_retido": "Sim",
+                "serie": "7",
+                "chave_acesso": "12345678901234567890123456789012345678901234",
                 "impostos": {
                     "PIS": "50.00",
                     "COFINS": "100.00",
