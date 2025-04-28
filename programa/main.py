@@ -41,7 +41,7 @@ PORT = 995  # Porta segura (SSL)
 USERNAME = "dani@carburgo.com.br"
 PASSWORD = "p@r!sA1856"
 # Assunto alvo para busca
-ASSUNTO_ALVO = "lançamento nota fiscal DANI"
+ASSUNTO_ALVO = "lançamento nota fiscal"
 # Diretório para salvar os anexos
 DIRECTORY = os.path.join(current_dir, "anexos")
 
@@ -1128,7 +1128,7 @@ class SystemNF:
                 gui.press("tab", presses=3)
                 gui.press("enter")
                 gui.press("tab", presses=39)
-                # gui.press("enter")
+                gui.press("enter")
 
 
             elif tipo_arquivo == "XML":
