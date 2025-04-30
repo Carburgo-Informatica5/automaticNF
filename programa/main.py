@@ -407,7 +407,6 @@ def check_emails(nmr_nota, extract_values):
                                         f"Erro ao processar o e-mail: {e}",
                                         nmr_nota,
                                     )
-                                    server.quit()
                                     return None
                             else:
                                 logging.error("Erro ao salvar ou processar o anexo")
@@ -417,14 +416,12 @@ def check_emails(nmr_nota, extract_values):
                                     "Erro ao salvar ou processar o anexo",
                                     nmr_nota,
                                 )
-                                server.quit()
                                 return None
                 else:
                     charset = email_message.get_content_charset()
                     body = decode_body(email_message.get_payload(decode=True), charset)
                     dados_email["body"] = body
 
-        server.quit()
         if not dados_email:
             logging.error("Erro: Nenhum dado extraído do e-mail.")
             return None
@@ -437,6 +434,10 @@ def check_emails(nmr_nota, extract_values):
             nmr_nota,
         )
         return None
+    finally:
+        if server:
+            server.quit()
+            logging.info("Conexão com o servidor POP3 encerrada.")
 
 def clean_extracted_json(json_data):
     if not isinstance(json_data, dict):
@@ -531,7 +532,7 @@ def process_pdf(pdf_path, dados_email):
             "num_nota": {
                 "numero_nota": cleaned_json.get("num_nota", "")
             },
-            "serie": cleaned_json.get("serie", "1"),
+            "serie": cleaned_json.get("serie", "0"),
             "data_emi": {
                 "data_emissao": cleaned_json.get("data_emissao", "")
             },
@@ -939,8 +940,6 @@ class SystemNF:
             screenshot = screenshot.point(lambda p: p > threshold and 255)
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
-            
-            gui.PAUSE = 1
 
             time.sleep(5)
             gui.hotkey("ctrl", "f4")

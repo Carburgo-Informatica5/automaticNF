@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "05040004000117",
+        "nome": "CARBURGO VEICULOS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA",
+        "Numero": "240",
+        "Cidade": "NOVO HAMBURGO"
+    },
+    "chave_acesso": {
+        "chave": "43250405040004000117570010038389771450952761"
+    },
+    "num_nota": {
+        "numero_nota": "3838977"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "29042025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "frete"
+    },
+    "modelo_email": {
+        "modelo_email": "57"
+    },
+    "valor_total": [
+        {
+            "valor_total": "81.37"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}
