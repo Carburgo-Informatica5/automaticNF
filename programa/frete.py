@@ -841,7 +841,8 @@ class SystemNF:
         # Validação dos dados necessários
         if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
             raise ValueError("Dados obrigatórios estão faltando")
-        
+
+        gui.PAUSE = 1
 
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
