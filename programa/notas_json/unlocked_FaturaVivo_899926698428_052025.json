@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "02558157001720",
+        "nome": "Telefonica Brasil S/A"
+    },
+    "destinatario": {
+        "cnpj": "91667618000831",
+        "nome": "CARBURGO VEICULOS LTDA",
+        "Numero": "3195",
+        "Cidade": "Caxias do Sul"
+    },
+    "chave_acesso": {
+        "chave": "43250502558157001720620070000024461013477320"
+    },
+    "num_nota": {
+        "numero_nota": "1959062728"
+    },
+    "serie": "7",
+    "data_emi": {
+        "data_emissao": "12052025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "fatura"
+    },
+    "modelo_email": {
+        "modelo_email": "22"
+    },
+    "valor_total": [
+        {
+            "valor_total": "208.31"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

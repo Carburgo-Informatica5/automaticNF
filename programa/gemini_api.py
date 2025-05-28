@@ -52,65 +52,73 @@ class GeminiAPI:
 
         response = chat_session.send_message([
             {"text": """
-            Você receberá um arquivo PDF contendo informações de um documento financeiro. Sua tarefa é extrair os dados relevantes e retornar um JSON bem formatado e válido. Certifique-se de seguir as instruções abaixo:
+            Você receberá um arquivo PDF de um documento fiscal (nota fiscal, fatura ou boleto). Extraia as informações abaixo e retorne **apenas** um JSON válido, sem explicações, comentários ou texto adicional.
 
-            1. Extraia as seguintes informações, se disponíveis:
-                - Número da nota fiscal ou número da conta (apenas números, sem caracteres especiais ou traços).
-                - Data de emissão (formato DDMMYYYY, sem barras ou outros caracteres).
-                - Nome completo do prestador de serviço.
-                - Nome completo do tomador de serviço.
-                - CNPJ do prestador de serviço (apenas números, sem pontos ou traços). Caso o CNPJ não esteja presente, retorne "Não encontrado".
-                - CNPJ do tomador de serviço (apenas números, sem pontos ou traços). Caso o CNPJ não esteja presente, retorne "Não encontrado".
-                - Número do Endereço do tomador de serviço (Somente número).
-                - Cidade do Endereço do tomador de serviço (Somente cidade).
-                - Valor total da nota fiscal (substitua vírgulas por pontos para valores decimais).
-                - Valor líquido (substitua vírgulas por pontos para valores decimais).
-                - Verifique se há ISS retido: "Sim" ou "Não". Caso esteja presente, inclua o campo "ISS Retido": "Sim". Caso contrário, "ISS Retido": "Não".
-                - Valores dos seguintes impostos, se presentes. Caso algum imposto não esteja presente, retorne "0.00" para esse imposto:
-                    - PIS
-                    - COFINS
-                    - INSS
-                    - ISS Retido (valor real, não o ISS total)
-                    - IR
-                    - CSLL
-                - Se for uma nota de Frete, quero que pegue o campo chave de acesso e coloque no campo "chave_acesso" do JSON.
-                - Se for uma nota de Frete, quero que pegue o campo SÉRIE (Não pegue o modelo da nota) e coloque no campo "serie" do json, nunca vai ser um número de 2 digítos.
+**Campos obrigatórios do JSON:**
 
-            2. Caso o PDF contenha informações ilegíveis ou ausentes, retorne um campo indicando "Dados não legíveis" ou "Informação ausente".
+- "emitente":  
+    - "cnpj": CNPJ do prestador (apenas números, sem pontos ou traços; se não houver, use "Nao encontrado")
+    - "nome": Nome completo do prestador
 
-            3. Certifique-se de que o JSON esteja bem formatado, sem caracteres inválidos ou erros de sintaxe.
+- "destinatario":  
+    - "cnpj": CNPJ do tomador (apenas números, sem pontos ou traços; se não houver, use "Nao encontrado")
+    - "nome": Nome completo do tomador
+    - "Numero": Número do endereço do tomador (apenas números; se não houver, use "Informacao ausente")
+    - "Cidade": Cidade do endereço do tomador (apenas nome da cidade; se não houver, use "Informacao ausente")
 
-            Exemplo de JSON esperado:
+- "num_nota": Número da nota fiscal, conta ou fatura (apenas números, sem caracteres especiais; priorize o número da fatura se houver)
+- "data_emissao": Data de emissão (formato DDMMYYYY, sem barras ou outros caracteres; se não houver, use "Informacao ausente")
+- "valor_total": Valor total da nota (use ponto como separador decimal; se não houver, use "0.00")
+- "valor_liquido": Valor líquido (use ponto como separador decimal; se não houver, use o valor total)
+- "ISS_retido": "Sim" se houver ISS retido, "Nao" caso contrário
+- "serie": Série da nota (se não houver, use "Informacao ausente")
+- "chave_acesso": Chave de acesso (apenas para notas de frete; se não houver, use "Informacao ausente")
 
-            {
-                "emitente": {
-                    "cnpj": "12345678000195",
-                    "nome": "Empresa Prestadora de Serviços LTDA"
-                },
-                "destinatario": {
-                    "cnpj": "98765432000112",
-                    "nome": "Empresa Tomadora de Serviços SA",
-                    "Numero": "123",
-                    "Cidade": "Novo Hamburgo"
-                },
-                "num_nota": "12345",
-                "data_emissao": "01042025",
-                "valor_total": "1500.00",
-                "valor_liquido": "1400.00",
-                "ISS_retido": "Sim",
-                "serie": "7",
-                "chave_acesso": "12345678901234567890123456789012345678901234",
-                "impostos": {
-                    "PIS": "50.00",
-                    "COFINS": "100.00",
-                    "INSS": "0.00",
-                    "ISS_retido": "50.00",
-                    "IR": "0.00",
-                    "CSLL": "0.00"
-                },
-            }
+- "impostos":  
+    - "PIS": Valor do PIS (padrão "0.00" se não houver)
+    - "COFINS": Valor do COFINS (padrão "0.00" se não houver)
+    - "INSS": Valor do INSS (padrão "0.00" se não houver)
+    - "ISS_retido": Valor do ISS retido (padrão "0.00" se não houver)
+    - "IR": Valor do IR (padrão "0.00" se não houver)
+    - "CSLL": Valor do CSLL (padrão "0.00" se não houver)
 
-            Retorne apenas o JSON como resposta, sem explicações adicionais.
+**Regras adicionais:**
+- Se o documento for de frete, use o remetente como tomador e preencha "chave_acesso" e "serie".
+- Se algum campo não for encontrado ou estiver ilegível, use "Informacao ausente" ou "Nao encontrado" conforme o caso.
+- O JSON deve ser bem formatado, válido e não conter caracteres inválidos.
+- Não inclua explicações, apenas o JSON.
+
+**Exemplo de resposta esperada:**
+
+{
+    "emitente": {
+        "cnpj": "12345678000195",
+        "nome": "Empresa Prestadora de Serviços LTDA"
+    },
+    "destinatario": {
+        "cnpj": "98765432000112",
+        "nome": "Empresa Tomadora de Serviços SA",
+        "Numero": "123",
+        "Cidade": "Novo Hamburgo"
+    },
+    "num_nota": "12345",
+    "data_emissao": "01042025",
+    "valor_total": "1500.00",
+    "valor_liquido": "1400.00",
+    "ISS_retido": "Sim",
+    "serie": "7",
+    "chave_acesso": "12345678901234567890123456789012345678901234",
+    "impostos": {
+        "PIS": "50.00",
+        "COFINS": "100.00",
+        "INSS": "0.00",
+        "ISS_retido": "50.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    }
+}
+
+Retorne **apenas** o JSON.
             """},
             file_obj
         ])

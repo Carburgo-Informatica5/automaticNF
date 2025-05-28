@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "05441493000380",
+        "nome": "NEXT SOLUCOES TECNOLOGICAS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000599",
+        "nome": "CARBURGO VEICULOS LTDA",
+        "Numero": "2272",
+        "Cidade": "SAO LEOPOLDO"
+    },
+    "chave_acesso": {
+        "chave": ""
+    },
+    "num_nota": {
+        "numero_nota": "66888"
+    },
+    "serie": "0",
+    "data_emi": {
+        "data_emissao": "20052025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "fatura"
+    },
+    "modelo_email": {
+        "modelo_email": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "673.60"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

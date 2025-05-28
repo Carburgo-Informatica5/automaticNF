@@ -1,0 +1,280 @@
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+    <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+        <infNFe Id="NFe43250248571348000165550010000002321446746287" versao="4.00">
+            <ide>
+                <cUF>43</cUF>
+                <cNF>44674628</cNF>
+                <natOp>Venda Dentro do Estado</natOp>
+                <mod>55</mod>
+                <serie>1</serie>
+                <nNF>232</nNF>
+                <dhEmi>2025-02-19T16:51:57-03:00</dhEmi>
+                <tpNF>1</tpNF>
+                <idDest>1</idDest>
+                <cMunFG>4318705</cMunFG>
+                <tpImp>1</tpImp>
+                <tpEmis>1</tpEmis>
+                <cDV>7</cDV>
+                <tpAmb>1</tpAmb>
+                <finNFe>1</finNFe>
+                <indFinal>1</indFinal>
+                <indPres>1</indPres>
+                <procEmi>0</procEmi>
+                <verProc>1.00</verProc>
+            </ide>
+            <emit>
+                <CNPJ>48571348000165</CNPJ>
+                <xNome>FORMATTO SOLUCOES EM ESQUADRIAS LTDA</xNome>
+                <enderEmit>
+                    <xLgr>Rua Rio Dourados</xLgr>
+                    <nro>135</nro>
+                    <xBairro>Arroio da Manteiga</xBairro>
+                    <cMun>4318705</cMun>
+                    <xMun>Sao Leopoldo</xMun>
+                    <UF>RS</UF>
+                    <CEP>93145090</CEP>
+                    <cPais>1058</cPais>
+                    <fone>51991901505</fone>
+                </enderEmit>
+                <IE>1240335340</IE>
+                <CRT>1</CRT>
+            </emit>
+            <dest>
+                <CNPJ>91667618000599</CNPJ>
+                <xNome>CARBURGO VEICULOS LTDA</xNome>
+                <enderDest>
+                    <xLgr>Avenida Getulio Vargas</xLgr>
+                    <nro>2272</nro>
+                    <xBairro>Cristo Rei</xBairro>
+                    <cMun>4318705</cMun>
+                    <xMun>Sao Leopoldo</xMun>
+                    <UF>RS</UF>
+                    <CEP>93020494</CEP>
+                    <cPais>1058</cPais>
+                </enderDest>
+                <indIEDest>1</indIEDest>
+                <IE>1240218858</IE>
+                <email>compras@neoincorporacoes.com.br</email>
+            </dest>
+            <det nItem="1">
+                <prod>
+                    <cProd>2000000000004</cProd>
+                    <cEAN>SEM GTIN</cEAN>
+                    <xProd>Portas Internas</xProd>
+                    <NCM>76101000</NCM>
+                    <CFOP>5101</CFOP>
+                    <uCom>UN</uCom>
+                    <qCom>3.0000</qCom>
+                    <vUnCom>860.0000</vUnCom>
+                    <vProd>2580.00</vProd>
+                    <cEANTrib>SEM GTIN</cEANTrib>
+                    <uTrib>UN</uTrib>
+                    <qTrib>3.0000</qTrib>
+                    <vUnTrib>860.0000</vUnTrib>
+                    <indTot>1</indTot>
+                </prod>
+                <imposto>
+                    <vTotTrib>0.00</vTotTrib>
+                    <ICMS>
+                        <ICMSSN102>
+                            <orig>0</orig>
+                            <CSOSN>102</CSOSN>
+                        </ICMSSN102>
+                    </ICMS>
+                    <PIS>
+                        <PISOutr>
+                            <CST>49</CST>
+                            <vBC>0.00</vBC>
+                            <pPIS>0.00</pPIS>
+                            <vPIS>0.00</vPIS>
+                        </PISOutr>
+                    </PIS>
+                    <COFINS>
+                        <COFINSOutr>
+                            <CST>49</CST>
+                            <vBC>0.00</vBC>
+                            <pCOFINS>0.00</pCOFINS>
+                            <vCOFINS>0.00</vCOFINS>
+                        </COFINSOutr>
+                    </COFINS>
+                </imposto>
+            </det>
+            <det nItem="2">
+                <prod>
+                    <cProd>2000000000045</cProd>
+                    <cEAN>SEM GTIN</cEAN>
+                    <xProd>Ajuste de Portas p/ instalacao</xProd>
+                    <NCM>73083000</NCM>
+                    <CFOP>5101</CFOP>
+                    <uCom>UN</uCom>
+                    <qCom>3.0000</qCom>
+                    <vUnCom>50.0000</vUnCom>
+                    <vProd>150.00</vProd>
+                    <cEANTrib>SEM GTIN</cEANTrib>
+                    <uTrib>UN</uTrib>
+                    <qTrib>3.0000</qTrib>
+                    <vUnTrib>50.0000</vUnTrib>
+                    <indTot>1</indTot>
+                </prod>
+                <imposto>
+                    <vTotTrib>0.00</vTotTrib>
+                    <ICMS>
+                        <ICMSSN102>
+                            <orig>0</orig>
+                            <CSOSN>102</CSOSN>
+                        </ICMSSN102>
+                    </ICMS>
+                    <PIS>
+                        <PISOutr>
+                            <CST>49</CST>
+                            <vBC>0.00</vBC>
+                            <pPIS>0.00</pPIS>
+                            <vPIS>0.00</vPIS>
+                        </PISOutr>
+                    </PIS>
+                    <COFINS>
+                        <COFINSOutr>
+                            <CST>49</CST>
+                            <vBC>0.00</vBC>
+                            <pCOFINS>0.00</pCOFINS>
+                            <vCOFINS>0.00</vCOFINS>
+                        </COFINSOutr>
+                    </COFINS>
+                </imposto>
+            </det>
+            <det nItem="3">
+                <prod>
+                    <cProd>2000000000046</cProd>
+                    <cEAN>SEM GTIN</cEAN>
+                    <xProd>ajuste para instalacao</xProd>
+                    <NCM>76101000</NCM>
+                    <CFOP>5101</CFOP>
+                    <uCom>UN</uCom>
+                    <qCom>3.0000</qCom>
+                    <vUnCom>120.0000</vUnCom>
+                    <vProd>360.00</vProd>
+                    <cEANTrib>SEM GTIN</cEANTrib>
+                    <uTrib>UN</uTrib>
+                    <qTrib>3.0000</qTrib>
+                    <vUnTrib>120.0000</vUnTrib>
+                    <indTot>1</indTot>
+                </prod>
+                <imposto>
+                    <vTotTrib>0.00</vTotTrib>
+                    <ICMS>
+                        <ICMSSN102>
+                            <orig>0</orig>
+                            <CSOSN>102</CSOSN>
+                        </ICMSSN102>
+                    </ICMS>
+                    <PIS>
+                        <PISOutr>
+                            <CST>49</CST>
+                            <vBC>0.00</vBC>
+                            <pPIS>0.00</pPIS>
+                            <vPIS>0.00</vPIS>
+                        </PISOutr>
+                    </PIS>
+                    <COFINS>
+                        <COFINSOutr>
+                            <CST>49</CST>
+                            <vBC>0.00</vBC>
+                            <pCOFINS>0.00</pCOFINS>
+                            <vCOFINS>0.00</vCOFINS>
+                        </COFINSOutr>
+                    </COFINS>
+                </imposto>
+            </det>
+            <total>
+                <ICMSTot>
+                    <vBC>0.00</vBC>
+                    <vICMS>0.00</vICMS>
+                    <vICMSDeson>0.00</vICMSDeson>
+                    <vFCPUFDest>0.00</vFCPUFDest>
+                    <vICMSUFDest>0.00</vICMSUFDest>
+                    <vICMSUFRemet>0.00</vICMSUFRemet>
+                    <vFCP>0.00</vFCP>
+                    <vBCST>0.00</vBCST>
+                    <vST>0.00</vST>
+                    <vFCPST>0.00</vFCPST>
+                    <vFCPSTRet>0.00</vFCPSTRet>
+                    <vProd>3090.00</vProd>
+                    <vFrete>0.00</vFrete>
+                    <vSeg>0.00</vSeg>
+                    <vDesc>0.00</vDesc>
+                    <vII>0.00</vII>
+                    <vIPI>0.00</vIPI>
+                    <vIPIDevol>0.00</vIPIDevol>
+                    <vPIS>0.00</vPIS>
+                    <vCOFINS>0.00</vCOFINS>
+                    <vOutro>0.00</vOutro>
+                    <vNF>3090.00</vNF>
+                    <vTotTrib>0.00</vTotTrib>
+                </ICMSTot>
+            </total>
+            <transp>
+                <modFrete>0</modFrete>
+            </transp>
+            <cobr>
+                <fat>
+                    <nFat>141</nFat>
+                    <vOrig>3090.00</vOrig>
+                    <vDesc>0.00</vDesc>
+                    <vLiq>3090.00</vLiq>
+                </fat>
+                <dup>
+                    <nDup>001</nDup>
+                    <dVenc>2025-02-27</dVenc>
+                    <vDup>3090.00</vDup>
+                </dup>
+            </cobr>
+            <pag>
+                <detPag>
+                    <tPag>90</tPag>
+                    <vPag>0</vPag>
+                </detPag>
+            </pag>
+            <infAdic>
+                <infCpl>DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE ICMS, ISS E IPI.</infCpl>
+            </infAdic>
+            <infRespTec>
+                <CNPJ>00330845000145</CNPJ>
+                <xContato>Suporte</xContato>
+                <email>emissores@sebrae.com.br</email>
+                <fone>08005700800</fone>
+            </infRespTec>
+        </infNFe>
+        <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+                <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+                <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+                <Reference URI="#NFe43250248571348000165550010000002321446746287">
+                    <Transforms>
+                        <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                        <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+                    </Transforms>
+                    <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+                    <DigestValue>JLCOIQ9Jj/fu/2PL0l+zPzDz/8o=</DigestValue>
+                </Reference>
+            </SignedInfo>
+            <SignatureValue>is07HbxV83Y5JFhr4HdfAeS6c/6IOZsQwDhR+0VauP4I48X+eMBM7oeYl4sjSukdTZ+VI4s00ggvOx6yusGaMQ6jh9Qz+zwOQLAI5wX8NRkMMU9yF72oGoVKGTNIFHTkMqqmkWJwUIGuF5nuCmVsbSOjM67Ry9VIz1/MUaN0Y0yK2QgwwIlWQjeBwg2N3hiC6aljHz1gdOD4tIoHlCZZU0oHyEvUJ47Gb7gIrGIW/cm2X7RCeMcXGpHcK2dulZrtWYX8yVb5nHSvnwLaOTTQqgfKeYMTGVu8GIa6rBpG+FXpDGgxbnbH7r1DdB1Bqrx8WlP4AFqK2bg4fPqeXG4fMw==</SignatureValue>
+            <KeyInfo>
+                <X509Data>
+                    <X509Certificate>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</X509Certificate>
+                </X509Data>
+            </KeyInfo>
+        </Signature>
+    </NFe>
+    <protNFe versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+        <infProt>
+            <tpAmb>1</tpAmb>
+            <verAplic>RS2501312310DR</verAplic>
+            <chNFe>43250248571348000165550010000002321446746287</chNFe>
+            <dhRecbto>2025-02-19T16:51:58-03:00</dhRecbto>
+            <nProt>243250051879022</nProt>
+            <digVal>JLCOIQ9Jj/fu/2PL0l+zPzDz/8o=</digVal>
+            <cStat>100</cStat>
+            <xMotivo>Autorizado o uso da NF-e</xMotivo>
+        </infProt>
+    </protNFe>
+</nfeProc>

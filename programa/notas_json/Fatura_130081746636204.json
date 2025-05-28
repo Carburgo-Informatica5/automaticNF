@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "16970966000191",
+        "nome": "IW GROUP SOLUCOES EM TI LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA",
+        "Numero": "240",
+        "Cidade": "Novo Hamburgo"
+    },
+    "chave_acesso": {
+        "chave": ""
+    },
+    "num_nota": {
+        "numero_nota": "000013008"
+    },
+    "serie": "0",
+    "data_emi": {
+        "data_emissao": "07052025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "fatura"
+    },
+    "modelo_email": {
+        "modelo_email": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "13835.30"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

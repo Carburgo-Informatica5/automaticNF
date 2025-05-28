@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "15000312000172",
+        "nome": "MEGA COMERCIAL DE PRODUTOS ELETRONICOS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA - NH"
+    },
+    "chave_acesso": {
+        "chave": "43250215000312000172550010000408271424179737"
+    },
+    "num_nota": {
+        "numero_nota": "777"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "18022025"
+    },
+    "data_venc": {
+        "data_venc": "28052025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "2828.20"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-05-28",
+            "valor_parcela": "942.74"
+        },
+        {
+            "numero_parcela": "002",
+            "data_vencimento": "2025-06-20",
+            "valor_parcela": "942.73"
+        },
+        {
+            "numero_parcela": "003",
+            "data_vencimento": "2025-07-19",
+            "valor_parcela": "942.73"
+        }
+    ],
+    "info_adicional": {}
+}

@@ -465,7 +465,7 @@ def process_pdf(pdf_path, dados_email):
         logging.error(f"Erro: Arquivo não encontrado: {pdf_path}")
         return None
 
-    json_folder = os.path.abspath("NOTAS EM JSON")
+    json_folder = os.path.abspath("notas_json")
     os.makedirs(json_folder, exist_ok=True)
 
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -589,11 +589,9 @@ def save_attachment(part, directory, dados_email):
         dados_email["tipo_arquivo"] = "DESCONHECIDO"  # Define um valor padrão
         return None
 
-    # Determina o tipo de arquivo (PDF ou XML)
+    # Determina o tipo de arquivo (PDF)
     if filename.lower().endswith(".pdf"):
         tipo_arquivo = "PDF"
-    elif filename.lower().endswith(".xml"):
-        tipo_arquivo = "XML"
     else:
         tipo_arquivo = "DESCONHECIDO"  # Define um valor padrão para outros tipos de arquivo
         logging.error(f"Arquivo anexado não é um XML ou PDF: {filename}")
@@ -620,7 +618,7 @@ def save_attachment(part, directory, dados_email):
             logging.error(f"Erro ao processar XML. Nenhum dado extraído.")
             return None
 
-        json_folder = os.path.abspath("NOTAS EM JSON")
+        json_folder = os.path.abspath("notas_json")
         os.makedirs(json_folder, exist_ok=True)
 
         json_filename = os.path.splitext(os.path.basename(filepath))[0] + ".json"
@@ -1120,7 +1118,7 @@ if __name__ == "__main__":
                 impostos = dados_email.get("impostos")
                 valor_liquido = dados_email.get("valor_liquido", "valor_total")
                 if "parcelas" in dados_email:
-                    parcelas = dados_email["parcelas"]
+                    parcelas = dados_email["parcelas"] 
                 else:
                     logging.warning("Chave 'parcelas' não encontrada em dados_email")
                 logging.info(f"Parcelas recebidas: {parcelas}")

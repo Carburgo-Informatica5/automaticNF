@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "08680053000102",
+        "nome": "DWSUL VEICULOS E SERVICOS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "Não encontrado",
+        "nome": "Nao encontrado",
+        "Numero": "Nao encontrado",
+        "Cidade": "Nao encontrado"
+    },
+    "chave_acesso": {
+        "chave": "Nao encontrado"
+    },
+    "num_nota": {
+        "numero_nota": "19571601150"
+    },
+    "serie": "Nao encontrado",
+    "data_emi": {
+        "data_emissao": "01052025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "fatura"
+    },
+    "modelo_email": {
+        "modelo_email": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "496.54"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

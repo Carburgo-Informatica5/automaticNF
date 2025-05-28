@@ -1,9 +1,9 @@
+# importações necessárias para o funcionamento do programa
 import os
 import xml.etree.ElementTree as ET
 import sys
 import time
 from datetime import datetime, timedelta
-import calendar
 import pyautogui as gui
 import pygetwindow as gw
 import pytesseract
@@ -15,7 +15,6 @@ import logging
 import unicodedata
 import re
 import yaml
-from typing import Callable, Any
 
 from email.utils import parseaddr
 
@@ -25,10 +24,12 @@ from DANImail import Queue, WriteTo
 from gemini_api import GeminiAPI
 from gemini_main import *
 
+# Configuração do logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# Configuração do diretório atual
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/bravos")
 
@@ -45,7 +46,7 @@ ASSUNTO_ALVO = "lançamento nota fiscal"
 # Diretório para salvar os anexos
 DIRECTORY = os.path.join(current_dir, "anexos")
 
-
+# Função para decodificar o valor do cabeçalho do e-mail
 def decode_header_value(header_value):
     decoded_fragments = decode_header(header_value)
     decoded_string = ""
@@ -56,6 +57,7 @@ def decode_header_value(header_value):
             decoded_string += fragment
     return decoded_string
 
+# Função para normalizar o texto
 def normalize_text(text):
     if not isinstance(text, str):  # Garante que text seja string
         logging.error(f"Erro: normalize_text recebeu {type(text)} em vez de string.")
@@ -65,7 +67,7 @@ def normalize_text(text):
         c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
     ).lower()
 
-
+# Função para decodificar o corpo do e-mail
 def decode_body(payload, charset):
     if charset is None:
         charset = "utf-8"
@@ -74,13 +76,13 @@ def decode_body(payload, charset):
     except (UnicodeDecodeError, LookupError):
         return payload.decode("ISO-8859-1", errors="ignore")
 
-
+# Arquivo de configuração do servidor de e-mail
 config_path = os.path.join(current_dir, "config.yaml")
 with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 dani = Queue(config)
 
-
+# Extrai valores do corpo do e-mail
 def extract_values(text):
     if not isinstance(text, str):  # Evita chamar `.lower()` em um dicionário
         logging.error(f"Erro: extract_values recebeu {type(text)} em vez de string.")
@@ -131,8 +133,10 @@ def extract_values(text):
 
     return values
 
+# Adiciona o caminho do arquivo JSON de emails processados
 PROCESSED_EMAILS_FILE = os.path.join(current_dir, "processed_emails.json")
 
+# Carrega os emails processados do arquivo JSON
 def load_processed_emails():
     if os.path.exists(PROCESSED_EMAILS_FILE):
         with open(PROCESSED_EMAILS_FILE, "r") as file:
@@ -145,11 +149,12 @@ def load_processed_emails():
                 return []
     return []
 
-
+# Salva os id´s dos emails processados no arquivo JSON
 def save_processed_emails(processed_emails):
     with open(PROCESSED_EMAILS_FILE, "w") as file:
         json.dump(processed_emails, file)
 
+# Função para verificar os e-mails
 def check_emails(nmr_nota, extract_values):
     sender = None
     dados_email = {}
@@ -465,7 +470,7 @@ def process_pdf(pdf_path, dados_email):
         logging.error(f"Erro: Arquivo não encontrado: {pdf_path}")
         return None
 
-    json_folder = os.path.abspath("NOTAS EM JSON")
+    json_folder = os.path.abspath("notas_json")
     os.makedirs(json_folder, exist_ok=True)
 
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -620,7 +625,7 @@ def save_attachment(part, directory, dados_email):
             logging.error(f"Erro ao processar XML. Nenhum dado extraído.")
             return None
 
-        json_folder = os.path.abspath("NOTAS EM JSON")
+        json_folder = os.path.abspath("notas_json")
         os.makedirs(json_folder, exist_ok=True)
 
         json_filename = os.path.splitext(os.path.basename(filepath))[0] + ".json"
@@ -720,62 +725,72 @@ def process_cost_centers(cc_texto, valor_total):
 
     return centros_de_custo
 
-
 def send_email_error(dani, destinatario, erro, nmr_nota):
     config["to"] = destinatario
     dani = Queue(config)
 
+    if not nmr_nota:
+        logging.warning("Número da nota não fornecido. O e-mail será enviado sem o número da nota.")
+
     mensagem = (
         dani.make_message()
         .set_color("red")
-        .add_text(f"Erro durante lançamento de nota fiscal: {nmr_nota}", tag="h1")
+        .add_text(
+            f"Erro durante lançamento de nota fiscal: {nmr_nota}",
+            tag="h1",
+        )
         .add_text(str(erro), tag="pre")
     )
 
-    mensagem_assinatura = (
-        dani.make_message()
-        .set_color("green")
-        .add_text("DANI", tag="h1")
-        .add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
-        .add_text(
-            "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
-            tag="p",
-        )
-        .add_text(
-            "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
-            tag="p",
-        )
+    mensagem.add_text("DANI", tag="h1")
+    mensagem.add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
+    mensagem.add_text(
+        "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
+        tag="p",
     )
-    dani.push(mensagem).push(mensagem_assinatura).flush()
+    mensagem.add_text(
+        "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
+        tag="p",
+    )
+
+    try:
+        dani.push(mensagem).flush()
+    except Exception as e:
+        logging.error(f"Erro ao enviar e-mail de erro: {e}")
 
 
 def send_success_message(dani, destinatario, nmr_nota):
     config["to"] = destinatario
     dani = Queue(config)
 
+    if not nmr_nota:
+        logging.warning("Número da nota não fornecido. O e-mail será enviado sem o número da nota.")
+
     mensagem = (
         dani.make_message()
         .set_color("green")
-        .add_text(f"Nota lançada com sucesso número da nota: {nmr_nota}", tag="h1")
+        .add_text(
+            f"Nota lançada com sucesso número da nota: {nmr_nota}",
+            tag="h1",
+        )
         .add_text("Acesse o sistema para verificar o lançamento.", tag="pre")
     )
 
-    mensagem_assinatura = (
-        dani.make_message()
-        .set_color("green")
-        .add_text("DANI", tag="h1")
-        .add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
-        .add_text(
-            "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
-            tag="p",
-        )
-        .add_text(
-            "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
-            tag="p",
-        )
+    mensagem.add_text("DANI", tag="h1")
+    mensagem.add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
+    mensagem.add_text(
+        "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
+        tag="p",
+    )
+    mensagem.add_text(
+        "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
+        tag="p",
     )
 
-    dani.push(mensagem).push(mensagem_assinatura).flush()
+    try:
+        dani.push(mensagem).flush()
+    except Exception as e:
+        logging.error(f"Erro ao enviar e-mail de sucesso: {e}")
 
 
 def processar_parcelas(parcelas):
@@ -841,7 +856,8 @@ class SystemNF:
         # Validação dos dados necessários
         if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
             raise ValueError("Dados obrigatórios estão faltando")
-        
+
+        gui.PAUSE = 1
 
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
@@ -1265,7 +1281,11 @@ if __name__ == "__main__":
                     and "destinatario" in dados_email
                 ):
                     cnpj_emitente = dados_email["emitente"]["cnpj"]
-                    nmr_nota = dados_email["num_nota"]["numero_nota"]
+                    if "num_nota" in dados_email and "numero_nota" in dados_email["num_nota"]:
+                        nmr_nota = dados_email["num_nota"]["numero_nota"]
+                    else:
+                        logging.error("Número da nota fiscal não encontrado em dados_email.")
+                        nmr_nota = "NÃO INFORMADO"
                     data_emi = dados_email["data_emi"]["data_emissao"]
                     data_venc = dados_email["data_venc"]["data_venc"]
                     chave_acesso = dados_email["chave_acesso"]["chave"]
