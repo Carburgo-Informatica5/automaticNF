@@ -36,14 +36,14 @@ class GeminiAPI:
 
     def extract_info(self, file_id):
         generation_config = {
-            "temperature": 0.1,
+            "temperature": 0,
             "top_p": 0.95,
             "top_k": 40,
             "response_mime_type": "text/plain",
         }
 
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="gemini-2.0-flash",
             generation_config=generation_config,
         )
 
@@ -83,7 +83,7 @@ class GeminiAPI:
     - "CSLL": Valor do CSLL (padrão "0.00" se não houver)
 
 **Regras adicionais:**
-- Se o documento for de frete, use o remetente como tomador e preencha "chave_acesso" e "serie".
+- Se o documento for de frete, use o remetente como tomador e preencha "chave_acesso" e "série" que sempre estará ao lado esquerdo do número da nota.
 - Se algum campo não for encontrado ou estiver ilegível, use "Informacao ausente" ou "Nao encontrado" conforme o caso.
 - O JSON deve ser bem formatado, válido e não conter caracteres inválidos.
 - Não inclua explicações, apenas o JSON.

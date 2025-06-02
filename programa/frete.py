@@ -82,7 +82,7 @@ dani = Queue(config)
 
 
 def extract_values(text):
-    if not isinstance(text, str):  # Evita chamar `.lower()` em um dicionário
+    if not isinstance(text, str): 
         logging.error(f"Erro: extract_values recebeu {type(text)} em vez de string.")
         return {}
 

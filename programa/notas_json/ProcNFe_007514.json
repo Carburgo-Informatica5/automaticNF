@@ -1,0 +1,54 @@
+{
+    "emitente": {
+        "cnpj": "05846734000100",
+        "nome": "DEM INFORMATICA LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA-"
+    },
+    "chave_acesso": {
+        "chave": "43250505846734000100550010000075141297510194"
+    },
+    "num_nota": {
+        "numero_nota": "7514"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "28052025"
+    },
+    "data_venc": {
+        "data_venc": "25062025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "2990.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-06-25",
+            "valor_parcela": "747.50"
+        },
+        {
+            "numero_parcela": "002",
+            "data_vencimento": "2025-07-25",
+            "valor_parcela": "747.50"
+        },
+        {
+            "numero_parcela": "003",
+            "data_vencimento": "2025-08-25",
+            "valor_parcela": "747.50"
+        },
+        {
+            "numero_parcela": "004",
+            "data_vencimento": "2025-09-25",
+            "valor_parcela": "747.50"
+        }
+    ],
+    "info_adicional": {}
+}
