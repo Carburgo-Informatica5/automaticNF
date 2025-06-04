@@ -8,211 +8,223 @@ from os import path, makedirs
 from datetime import datetime
 import random
 from typing import *
+from email.message import EmailMessage
+import traceback
 
-#- Class Defition -#
+
 class WriteTo(enum.Enum):
     header = 1
     body = 2
 
-# Coloca em uma caixa a mensagem que ela gera
+
 class Message:
     def __init__(self, queue) -> None:
         self.color: str = "red"
-        self._inner_html_queue: list[str] = list()
-        self._inner_attachment_queue: list[MIMENonMultipart] = list()
-        self._start: str = lambda: f"<div class=\"code_block {self.color}\"><h2> -#- Start -#- </h2><br>"
-        self._end: str = lambda: f"<br><h2> -#- End -#- </h2></div>"
+        self._inner_html_queue: list[str] = []
+        self._inner_attachment_queue: list[MIMENonMultipart] = []
+        self._start: str = lambda: "" 
+        self._end: str = lambda: ""
 
-# Pega os caracteres da mensagem e a forma
     def __get_random_cid(self) -> str:
-        result: str = "attachment-"
-        for _ in range(64): result += random.choice('abcdefghijklmnopqrstuvwxyzç1234567890')
-        return result
+        return "attachment-" + "".join(
+            random.choices("abcdefghijklmnopqrstuvwxyzç1234567890", k=64)
+        )
 
-# Define a cor dos textos
-    def set_color(self, color: str) -> Self:
+    def set_color(self, color: str) -> "Message":
         self.color = color
         return self
 
-    def insert_raw(self, content: str|list[str]) -> Self:
-        if type(content) is str: 
-            self._inner_html_queue.append(" ".join(content.split()))
-            print(content)
+    def insert_raw(self, content: str | list[str]) -> "Message":
+        if isinstance(content, str):
+            self._inner_html_queue.append(content)
         else:
-            for text in content:
-                self._inner_html_queue.append(" ".join(text.split()))
-                print(text)
+            self._inner_html_queue.extend(content)
         return self
 
-# Adiciona o texto com base em HTML criando a mensagem e e tags da semântica
-    def add_text(self, content: str|list[str], tag:str = "p", tag_end: str = None) -> Self:
+    def add_text(
+        self, content: str | list[str], tag: str = "p", tag_end: str = None
+    ) -> "Message":
+        tag_end = tag_end or tag
+
         def html(string: str):
-            string = ( string
-            .replace('&', "&amp;")
-            .replace('<', '&lt;')
-            .replace('>', '&gt;')
-            .replace('\"', '&quot;')
-            .replace('\'', "&#39;")
+            string = (
+                string.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace('"', "&quot;")
+                .replace("'", "&#39;")
             )
             return f"<{tag}>{string}</{tag_end}>"
-        
-        if tag_end is None: tag_end = tag
-        if type(content) is str: 
-            self._inner_html_queue.append(html(content))
-            print(content)
 
-        else: 
-            for text in content: 
-                self._inner_html_queue.append(html(text))
-                print(text)
+        if isinstance(content, str):
+            self._inner_html_queue.append(html(content))
+        else:
+            self._inner_html_queue.extend([html(text) for text in content])
         return self
 
-# Adiciona a imagem que é gerada, aceita somente em JPEG
-    def add_img(self, img: Image|bytes) -> Self:
-        if type(img) is Image:
+    def add_img(self, img: Image | bytes) -> "Message":
+        if isinstance(img, Image):
             buffer = io.BytesIO()
             img.save(buffer, "JPEG")
             image = MIMEImage(buffer.getvalue())
-        elif type(img) is bytes:
+        elif isinstance(img, bytes):
             image = MIMEImage(img)
         else:
-            raise ValueError("Image must be a Image from pillow or bytes.")
-        
+            raise ValueError("Image must be a PIL.Image or bytes.")
         image_name = self.__get_random_cid()
-        image.add_header('Content-ID', f"<{image_name}>")
-
+        image.add_header("Content-ID", f"<{image_name}>")
         self._inner_attachment_queue.append(image)
-        self._inner_html_queue += f"<img src=\"cid:{image_name}\"><br>"
+        self._inner_html_queue.append(f'<img src="cid:{image_name}"><br>')
         return self
 
-# Juntas os elementos da Mensagem e a forma
     def _compose(self) -> tuple[str, list[MIMENonMultipart]]:
-        result: str = "" 
-        result += self._start()
-        for message in self._inner_html_queue:
-            result += message
+        result = self._start()
+        result += "".join(self._inner_html_queue)
         result += self._end()
-        return (result, self._inner_attachment_queue)
+        return result, self._inner_attachment_queue
 
 
 class Queue:
-    def __init__(self, config:dict) -> None:
+    def __init__(self, config: dict, is_debug: bool = False) -> None:
+        self._queue: list[EmailMessage] = []
         self._config = config
-        self._config["subject"] = datetime.today().strftime(self._config["subject"])
-        while self._config["spool"][-1] == '\\':
-            self._config["spool"] = self._config["spool"][-1:]
+        self._IS_DEBUG = is_debug
+        self._header_queue: str = ""
+        self._body_queue: str = ""
+        self._attachments_queue: list[MIMENonMultipart] = []
+        self._has_error: bool = False
 
-    _IS_DEBUG = False
-    _header_queue: str = ""
-    _body_queue: str = ""
-    _attachments_queue: list[MIMENonMultipart] = list()
-    _has_error: bool = False
+        # Corrige o assunto para usar strftime se necessário
+        subject = self._config.get("subject", "Sistema de lancamento de notas fiscais")
+        try:
+            self._config["subject"] = datetime.now().strftime(subject)
+        except Exception:
+            pass  # Se não for um formato válido, mantém como está
 
-    def sendto_queue(self, message_bundle: list[str], screenshot: Image = None, is_info: bool = False) -> None:
-        print("AVISO: essa função foi deprecada e deve ser substituida.")
-        message = (
-            self.make_message()
-            .set_color("green" if is_info else "red")
-            .add_text(message_bundle)
-            )
-        if screenshot is not None: message.add_img(screenshot)
-        self.push(message)
-
-# Faz a mensagem
-    def make_message(self, message: Message = Message) -> Message:
+    def make_message(self, message: Type[Message] = Message) -> Message:
         return message(self)
 
-# Escreve o corpo da mensagem e a envia
-    def push(self, message: Message, at:WriteTo = WriteTo.body):
+    def push(self, message: Message, at: WriteTo = WriteTo.body):
         text, attachments = message._compose()
         self._attachments_queue += attachments
-        match at: 
-            case WriteTo.body: self._body_queue += text
-            case WriteTo.header: self._header_queue += text
+        if at == WriteTo.body:
+            self._body_queue += text
+        else:
+            self._header_queue += text
         return self
 
     def flush(self):
-        if self._body_queue == "" and self._header_queue == "": return
-        
-        if self._IS_DEBUG:
-            print("\n \n -> [DEBUG IS ON] Dumping queue to console. No emails sent.")
-            if len(self._header_queue) > 0: print('\n', self._header_queue)
-            if len(self._body_queue) > 0: print('\n', self._body_queue)
-            if len(self._header_queue) < 1 and len(self._body_queue) < 1: print("\n The Queue is empty, therefore, no lines will be printed.")
-            else: print("\n")
+        if not self._body_queue and not self._header_queue:
             return
+        html = self._build_html()
+        if self._IS_DEBUG:
+            print(
+                "\n\n-> [MODO DEBUG ATIVADO] O e-mail não será enviado. Conteúdo abaixo:"
+            )
+            print(html)
+            self._clear_queues()
+            return
+        msg = MIMEMultipart("related")
+        msg["From"] = self._config["from"]
+        msg["Subject"] = self._config["subject"]
+        msg["To"] = (
+            ", ".join(self._config["to"])
+            if isinstance(self._config["to"], list)
+            else self._config["to"]
+        )
+        msg.attach(MIMEText(html, "html"))
+        for attachment in self._attachments_queue:
+            msg.attach(attachment)
+        try:
+            server = smtplib.SMTP(self._config["smtp_sv"], self._config["smtp_prt"])
+            server.set_debuglevel(1)
+            server.starttls(context=ssl.create_default_context())
+            server.login(user=self._config["from"], password=self._config["pswd"])
+            server.send_message(msg=msg)
+            server.close()
+            print("-> E-mail enviado com sucesso!")
+            self._save_email_spool(str(msg))
+        except (smtplib.SMTPException, EOFError, ConnectionRefusedError) as e:
+            print("!!! ERRO AO ENVIAR E-MAIL:", e)
+        finally:
+            self._clear_queues()
 
-        print("\n \n -> flushing queue...")
-        msg = MIMEMultipart('related')
-        msg['From'] = self._config["from"]
-        msg['Subject'] = self._config["subject"]
-        if type(self._config["to"]) is list: msg['To'] = ", ".join(self._config["to"])
-        else: msg['To'] = self._config["to"]
+    def _build_html(self) -> str:
+        def text_sanitize(string):
+            return " ".join(
+                string.replace("\n", "")
+                .replace("\r", "")
+                .replace("    ", " ")
+                .strip()
+                .split()
+            )
 
-        if self._has_error and self._body_queue.count("code_block") > 6:
-            self._body_queue = f"<div class=\"code_block red\"><h2>Foram encontrados erros!</h2></div>" + self._body_queue
+        style = ""
+        if "style" in self._config and path.isfile(self._config["style"]):
+            with open(self._config["style"], "r") as f:
+                style = text_sanitize(f.read())
+        signature = ""
+        if "signature" in self._config and path.isfile(self._config["signature"]):
+            try:
+                with open(self._config["signature"], "rb") as f:
+                    signature = f.read().decode()
+            except Exception as e:
+                print(f"Aviso: Não foi possível ler o arquivo de assinatura: {e}")
+        html = f"""<html>
+            <head><style>{style}</style></head>
+            <header>{signature}{self._header_queue}</header>
+            <body>{self._body_queue}</body>
+        </html>"""
+        return html
 
-        # Monta o HTML
-        text_sanitize = lambda string: ' '.join(string.replace('\n','').replace('\r', '').replace('    ', ' ').strip().split())
-        style = text_sanitize(open(self._config["style"], 'r').read())
-    
-        html = "<html>"
-        html += f"<style>{style}</style>"
-        html += "<header>"
-        try: html += text_sanitize(open(self._config["signature"], 'rb').read().decode())
-        except: pass
-        html += self._header_queue
-        html += "</header>"
-        html += "<body>"
-        html += self._body_queue
-        html += "</body>"
-        html += "</html>"
+    def _save_email_spool(self, email_content: str):
+        try:
+            file_name = self._config["subject"]
+            for char in "\\/:*<>|":
+                file_name = file_name.replace(char, " ")
+            count = 0
+            makedirs(self._config["spool"], exist_ok=True)
+            file_path_lambda = (
+                lambda: f"{self._config['spool']}\\{file_name}{'' if count < 1 else f'({count})'}.eml"
+            )
+            while path.isfile(file_path_lambda()):
+                count += 1
+            with open(file_path_lambda(), "w", encoding="utf-8") as file:
+                file.write(email_content)
+            print(f"-> Cópia do e-mail salva em: {file_path_lambda()}")
+        except Exception as e:
+            print(f"Aviso: Falha ao salvar cópia do e-mail: {e}")
 
-        msg.attach(MIMEText(html, 'html'))
-        for attachment in self._attachments_queue: msg.attach(attachment)
-
-        server = smtplib.SMTP(self._config["smtp_sv"], self._config["smtp_prt"])
-        server.starttls(context=ssl.create_default_context())
-        server.login(user=self._config["from"], password=self._config["pswd"])
-        server.send_message(msg=msg)
-        server.close()
-
+    def _clear_queues(self):
         self._body_queue = ""
         self._header_queue = ""
-        self._attachments_queue = list()
+        self._attachments_queue = []
 
-        #print(msg)
-        file_name:str = self._config["subject"]
-        for char in "\\/:*<>|": file_name = file_name.replace(char, ' ')
-
-        count: int = 0
-        makedirs(self._config["spool"], exist_ok=True)
-        file_path = lambda: f"{self._config["spool"]}\\{file_name}{"" if count < 1 else f"({count})"}.eml"
-        while path.isfile(file_path()): count += 1
-        with open(file_path(), 'w') as file: file.write(str(msg))
-
-        return self
-
-    #- aliases -#
     def print_trace(self) -> str:
-        import traceback
         return traceback.format_exc()
 
+
 # Inicializa o arquivo
-if __name__ == '__main__':
+if __name__ == "__main__":
     import yaml
     import pyautogui
 
-    config = yaml.safe_load(open("./data/dani_ti.yaml", 'r').read())
+    config = yaml.safe_load(open("./data/dani_ti.yaml", "r").read())
     dani = Queue(config)
 
-# Testes de mensagens
-    message = (   
+    # Testes de mensagens
+    message = (
         dani.make_message()
         .set_color("green")
         .add_text("Isto é um teste com imagem")
         .add_img(pyautogui.screenshot())
-        .add_text(["Isto é uma mensagem de teste", "Isso támbem é um teste", "Isso não é um teste, favor entrar em panico de imediato."])
+        .add_text(
+            [
+                "Isto é uma mensagem de teste",
+                "Isso támbem é um teste",
+                "Isso não é um teste, favor entrar em panico de imediato.",
+            ]
+        )
         .add_img(pyautogui.screenshot())
         .add_text(["Main falhou silenciosamente.", dani.print_trace()])
     )
@@ -220,16 +232,22 @@ if __name__ == '__main__':
     message2 = (
         dani.make_message()
         .set_color("red")
-        .add_text(["Este teste prova se a fila foi resetada corretamente.", "eu espero"])
+        .add_text(
+            ["Este teste prova se a fila foi resetada corretamente.", "eu espero"]
+        )
         .add_text("ola! isso é um teste de titulo", tag="h1")
         .add_img(pyautogui.screenshot())
         .insert_raw("<h3><b><i>isto prova que é possivel inserir html</b></i></h3>")
         .add_text("<br><i>Isto prova que não é possivel injetar html arbitrario</i>")
     )
 
-    (   dani
-        .push(message)
-        .push(dani.make_message().set_color("green").add_text("Isto é uma mensagem de cabeçalho"))
+    (
+        dani.push(message)
+        .push(
+            dani.make_message()
+            .set_color("green")
+            .add_text("Isto é uma mensagem de cabeçalho")
+        )
         .flush()
         .push(message2)
         .flush()

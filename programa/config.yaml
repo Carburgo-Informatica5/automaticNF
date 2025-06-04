@@ -12,7 +12,7 @@ smtp_prt: 587
 
 # assunto do email
 # strftime é aplicado sobre. Ex: "Dani - %Y" -> "Dani - 2024"
-subject: "Sistema de lancamento de notas fiscais - (%B %d, %Y - %H:%M)"
+subject: "Sistema de lancamento de notas fiscais - %d/%m/%Y - %H:%M"
 
 # recipiente
 # str/list[str]

@@ -1,65 +1,178 @@
-.code_block {
-    background-color: rgb(33, 44, 56);
-    padding: 2%;
-    margin: 3%;
-    font-family: monospace;
-    border-radius: 25px;
-    border-width: 1%;
-    border-style: solid;
-    box-shadow: 10px 10px;
+/* Reset básico */
+body,
+html {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    color: #e6e6e6;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 16px;
+    background: rgba(44, 54, 70, 0.85);
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+.code_block:hover {
+    box-shadow: 0 12px 40px 0 rgba(49, 127, 95, 0.25);
 }
 
 .green {
-    color: rgb(199, 243, 156);
-    border-color: rgb(49, 127, 95);
+    color: #c7f39c;
+    border-color: #317f5f;
+    background: linear-gradient(120deg, #2e3a4a 60%, #317f5f 100%);
 }
 
 .red {
-    color: rgb(255, 139, 139);
-    border-color: rgb(122, 43, 43);
+    color: #ff8b8b;
+    border-color: #7a2b2b;
+    background: linear-gradient(120deg, #2e3a4a 60%, #7a2b2b 100%);
 }
 
-code {
-    display: block;
+h1,
+h2,
+h3,
+h4 {
+    color: #fff;
+    margin-top: 1.2em;
+    margin-bottom: 0.5em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 8px rgba(31, 38, 135, 0.10);
+}
+
+a {
+    color: #7ecfff;
+    text-decoration: underline;
+    transition: color 0.2s, text-shadow 0.2s;
+    font-weight: 500;
+}
+
+a:hover {
+    color: #c7f39c;
+    text-shadow: 0 2px 8px #317f5f55;
+}
+
+button,
+.btn {
+    background: linear-gradient(90deg, #317f5f 60%, #7ecfff 100%);
+    color: #23272f;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6em 1.4em;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(49, 127, 95, 0.10);
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    margin: 0.5em 0;
+}
+
+button:hover,
+.btn:hover {
+    background: linear-gradient(90deg, #7ecfff 60%, #c7f39c 100%);
+    color: #23272f;
+    box-shadow: 0 4px 16px rgba(49, 127, 95, 0.18);
+}
+
+code,
+pre {
+    background: rgba(24, 28, 34, 0.95);
+    color: #c7f39c;
+    border-radius: 8px;
+    padding: 0.2em 0.5em;
+    font-size: 1em;
     white-space: pre-wrap;
+    display: block;
+    margin: 0.5em 0;
+    font-family: 'Fira Mono', monospace;
+    box-shadow: 0 2px 8px rgba(49, 127, 95, 0.08);
 }
 
 p {
     white-space: pre-wrap;
-}
-
-pre {
-    white-space: pre-wrap;
+    line-height: 1.7;
+    margin: 1em 0;
+    font-size: 1.05em;
 }
 
 img {
     display: block;
-    margin: auto;
-    max-width: 75vw;
-    border-color: inherit;
-    border-radius: 10px;
-    border-width: 1%;
-    border-style: solid;
-    box-shadow: 10px 10px;
+    margin: 1.5em auto;
+    max-width: 90vw;
+    border-radius: 14px;
+    border: 2px solid #3a4a5a;
+    box-shadow: 0 4px 16px 0 rgba(49, 127, 95, 0.15);
+    transition: box-shadow 0.2s;
 }
 
-table,
-td,
-th {
+img:hover {
+    box-shadow: 0 8px 32px 0 rgba(49, 127, 95, 0.25);
+}
+
+table {
     border-collapse: collapse;
-    border-width: 1%;
-    border-style: solid;
+    margin: 1.5em auto;
+    width: 95%;
+    background: rgba(35, 39, 47, 0.95);
+    box-shadow: 0 2px 8px rgba(49, 127, 95, 0.10);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 1em;
+}
 
-    border-color: rgb(49, 127, 95);
-    color: rgb(199, 243, 156);
-    box-shadow: 10px 10px rgb(199, 243, 156);
-    background-color: rgb(33, 44, 56);
-
-    padding: 6px;
+th,
+td {
+    border: 1px solid #317f5f;
+    padding: 12px 16px;
+    text-align: left;
 }
 
 th {
-    color: white;
-    font-weight: bolder;
-    background-color: rgb(49, 127, 95);
+    background: linear-gradient(90deg, #317f5f 70%, #2e3a4a 100%);
+    color: #fff;
+    font-weight: bold;
+    letter-spacing: 0.03em;
+}
+
+tr:nth-child(even) {
+    background: #28313a;
+}
+
+tr:hover {
+    background: #2e3a4a;
+    transition: background 0.2s;
+}
+
+blockquote {
+    border-left: 4px solid #317f5f;
+    background: rgba(49, 127, 95, 0.08);
+    margin: 1em 0;
+    padding: 1em 1.5em;
+    border-radius: 8px;
+    color: #b2e6c7;
+    font-style: italic;
+}
+
+@media (max-width: 600px) {
+
+    .code_block,
+    table {
+        padding: 1em;
+        font-size: 0.95em;
+        max-width: 98vw;
+    }
+
+    th,
+    td {
+        padding: 7px 6px;
+    }
+
+    img {
+        max-width: 98vw;
+    }
+
+    body,
+    html {
+        font-size: 15px;
+    }
 }

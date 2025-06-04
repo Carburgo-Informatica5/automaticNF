@@ -440,9 +440,12 @@ def check_emails(nmr_nota, extract_values):
         )
         return None
     finally:
-        if server:
-            server.quit()
-            logging.info("Conexão com o servidor POP3 encerrada.")
+        try:
+            if server:
+                server.quit()
+                logging.info("Conexão com o servidor POP3 encerrada.")
+        except Exception as e:
+            logging.error(f"Erro ao encerrar conexão POP3: {e}")
 
 def clean_extracted_json(json_data):
     if not isinstance(json_data, dict):
@@ -730,15 +733,12 @@ def send_email_error(dani, destinatario, erro, nmr_nota):
     dani = Queue(config)
 
     if not nmr_nota:
-        logging.warning("Número da nota não fornecido. O e-mail será enviado sem o número da nota.")
+        raise ValueError("O número da nota é obrigatório para envio de e-mail de erro.")
 
     mensagem = (
         dani.make_message()
         .set_color("red")
-        .add_text(
-            f"Erro durante lançamento de nota fiscal: {nmr_nota}",
-            tag="h1",
-        )
+        .add_text(f"Erro durante lançamento de nota fiscal número: {nmr_nota}", tag="h1")
         .add_text(str(erro), tag="pre")
     )
 
@@ -756,7 +756,17 @@ def send_email_error(dani, destinatario, erro, nmr_nota):
     try:
         dani.push(mensagem).flush()
     except Exception as e:
-        logging.error(f"Erro ao enviar e-mail de erro: {e}")
+        logging.error(f"Erro ao processar o e-mail: {e}")
+        if nmr_nota:
+            send_email_error(
+                dani,
+                sender,
+                f"Erro ao processar o e-mail: {e}",
+                nmr_nota,
+            )
+        else:
+            logging.error("Erro crítico: Não foi possível enviar e-mail de erro pois o número da nota está ausente.")
+        return None
 
 
 def send_success_message(dani, destinatario, nmr_nota):
@@ -764,15 +774,12 @@ def send_success_message(dani, destinatario, nmr_nota):
     dani = Queue(config)
 
     if not nmr_nota:
-        logging.warning("Número da nota não fornecido. O e-mail será enviado sem o número da nota.")
+        raise ValueError("O número da nota é obrigatório para envio de e-mail de sucesso.")
 
     mensagem = (
         dani.make_message()
         .set_color("green")
-        .add_text(
-            f"Nota lançada com sucesso número da nota: {nmr_nota}",
-            tag="h1",
-        )
+        .add_text(f"Nota lançada com sucesso número: {nmr_nota}", tag="h1")
         .add_text("Acesse o sistema para verificar o lançamento.", tag="pre")
     )
 
@@ -1208,7 +1215,7 @@ class SystemNF:
                         logging.info("Último centro de custo salvo e encerrado.")
                     else:
                         gui.press("tab", presses=3)
-            gui.press("tab", presses=4)
+            gui.press("tab", presses=3)
             gui.press("enter")
 
         except Exception as e:
@@ -1270,38 +1277,42 @@ if __name__ == "__main__":
                 else:
                     logging.warning("Chave 'parcelas' não encontrada em dados_email")
                 logging.info(f"Parcelas recebidas: {parcelas}")
-
-                if (
-                    "emitente" in dados_email
-                    and "num_nota" in dados_email
-                    and "data_emi" in dados_email
-                    and "data_venc" in dados_email
-                    and "chave_acesso" in dados_email
-                    and "modelo" in dados_email
-                    and "destinatario" in dados_email
-                ):
-                    cnpj_emitente = dados_email["emitente"]["cnpj"]
-                    if "num_nota" in dados_email and "numero_nota" in dados_email["num_nota"]:
-                        nmr_nota = dados_email["num_nota"]["numero_nota"]
+                
+                def processar_dados(dados_email):
+                    if (
+                        "emitente" in dados_email
+                        and "num_nota" in dados_email
+                        and "data_emi" in dados_email
+                        and "data_venc" in dados_email
+                        and "chave_acesso" in dados_email
+                        and "modelo" in dados_email
+                        and "destinatario" in dados_email
+                    ):
+                        cnpj_emitente = dados_email["emitente"]["cnpj"]
+                        if "num_nota" in dados_email and "numero_nota" in dados_email["num_nota"]:
+                            nmr_nota = dados_email.get("num_nota", {}).get("numero_nota")
+                            if not nmr_nota:
+                                logging.error("Número da nota não encontrado. Nenhum e-mail será enviado.")
+                                return None
+                        else:
+                            logging.error("Número da nota fiscal não encontrado em dados_email.")
+                            return
+                        data_emi = dados_email["data_emi"]["data_emissao"]
+                        data_venc = dados_email["data_venc"]["data_venc"]
+                        chave_acesso = dados_email["chave_acesso"]["chave"]
+                        modelo = dados_email["modelo"]["modelo"]
+                        cnpj_dest = dados_email["destinatario"]["cnpj"]
                     else:
-                        logging.error("Número da nota fiscal não encontrado em dados_email.")
-                        nmr_nota = "NÃO INFORMADO"
-                    data_emi = dados_email["data_emi"]["data_emissao"]
-                    data_venc = dados_email["data_venc"]["data_venc"]
-                    chave_acesso = dados_email["chave_acesso"]["chave"]
-                    modelo = dados_email["modelo"]["modelo"]
-                    cnpj_dest = dados_email["destinatario"]["cnpj"]
-                else:
-                    logging.error(
-                        "Dados da nota fiscal não foram carregados corretamente"
-                    )
-                    send_email_error(
-                        dani,
-                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        "Erro: Dados da nota fiscal não foram carregados corretamente",
-                        nmr_nota,
-                    )
-                    continue
+                        logging.error(
+                            "Dados da nota fiscal não foram carregados corretamente"
+                        )
+                        send_email_error(
+                            dani,
+                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                            "Erro: Dados da nota fiscal não foram carregados corretamente",
+                            nmr_nota,
+                        )
+                continue
 
                 def verificar_campos_obrigatorios(
                     departamento,
