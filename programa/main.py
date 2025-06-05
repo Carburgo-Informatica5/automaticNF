@@ -102,6 +102,7 @@ def extract_values(text):
 
     lines = text.lower().splitlines()
     for line in lines:
+        line = line.strip()
         if isinstance(line, str): 
             if line.startswith("departamento:"):
                 values["departamento"] = line.split(":", 1)[1].strip()
@@ -158,6 +159,7 @@ def save_processed_emails(processed_emails):
 def check_emails(nmr_nota, extract_values):
     sender = None
     dados_email = {}
+    nmr_nota_notificacao = nmr_nota
     try:
         server = poplib.POP3_SSL(HOST, PORT)
         server.user(USERNAME)
@@ -207,8 +209,11 @@ def check_emails(nmr_nota, extract_values):
 
                             # Extrair valores do corpo do e-mail antes de processar o anexo
                             valores_extraidos = extract_values(body)
+                            nmr_nota = valores_extraidos.get("numero_nota") or valores_extraidos.get("num_nota") or nmr_nota
                             dados_email.update(valores_extraidos)
                             logging.info(f"Dados do e-mail após extração: {dados_email}")
+                            if not nmr_nota:
+                                logging.error("Número da nota fiscal não encontrado nos dados extraídos.")
                         elif part.get("Content-Disposition") is not None:
                             logging.info("Encontrado anexo no e-mail")
                             # Processar o anexo com os dados atualizados
@@ -401,16 +406,24 @@ def check_emails(nmr_nota, extract_values):
                                     send_success_message(
                                         dani,
                                         sender,
-                                        nmr_nota,
+                                        nmr_nota_notificacao,
                                     )
 
                                 except Exception as e:
                                     logging.error(f"Erro ao processar o e-mail: {e}")
+                                    
+                                    nmr_nota_notificacao = None
+                                    
+                                    if 'nmr_nota_notificacao' in locals() and nmr_nota:
+                                        nmr_nota_notificacao = nmr_nota
+                                    elif dados_email and dados_email.get('num_nota') and dados_email['num_nota'].get('numero_nota'):
+                                        nmr_nota_notificacao = dados_email['num_nota']['numero_nota']
+                                    
                                     send_email_error(
                                         dani,
                                         sender,
                                         f"Erro ao processar o e-mail: {e}",
-                                        nmr_nota,
+                                        nmr_nota_notificacao,
                                     )
                                     return None
                             else:
@@ -419,7 +432,7 @@ def check_emails(nmr_nota, extract_values):
                                     dani,
                                     sender,
                                     "Erro ao salvar ou processar o anexo",
-                                    nmr_nota,
+                                    nmr_nota_notificacao,
                                 )
                                 return None
                 else:
@@ -436,7 +449,7 @@ def check_emails(nmr_nota, extract_values):
             dani,
             sender if sender else "caetano.apollo@carburgo.com.br",
             f"Erro ao verificar emails: {e}",
-            nmr_nota,
+            nmr_nota_notificacao,
         )
         return None
     finally:
@@ -728,17 +741,14 @@ def process_cost_centers(cc_texto, valor_total):
 
     return centros_de_custo
 
-def send_email_error(dani, destinatario, erro, nmr_nota):
+def send_email_error(dani, destinatario, erro, nmr_nota_notificacao):
     config["to"] = destinatario
     dani = Queue(config)
-
-    if not nmr_nota:
-        raise ValueError("O número da nota é obrigatório para envio de e-mail de erro.")
 
     mensagem = (
         dani.make_message()
         .set_color("red")
-        .add_text(f"Erro durante lançamento de nota fiscal número: {nmr_nota}", tag="h1")
+        .add_text(f"Erro durante lançamento de nota fiscal número: {nmr_nota_notificacao}", tag="h1")
         .add_text(str(erro), tag="pre")
     )
 
@@ -760,26 +770,23 @@ def send_email_error(dani, destinatario, erro, nmr_nota):
         if nmr_nota:
             send_email_error(
                 dani,
-                sender,
+                destinatario,
                 f"Erro ao processar o e-mail: {e}",
-                nmr_nota,
+                nmr_nota_notificacao,
             )
         else:
             logging.error("Erro crítico: Não foi possível enviar e-mail de erro pois o número da nota está ausente.")
         return None
 
 
-def send_success_message(dani, destinatario, nmr_nota):
+def send_success_message(dani, destinatario, nmr_nota_notificacao):
     config["to"] = destinatario
     dani = Queue(config)
-
-    if not nmr_nota:
-        raise ValueError("O número da nota é obrigatório para envio de e-mail de sucesso.")
 
     mensagem = (
         dani.make_message()
         .set_color("green")
-        .add_text(f"Nota lançada com sucesso número: {nmr_nota}", tag="h1")
+        .add_text(f"Nota lançada com sucesso número: {nmr_nota_notificacao}", tag="h1")
         .add_text("Acesse o sistema para verificar o lançamento.", tag="pre")
     )
 
@@ -859,10 +866,6 @@ class SystemNF:
         chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
         valor_liquido, tipo_imposto, impostos, tipo_documento, modelo_email, dados_email=None
     ):
-        
-        # Validação dos dados necessários
-        if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
-            raise ValueError("Dados obrigatórios estão faltando")
 
         gui.PAUSE = 1
 
@@ -1165,7 +1168,7 @@ class SystemNF:
                         dani,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                         "Erro: Modelo de nota fiscal inválido para o código de tributação informado.",
-                        nmr_nota,
+                        nmr_nota_notificacao,
                     )
                 gui.write(cod_item)
                 gui.press("tab", presses=10)
@@ -1196,6 +1199,8 @@ class SystemNF:
                 total_rateio = 0
                 for i, (cc, valor) in enumerate(dados_centros_de_custo):
                     logging.info("Lançando centro de custo")
+                    logging.info(f"Centro de custo: {cc}, Valor: {valor}")
+                    logging.info(f"Dados centro de custo: {dados_centros_de_custo}")
                     gui.write(str(revenda))
                     gui.press("tab", presses=3)
                     gui.write(cc)
@@ -1223,7 +1228,7 @@ class SystemNF:
                 dani,
                 dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                 e,
-                nmr_nota,
+                nmr_nota_notificacao,
             )
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
@@ -1243,11 +1248,12 @@ if __name__ == "__main__":
                 
                 if tipo_arquivo == "DESCONHECIDO":
                     logging.error("Tipo e arquivo desconhecido ou não especificado")
+                    nmr_nota_notificacao = nmr_nota if 'nmr_nota' in locals() else None
                     send_email_error(
                         dani,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                         "Erro: Tipo de arquivo desconhecido ou não suportado",
-                        nmr_nota,
+                        nmr_nota_notificacao,
                     )
 
                 pdf_path = os.path.join(DIRECTORY, "anexos")
@@ -1297,11 +1303,11 @@ if __name__ == "__main__":
                         else:
                             logging.error("Número da nota fiscal não encontrado em dados_email.")
                             return
-                        data_emi = dados_email["data_emi"]["data_emissao"]
-                        data_venc = dados_email["data_venc"]["data_venc"]
-                        chave_acesso = dados_email["chave_acesso"]["chave"]
-                        modelo = dados_email["modelo"]["modelo"]
-                        cnpj_dest = dados_email["destinatario"]["cnpj"]
+                            data_emi = dados_email["data_emi"]["data_emissao"]
+                            data_venc = dados_email["data_venc"]["data_venc"]
+                            chave_acesso = dados_email["chave_acesso"]["chave"]
+                            modelo = dados_email["modelo"]["modelo"]
+                            cnpj_dest = dados_email["destinatario"]["cnpj"]
                     else:
                         logging.error(
                             "Dados da nota fiscal não foram carregados corretamente"
@@ -1310,75 +1316,9 @@ if __name__ == "__main__":
                             dani,
                             dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                             "Erro: Dados da nota fiscal não foram carregados corretamente",
-                            nmr_nota,
+                            nmr_nota_notificacao,
                         )
-                continue
-
-                def verificar_campos_obrigatorios(
-                    departamento,
-                    origem,
-                    descricao,
-                    cc,
-                    cod_item,
-                    valor_total,
-                    dados_centros_de_custo,
-                    data_venc_nfs,
-                    anexo,
-                ):
-                    campos_obrigatorios = [
-                        departamento,
-                        origem,
-                        descricao,
-                        cc,
-                        cod_item,
-                        valor_total,
-                        dados_centros_de_custo,
-                    ]
-
-                    if not all(campos_obrigatorios):
-                        mensagem_erro = (
-                            "Faltando campos obrigatórios para o lançamento:\n"
-                        )
-                        if not departamento:
-                            mensagem_erro += "- Departamento\n"
-                        if not origem:
-                            mensagem_erro += "- Origem\n"
-                        if not descricao:
-                            mensagem_erro += "- Descrição\n"
-                        if not cc:
-                            mensagem_erro += "- CC\n"
-                        if not cod_item:
-                            mensagem_erro += "- Código de tributação do item\n"
-                        if not valor_total:
-                            mensagem_erro += "- Valor Total\n"
-                        if not dados_centros_de_custo:
-                            mensagem_erro += "- Dados dos Centros de Custo\n"
-
-                        # Verifica se o anexo é um PDF e se a data de vencimento está preenchida
-                        if anexo.endswith(".pdf") and not data_venc_nfs:
-                            mensagem_erro += "- Data de Vencimento\n"
-
-                        logging.error(mensagem_erro)
-                        send_email_error(
-                            dani,
-                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                            mensagem_erro,
-                            nmr_nota,
-                        )
-
-                        # Exemplo de chamada da função
-                        verificar_campos_obrigatorios(
-                            departamento,
-                            origem,
-                            descricao,
-                            cc,
-                            cod_item,
-                            valor_total,
-                            dados_centros_de_custo,
-                            data_venc_nfs,
-                            anexo,
-                        )
-
+        
                 # Adicionando logs para verificar os dados extraídos
                 logging.info(f"Departamento: {departamento}")
                 logging.info(f"Origem: {origem}")
@@ -1397,19 +1337,19 @@ if __name__ == "__main__":
                 
                 logging.info(f"Dados disponíveis antes de chamar automation_gui: {dados_email}")
                 logging.info(f"Tipo de imposto extraído: {dados_email.get('tipo_imposto')}")
-
+        
                 sistema_nf = SystemNF()
-
+        
                 logging.info(
                     f"Parcelas a serem passadas para automation_gui: {parcelas}"
                 )
-
+        
                 try:
                     logging.info(f"Impostos: {dados_email.get('impostos')}")
                     logging.info(f"Valor Líquido: {valor_liquido}")
                     logging.info(f"Tipo de Imposto: {tipo_imposto}")
                     
-
+        
                     if dados_email is not None:
                         modelo_email = dados_email.get("modelo_email", "DESCONHECIDO")
                         tipo_documento = dados_email.get("tipo_documento", "DESCONHECIDO")
@@ -1428,7 +1368,7 @@ if __name__ == "__main__":
                     send_success_message(
                         dani,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        nmr_nota,
+                        nmr_nota_notificacao,
                     )
                 except Exception as e:
                     logging.error(f"Erro ao chamar automation_gui: {e}")
@@ -1436,7 +1376,7 @@ if __name__ == "__main__":
                         dani,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                         e,
-                        nmr_nota,
+                        nmr_nota_notificacao,
                     )
             else:
                 logging.info("Nenhum dado extraído, automação não será executada")
@@ -1447,7 +1387,7 @@ if __name__ == "__main__":
                 dani,
                 "caetano.apollo@carburgo.com.br",
                 e,
-                nmr_nota,
+                nmr_nota_notificacao,
             )
         logging.info("Esperando antes da nova verificação...")
         time.sleep(30)

@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "10312847000165",
+        "nome": "NET COMMERCE COMERCIO ELETRONICO LTDA"
+    },
+    "destinatario": {
+        "cnpj": "09112414000187",
+        "nome": "PREMIERE VEICULOS LTDA - NH"
+    },
+    "chave_acesso": {
+        "chave": "43250510312847000165550010000002721230209867"
+    },
+    "num_nota": {
+        "numero_nota": "272"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "27052025"
+    },
+    "data_venc": {
+        "data_venc": "17062025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "384.60"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-06-17",
+            "valor_parcela": "384.60"
+        }
+    ],
+    "info_adicional": {}
+}
