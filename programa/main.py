@@ -418,6 +418,8 @@ def check_emails(nmr_nota, extract_values):
                                         nmr_nota_notificacao = nmr_nota
                                     elif dados_email and dados_email.get('num_nota') and dados_email['num_nota'].get('numero_nota'):
                                         nmr_nota_notificacao = dados_email['num_nota']['numero_nota']
+                                    else:
+                                        nmr_nota_notificacao = "NÃO INFORMADO"
                                     
                                     send_email_error(
                                         dani,
@@ -897,6 +899,7 @@ class SystemNF:
         logging.info(f"Modelo vindo do Email: {modelo_email}")
 
         cnpj_dest = dados_email.get("destinatario", {}).get("cnpj")
+        nmr_nota_notificacao = nmr_nota if nmr_nota else dados_email.get('num_nota', {}).get('numero_nota', 'NÃO INFORMADO')
 
         if cnpj_dest:
             try:
@@ -1192,36 +1195,55 @@ class SystemNF:
                 gui.press("tab", presses=3)
                 gui.press(["enter", "tab", "tab", "tab", "enter"])
                 gui.press("tab", presses=36)
-            if rateio.lower() == "sim":
-                gui.press("enter")
-                gui.press("tab", presses=8)
-                logging.info("Pressionou o tab corretamente")
-                total_rateio = 0
-                for i, (cc, valor) in enumerate(dados_centros_de_custo):
-                    logging.info("Lançando centro de custo")
-                    logging.info(f"Centro de custo: {cc}, Valor: {valor}")
-                    logging.info(f"Dados centro de custo: {dados_centros_de_custo}")
-                    gui.write(str(revenda))
-                    gui.press("tab", presses=3)
-                    gui.write(cc)
-                    gui.press("tab", presses=2)
-                    gui.write(origem)
-                    gui.press("tab", presses=2)
-                    if i == len(dados_centros_de_custo) - 1:
-                        valor = float(valor_total.replace(",", ".")) - total_rateio
-                    else:
-                        total_rateio += float(valor)
-                    gui.write(f"{valor:.2f}".replace(".", ","))
-                    gui.press("f2", interval=2)
-                    gui.press("f3")
-                    if i == len(dados_centros_de_custo) - 1:
-                        gui.press("f2", interval=2)
-                        gui.press("esc", presses=3)
-                        logging.info("Último centro de custo salvo e encerrado.")
-                    else:
+                if rateio.lower() == "sim":
+                    logging.info(f"dados_centros_de_custo recebido para rateio: {dados_centros_de_custo} ({type(dados_centros_de_custo)})")
+                    if not isinstance(dados_centros_de_custo, list):
+                        logging.error(f"dados_centros_de_custo não é uma lista: {dados_centros_de_custo}")
+                        send_email_error(
+                            dani,
+                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                            "Erro: dados_centros_de_custo não é uma lista",
+                            nmr_nota_notificacao,
+                        )
+                        return
+                    gui.press("enter")
+                    gui.press("tab", presses=8)
+                    logging.info("Pressionou o tab corretamente")
+                    total_rateio = 0
+                    for i, (cc, valor) in enumerate(dados_centros_de_custo):
+                        try:
+                            valor_float = float(str(valor).replace(",", "."))
+                        except Exception as e:
+                            logging.error(f"Erro ao converter valor do centro de custo: {valor} ({e})")
+                            valor_float = 0.0
+                        logging.info("Lançando centro de custo")
+                        logging.info(f"Centro de custo: {cc}, Valor: {valor_float}")
+                        logging.info(f"Dados centro de custo: {dados_centros_de_custo}")
+                        logging.info(f"Revenda: {revenda}")
+                        logging.info(f"Revenda nome: {revenda_nome}")
+                        gui.write(revenda_nome)
+                        logging.info(f"Revenda nome escrito: {revenda_nome}")
                         gui.press("tab", presses=3)
-            gui.press("tab", presses=3)
-            gui.press("enter")
+                        logging.info(f"pressionando tab para escrever centro de custo: {cc}")
+                        gui.write(cc)
+                        logging.info(f"Centro de custo escrito: {cc}")
+                        gui.press("tab", presses=2)
+                        gui.write(origem)
+                        gui.press("tab", presses=2)
+                        if i == len(dados_centros_de_custo) - 1:
+                            valor_float = float(valor_total.replace(",", ".")) - total_rateio
+                        else:
+                            total_rateio += valor_float
+                        gui.write(f"{valor_float:.2f}".replace(".", ","))
+                        gui.press("f2", interval=2)
+                        gui.press("f3")
+                        if i == len(dados_centros_de_custo) - 1:
+                            gui.press("f2", interval=2)
+                            gui.press("esc", presses=3)
+                            logging.info("Último centro de custo salvo e encerrado.")
+                        else:
+                            gui.press("tab", presses=3)
+                gui.press("enter")
 
         except Exception as e:
             send_email_error(
