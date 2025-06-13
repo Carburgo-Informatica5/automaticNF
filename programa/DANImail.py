@@ -1,15 +1,17 @@
-import smtplib, ssl, enum, io
+import enum
+import os
+import random
+import smtplib
+import ssl
+import yaml
 from email.mime.multipart import MIMEMultipart
 from email.mime.nonmultipart import MIMENonMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from PIL.Image import Image
-from os import path, makedirs
 from datetime import datetime
-import random
 from typing import *
 from email.message import EmailMessage
-import traceback
 
 
 class WriteTo(enum.Enum):
@@ -22,8 +24,8 @@ class Message:
         self.color: str = "red"
         self._inner_html_queue: list[str] = []
         self._inner_attachment_queue: list[MIMENonMultipart] = []
-        self._start: str = lambda: "" 
-        self._end: str = lambda: ""
+        self._start: Callable[[], str] = lambda: ""
+        self._end: Callable[[], str] = lambda: ""
 
     def __get_random_cid(self) -> str:
         return "attachment-" + "".join(
@@ -47,30 +49,27 @@ class Message:
         tag_end = tag_end or tag
 
         def html(string: str):
-            string = (
-                string.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace('"', "&quot;")
-                .replace("'", "&#39;")
-            )
-            return f"<{tag}>{string}</{tag_end}>"
+            return f"<{tag} class='{self.color}'>{string}</{tag_end}>"
 
         if isinstance(content, str):
             self._inner_html_queue.append(html(content))
         else:
-            self._inner_html_queue.extend([html(text) for text in content])
+            for c in content:
+                self._inner_html_queue.append(html(c))
         return self
 
     def add_img(self, img: Image | bytes) -> "Message":
         if isinstance(img, Image):
-            buffer = io.BytesIO()
-            img.save(buffer, "JPEG")
-            image = MIMEImage(buffer.getvalue())
+            import io
+
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            buf.seek(0)
+            image = MIMEImage(buf.read(), _subtype="png")
         elif isinstance(img, bytes):
-            image = MIMEImage(img)
+            image = MIMEImage(img, _subtype="png")
         else:
-            raise ValueError("Image must be a PIL.Image or bytes.")
+            return self
         image_name = self.__get_random_cid()
         image.add_header("Content-ID", f"<{image_name}>")
         self._inner_attachment_queue.append(image)
@@ -97,9 +96,11 @@ class Queue:
         # Corrige o assunto para usar strftime se necessário
         subject = self._config.get("subject", "Sistema de lancamento de notas fiscais")
         try:
-            self._config["subject"] = datetime.now().strftime(subject)
+            self._config["subject"] = subject.format(
+                data=datetime.now().strftime("%d/%m/%Y - %H:%M")
+            )
         except Exception:
-            pass  # Se não for um formato válido, mantém como está
+            self._config["subject"] = subject
 
     def make_message(self, message: Type[Message] = Message) -> Message:
         return message(self)
@@ -118,9 +119,6 @@ class Queue:
             return
         html = self._build_html()
         if self._IS_DEBUG:
-            print(
-                "\n\n-> [MODO DEBUG ATIVADO] O e-mail não será enviado. Conteúdo abaixo:"
-            )
             print(html)
             self._clear_queues()
             return
@@ -136,80 +134,66 @@ class Queue:
         for attachment in self._attachments_queue:
             msg.attach(attachment)
         try:
+            context = ssl.create_default_context()
             server = smtplib.SMTP(self._config["smtp_sv"], self._config["smtp_prt"])
-            server.set_debuglevel(0)
-            server.starttls(context=ssl.create_default_context())
-            server.login(user=self._config["from"], password=self._config["pswd"])
+            server.set_debuglevel(0)  
+            server.starttls(context=context)
+            server.login(self._config["from"], self._config["pswd"])
             server.send_message(msg=msg)
             server.close()
             print("-> E-mail enviado com sucesso!")
             self._save_email_spool(str(msg))
         except (smtplib.SMTPException, EOFError, ConnectionRefusedError) as e:
-            print("!!! ERRO AO ENVIAR E-MAIL:", e)
+            print(f"Erro ao enviar e-mail: {e}")
         finally:
             self._clear_queues()
 
     def _build_html(self) -> str:
-        def text_sanitize(string):
-            return " ".join(
-                string.replace("\n", "")
-                .replace("\r", "")
-                .replace("    ", " ")
-                .strip()
-                .split()
-            )
-
-        style = ""
-        if "style" in self._config and path.isfile(self._config["style"]):
-            with open(self._config["style"], "r") as f:
-                style = text_sanitize(f.read())
-        signature = ""
-        if "signature" in self._config and path.isfile(self._config["signature"]):
-            try:
-                with open(self._config["signature"], "rb") as f:
-                    signature = f.read().decode()
-            except Exception as e:
-                print(f"Aviso: Não foi possível ler o arquivo de assinatura: {e}")
-        html = f"""<html>
-            <head><style>{style}</style></head>
-            <header>{signature}{self._header_queue}</header>
-            <body>{self._body_queue}</body>
-        </html>"""
+        # Inclui o CSS externo se existir
+        css_path = os.path.join(os.path.dirname(__file__), "data", "style.css")
+        css = ""
+        if os.path.exists(css_path):
+            with open(css_path, "r", encoding="utf-8") as f:
+                css = f"<style>{f.read()}</style>"
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+{css}
+</head>
+<body>
+{self._header_queue}
+{self._body_queue}
+</body>
+</html>
+"""
         return html
 
     def _save_email_spool(self, email_content: str):
-        try:
-            file_name = self._config["subject"]
-            for char in "\\/:*<>|":
-                file_name = file_name.replace(char, " ")
-            count = 0
-            makedirs(self._config["spool"], exist_ok=True)
-            file_path_lambda = (
-                lambda: f"{self._config['spool']}\\{file_name}{'' if count < 1 else f'({count})'}.eml"
-            )
-            while path.isfile(file_path_lambda()):
-                count += 1
-            with open(file_path_lambda(), "w", encoding="utf-8") as file:
-                file.write(email_content)
-            print(f"-> Cópia do e-mail salva em: {file_path_lambda()}")
-        except Exception as e:
-            print(f"Aviso: Falha ao salvar cópia do e-mail: {e}")
+        spool_dir = os.path.join(os.path.dirname(__file__), "spool")
+        if not os.path.exists(spool_dir):
+            os.makedirs(spool_dir)
+        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"email_{now}.eml"
+        with open(os.path.join(spool_dir, filename), "w", encoding="utf-8") as f:
+            f.write(email_content)
 
     def _clear_queues(self):
-        self._body_queue = ""
         self._header_queue = ""
+        self._body_queue = ""
         self._attachments_queue = []
 
     def print_trace(self) -> str:
+        import traceback
+
         return traceback.format_exc()
 
 
 # Inicializa o arquivo
 if __name__ == "__main__":
-    import yaml
     import pyautogui
 
-    config = yaml.safe_load(open("./data/dani_ti.yaml", "r").read())
+    config = yaml.safe_load(open("./data/dani_ti.yaml", "r", encoding="utf-8").read())
     dani = Queue(config)
 
     # Testes de mensagens

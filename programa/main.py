@@ -447,12 +447,15 @@ def check_emails(nmr_nota, extract_values):
             return None
     except Exception as e:
         logging.error(f"Erro ao verificar emails: {e}")
-        send_email_error(
-            dani,
-            sender if sender else "caetano.apollo@carburgo.com.br",
-            f"Erro ao verificar emails: {e}",
-            nmr_nota_notificacao,
-        )
+        if "-ERR EOF" in str(e):
+            logging.warning("Erro de desconexão do servidor POP3 detectado, não será enviado e-mail de erro ao usuário.")
+        else:
+            send_email_error(
+                dani,
+                sender if sender else "caetano.apollo@carburgo.com.br",
+                f"Erro ao verificar emails: {e}",
+                nmr_nota_notificacao,
+            )
         return None
     finally:
         try:
@@ -1254,6 +1257,7 @@ class SystemNF:
                             gui.press("f2", interval=2)
                             gui.press("esc", presses=3)
                             logging.info("Último centro de custo salvo e encerrado.")
+                            gui.press("tab", presses=3)
                         else:
                             gui.press("tab", presses=3)
                 gui.press("enter")

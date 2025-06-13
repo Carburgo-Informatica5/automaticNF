@@ -18,29 +18,70 @@ html {
     -webkit-backdrop-filter: blur(8px) saturate(120%);
 }
 
-/* Foco visível para acessibilidade */
-a:focus, button:focus, .btn:focus, input:focus, textarea:focus {
-    outline: 2px solid #7ecfff;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 3px #317f5f55;
+/* Container principal do email */
+.email-container {
+    max-width: 600px;
+    margin: 2em auto;
+    background: rgba(35, 39, 47, 0.98);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px 0 rgba(49, 127, 95, 0.18);
+    padding: 2.5em 2em 2em 2em;
+    border: 1.5px solid #317f5f55;
+}
+
+/* Cabeçalho do email */
+.email-header {
+    background: linear-gradient(90deg, #317f5f 60%, #2c3646 100%);
+    border-radius: 14px 14px 0 0;
+    padding: 1.2em 2em;
+    color: #fff;
+    font-size: 1.4em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    box-shadow: 0 2px 12px rgba(49, 127, 95, 0.10);
+    margin-bottom: 1.5em;
+    text-align: center;
+}
+
+/* Mensagem de sucesso */
+.success-message {
+    background: linear-gradient(90deg, #2e3a4a 60%, #317f5f 100%);
+    color: #c7f39c;
+    border-left: 6px solid #317f5f;
+    border-radius: 10px;
+    padding: 1.2em 1.5em;
+    margin: 1.5em 0;
+    font-size: 1.15em;
+    font-weight: 600;
+    box-shadow: 0 2px 12px rgba(49, 127, 95, 0.10);
+}
+
+.error-message {
+    background: linear-gradient(90deg, #2e3a4a 60%, #7a2b2b 100%);
+    color: #ff8b8b;
+    border-left: 6px solid #7a2b2b;
+    border-radius: 10px;
+    padding: 1.2em 1.5em;
+    margin: 1.5em 0;
+    font-size: 1.15em;
+    font-weight: 600;
+    box-shadow: 0 2px 12px rgba(122, 43, 43, 0.10);
 }
 
 /* Blocos de código */
-.code_block {
+.code_block, code, pre {
     background: linear-gradient(100deg, #23272f 80%, #317f5f22 100%);
     color: #c7f39c;
     border-radius: 10px;
     border: 1px solid #317f5f33;
-    box-shadow: 0 2px 12px rgba(49, 127, 95, 0.10);
     padding: 1em;
     margin: 1em 0;
     font-family: 'Fira Mono', monospace;
     font-size: 1em;
     overflow-x: auto;
-}
-.code_block:hover {
-    box-shadow: 0 12px 40px 0 rgba(49, 127, 95, 0.25);
-    transform: scale(1.01);
+    box-shadow: 0 2px 8px rgba(49, 127, 95, 0.08);
+    white-space: pre-wrap;
+    display: block;
 }
 
 /* Cores de destaque */
@@ -68,6 +109,88 @@ h4 {
     letter-spacing: 0.02em;
     text-shadow: 0 2px 8px rgba(31, 38, 135, 0.10);
     line-height: 1.2;
+    text-align: center;
+}
+
+* Container principal do email */
+.email-container {
+    max-width: 600px;
+    margin: 2em auto;
+    background: rgba(35, 39, 47, 0.98);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px 0 rgba(49, 127, 95, 0.18);
+    padding: 2.5em 2em 2em 2em;
+    border: 1.5px solid #317f5f55;
+}
+
+/* Cabeçalho do email */
+.email-header {
+    background: linear-gradient(90deg, #317f5f 60%, #2c3646 100%);
+    border-radius: 14px 14px 0 0;
+    padding: 1.2em 2em;
+    color: #fff;
+    font-size: 1.4em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    box-shadow: 0 2px 12px rgba(49, 127, 95, 0.10);
+    margin-bottom: 1.5em;
+    text-align: center;
+}
+
+/* Mensagem de sucesso */
+.success-message {
+    background: linear-gradient(90deg, #2e3a4a 60%, #317f5f 100%);
+    color: #c7f39c;
+    border-left: 6px solid #317f5f;
+    border-radius: 10px;
+    padding: 1.2em 1.5em;
+    margin: 1.5em 0;
+    font-size: 1.15em;
+    font-weight: 600;
+    box-shadow: 0 2px 12px rgba(49, 127, 95, 0.10);
+}
+
+/* Tabela de informações da nota fiscal */
+.nf-info-table {
+    width: 100%;
+    margin: 1.5em 0;
+    border-collapse: collapse;
+    background: rgba(44, 54, 70, 0.98);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 1em;
+    box-shadow: 0 2px 12px rgba(49, 127, 95, 0.10);
+}
+.nf-info-table th,
+.nf-info-table td {
+    border: 1px solid #317f5f55;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 1em;
+}
+.nf-info-table th {
+    background: #317f5f;
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+.nf-info-table tr:nth-child(even) {
+    background: #28313a;
+}
+.nf-info-table tr:hover {
+    background: #2e3a4a;
+    transition: background 0.2s;
+}
+
+/* Rodapé do email */
+.email-footer {
+    margin-top: 2em;
+    padding-top: 1em;
+    border-top: 1px solid #317f5f33;
+    color: #7ecfff;
+    font-size: 0.98em;
+    text-align: center;
+    opacity: 0.85;
 }
 
 /* Links */
@@ -112,28 +235,13 @@ button:active, .btn:active {
     box-shadow: 0 1px 4px rgba(49, 127, 95, 0.10);
 }
 
-/* Código e pré-formatado */
-code,
-pre {
-    background: linear-gradient(100deg, #23272f 80%, #317f5f22 100%);
-    color: #c7f39c;
-    border-radius: 10px;
-    border: 1px solid #317f5f33;
-    padding: 0.2em 0.5em;
-    font-size: 1em;
-    white-space: pre-wrap;
-    display: block;
-    margin: 0.5em 0;
-    font-family: 'Fira Mono', monospace;
-    box-shadow: 0 2px 8px rgba(49, 127, 95, 0.08);
-}
-
 /* Parágrafos */
 p {
     white-space: pre-wrap;
     line-height: 1.7;
     margin: 1em 0;
     font-size: 1.08em;
+    text-align: left;
 }
 
 /* Imagens */
@@ -151,38 +259,6 @@ img:hover {
     transform: scale(1.02);
 }
 
-/* Tabelas */
-table {
-    border-collapse: collapse;
-    margin: 1.5em auto;
-    width: 95%;
-    background: rgba(35, 39, 47, 0.95);
-    box-shadow: 0 4px 24px rgba(49, 127, 95, 0.13);
-    border-radius: 16px;
-    overflow: hidden;
-    font-size: 1em;
-}
-th,
-td {
-    border: 1px solid #317f5f;
-    padding: 14px 18px;
-    text-align: left;
-    font-size: 1.05em;
-}
-th {
-    background: linear-gradient(90deg, #317f5f 80%, #2e3a4a 100%);
-    color: #fff;
-    font-weight: bold;
-    letter-spacing: 0.04em;
-}
-tr:nth-child(even) {
-    background: #28313a;
-}
-tr:hover {
-    background: #2e3a4a;
-    transition: background 0.2s;
-}
-
 /* Bloco de citação */
 blockquote {
     border-left: 5px solid #7ecfff;
@@ -196,7 +272,10 @@ blockquote {
 
 /* Responsividade aprimorada */
 @media (max-width: 900px) {
-    table, .code_block {
+    .email-container {
+        padding: 1.2em 0.5em 1em 0.5em;
+    }
+    .nf-info-table, .code_block {
         font-size: 0.97em;
         padding: 0.7em;
     }
@@ -211,7 +290,10 @@ blockquote {
     }
 }
 @media (max-width: 600px) {
-    table, .code_block {
+    .email-container {
+        padding: 0.5em 0.1em 0.5em 0.1em;
+    }
+    .nf-info-table, .code_block {
         font-size: 0.93em;
         padding: 0.5em;
         max-width: 98vw;
