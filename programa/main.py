@@ -714,18 +714,21 @@ def process_cost_centers(cc_texto, valor_total):
 
     for i, item in enumerate(itens):
         try:
-            cc, valor = [x.strip() for x in item.split("-")]
+            partes = [x.strip() for x in item.split("-")]
+            if len(partes) != 2:
+                logging.error(f"Formato inválido para centro de custo: {item}")
+                continue
+            cc, valor = partes
             logging.info(f"Processando centro de custo: {cc}, valor: {valor}")
             if "%" in valor:
                 porcentagem = float(valor.replace("%", ""))
                 valor_calculado = round((valor_total * porcentagem) / 100, 2)
             else:
                 valor_calculado = float(valor.replace(",", "."))
-
             total_calculado += valor_calculado
             centros_de_custo.append((cc, valor_calculado))
-        except ValueError:
-            logging.error(f"Erro ao processar centro de custo: {item}")
+        except Exception as e:
+            logging.error(f"Erro ao processar centro de custo: {item} ({e})")
 
     diferenca = round(valor_total - total_calculado, 2)
 
@@ -735,11 +738,19 @@ def process_cost_centers(cc_texto, valor_total):
             if isinstance(ultimo_valor, str):
                 ultimo_valor = float(ultimo_valor.replace(",", "."))
             diferenca_float = ultimo_valor + diferenca
-            diferenca_str = f"{diferenca_float:.2f}".replace(".", ",")
-            centros_de_custo[-1] = (ultimo_cc, diferenca_str)
+            centros_de_custo[-1] = (ultimo_cc, diferenca_float)
         else:
             logging.error("Nenhum centro de custo encontrado para aplicar a diferença")
             raise ValueError("Erro: Nenhum centro de custo encontrado para aplicar a diferença")
+
+    if isinstance(centros_de_custo, list):
+        for item in centros_de_custo:
+            if not (isinstance(item, tuple) and len(item) == 2):
+                logging.error(f"Item inválido em centros_de_custo: {item}")
+                return []
+    else:
+        logging.error(f"centros_de_custo não é uma lista: {centros_de_custo}")
+        return []
 
     return centros_de_custo
 
@@ -1207,7 +1218,7 @@ class SystemNF:
                         )
                         return
                     gui.press("enter")
-                    gui.press("tab", presses=8)
+                    gui.press("tab", presses=9)
                     logging.info("Pressionou o tab corretamente")
                     total_rateio = 0
                     for i, (cc, valor) in enumerate(dados_centros_de_custo):
@@ -1221,7 +1232,9 @@ class SystemNF:
                         logging.info(f"Dados centro de custo: {dados_centros_de_custo}")
                         logging.info(f"Revenda: {revenda}")
                         logging.info(f"Revenda nome: {revenda_nome}")
-                        gui.write(revenda_nome)
+                        if i >= 1:
+                            gui.press("tab")
+                        gui.write(str(revenda_nome))
                         logging.info(f"Revenda nome escrito: {revenda_nome}")
                         gui.press("tab", presses=3)
                         logging.info(f"pressionando tab para escrever centro de custo: {cc}")

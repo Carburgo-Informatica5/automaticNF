@@ -137,7 +137,7 @@ class Queue:
             msg.attach(attachment)
         try:
             server = smtplib.SMTP(self._config["smtp_sv"], self._config["smtp_prt"])
-            server.set_debuglevel(1)
+            server.set_debuglevel(0)
             server.starttls(context=ssl.create_default_context())
             server.login(user=self._config["from"], password=self._config["pswd"])
             server.send_message(msg=msg)

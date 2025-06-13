@@ -84,6 +84,7 @@ class GeminiAPI:
 
 **Regras adicionais:**
 - Se o documento for de frete, use o remetente como tomador e preencha "chave_acesso" e "série" que sempre estará ao lado esquerdo do número da nota.
+- Se o documento for de frete, pegue somente o valor do frete e não o valor total da carga.
 - Se algum campo não for encontrado ou estiver ilegível, use "Informacao ausente" ou "Nao encontrado" conforme o caso.
 - O JSON deve ser bem formatado, válido e não conter caracteres inválidos.
 - Não inclua explicações, apenas o JSON.
