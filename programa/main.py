@@ -407,6 +407,7 @@ def check_emails(nmr_nota, extract_values):
                                         dani,
                                         sender,
                                         nmr_nota_notificacao,
+                                        dados_email
                                     )
 
                                 except Exception as e:
@@ -426,6 +427,7 @@ def check_emails(nmr_nota, extract_values):
                                         sender,
                                         f"Erro ao processar o e-mail: {e}",
                                         nmr_nota_notificacao,
+                                        dados_email
                                     )
                                     return None
                             else:
@@ -435,6 +437,7 @@ def check_emails(nmr_nota, extract_values):
                                     sender,
                                     "Erro ao salvar ou processar o anexo",
                                     nmr_nota_notificacao,
+                                    dados_email
                                 )
                                 return None
                 else:
@@ -455,6 +458,7 @@ def check_emails(nmr_nota, extract_values):
                 sender if sender else "caetano.apollo@carburgo.com.br",
                 f"Erro ao verificar emails: {e}",
                 nmr_nota_notificacao,
+                dados_email
             )
         return None
     finally:
@@ -757,65 +761,72 @@ def process_cost_centers(cc_texto, valor_total):
 
     return centros_de_custo
 
-def send_email_error(dani, destinatario, erro, nmr_nota_notificacao):
+def send_email_error(dani, destinatario, erro, nmr_nota_notificacao, dados_email=None):
+    if not nmr_nota_notificacao and dados_email:
+        nmr_nota_notificacao = (
+            dados_email.get("num_nota", {}).get("numero_nota")
+            or dados_email.get("nmr_nota")
+            or "Não foi possível recuperar o número da nota"
+        )
+        
     config["to"] = destinatario
     dani = Queue(config)
+    logging.info(f"Enviando mensagem de erro para {destinatario} com número da nota: {nmr_nota_notificacao}")
 
     mensagem = (
         dani.make_message()
-        .set_color("red")
-        .add_text(f"Erro durante lançamento de nota fiscal número: {nmr_nota_notificacao}", tag="h1")
-        .add_text(str(erro), tag="pre")
+        .set_status("error")
+        .add_text(f"Erro durante lançamento de nota fiscal", tag="h1")
+        .add_text(f"Número da nota: {nmr_nota_notificacao}", tag="pre")
+        .add_text(f"Detalhes do erro: {str(erro)}", tag="pre")
     )
 
-    mensagem.add_text("DANI", tag="h1")
-    mensagem.add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
-    mensagem.add_text(
-        "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
-        tag="p",
+    assinatura_dani = (
+        "Este é um email enviado automaticamente pelo sistema DANI.<br>"
+        "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br<br>"
+        "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br"
     )
-    mensagem.add_text(
-        "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
-        tag="p",
-    )
+    
+    mensagem.add_text(assinatura_dani, tag="p")
 
     try:
         dani.push(mensagem).flush()
     except Exception as e:
         logging.error(f"Erro ao processar o e-mail: {e}")
-        if nmr_nota:
-            send_email_error(
-                dani,
-                destinatario,
-                f"Erro ao processar o e-mail: {e}",
-                nmr_nota_notificacao,
-            )
-        else:
-            logging.error("Erro crítico: Não foi possível enviar e-mail de erro pois o número da nota está ausente.")
-        return None
+        logging.error("Erro crítico: Não foi possível enviar e-mail de erro.")
 
 
-def send_success_message(dani, destinatario, nmr_nota_notificacao):
+def send_success_message(dani, destinatario, nmr_nota_notificacao, dados_email=None):
+    if not nmr_nota_notificacao and dados_email:
+        nmr_nota_notificacao = (
+            dados_email.get("num_nota", {}).get("numero_nota")
+            or dados_email.get("nmr_nota")
+            or "Não foi possível recuperar o número da nota"
+        )
+
     config["to"] = destinatario
     dani = Queue(config)
+    logging.info(f"Enviando mensagem de sucesso para {destinatario} com número da nota: {nmr_nota_notificacao}")
+
+    texto_sucesso = (
+        f"Número da nota: {nmr_nota_notificacao}\n"
+        "Acesse o sistema para verificar o lançamento."
+    )
 
     mensagem = (
         dani.make_message()
-        .set_color("green")
-        .add_text(f"Nota lançada com sucesso número: {nmr_nota_notificacao}", tag="h1")
-        .add_text("Acesse o sistema para verificar o lançamento.", tag="pre")
+        .set_status("success")
+        .add_text(f"Nota lançada com sucesso", tag="h1")
+        .add_text(texto_sucesso, tag="pre")
     )
 
-    mensagem.add_text("DANI", tag="h1")
-    mensagem.add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
-    mensagem.add_text(
-        "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
-        tag="p",
+    assinatura_dani = (
+        "Este é um email enviado automaticamente pelo sistema DANI.<br>"
+        "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br<br>"
+        "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br"
     )
-    mensagem.add_text(
-        "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
-        tag="p",
-    )
+    
+    mensagem.add_text(assinatura_dani, tag="p")
 
     try:
         dani.push(mensagem).flush()
@@ -1186,6 +1197,7 @@ class SystemNF:
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                         "Erro: Modelo de nota fiscal inválido para o código de tributação informado.",
                         nmr_nota_notificacao,
+                        dados_email
                     )
                 gui.write(cod_item)
                 gui.press("tab", presses=10)
@@ -1218,6 +1230,7 @@ class SystemNF:
                             dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                             "Erro: dados_centros_de_custo não é uma lista",
                             nmr_nota_notificacao,
+                            dados_email
                         )
                         return
                     gui.press("enter")
@@ -1268,6 +1281,7 @@ class SystemNF:
                 dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                 e,
                 nmr_nota_notificacao,
+                dados_email
             )
             print(f"Erro durante a automação: {e}")
             print("Automação iniciada com os dados extraídos.")
@@ -1293,6 +1307,7 @@ if __name__ == "__main__":
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                         "Erro: Tipo de arquivo desconhecido ou não suportado",
                         nmr_nota_notificacao,
+                        dados_email
                     )
 
                 pdf_path = os.path.join(DIRECTORY, "anexos")
@@ -1356,6 +1371,7 @@ if __name__ == "__main__":
                             dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                             "Erro: Dados da nota fiscal não foram carregados corretamente",
                             nmr_nota_notificacao,
+                            dados_email
                         )
         
                 # Adicionando logs para verificar os dados extraídos
@@ -1408,6 +1424,7 @@ if __name__ == "__main__":
                         dani,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                         nmr_nota_notificacao,
+                        dados_email
                     )
                 except Exception as e:
                     logging.error(f"Erro ao chamar automation_gui: {e}")
@@ -1416,6 +1433,7 @@ if __name__ == "__main__":
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                         e,
                         nmr_nota_notificacao,
+                        dados_email
                     )
             else:
                 logging.info("Nenhum dado extraído, automação não será executada")
@@ -1427,6 +1445,7 @@ if __name__ == "__main__":
                 "caetano.apollo@carburgo.com.br",
                 e,
                 nmr_nota_notificacao,
+                dados_email
             )
         logging.info("Esperando antes da nova verificação...")
         time.sleep(30)

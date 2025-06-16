@@ -21,7 +21,7 @@ class WriteTo(enum.Enum):
 
 class Message:
     def __init__(self, queue) -> None:
-        self.color: str = "red"
+        self.status: str = "default"
         self._inner_html_queue: list[str] = []
         self._inner_attachment_queue: list[MIMENonMultipart] = []
         self._start: Callable[[], str] = lambda: ""
@@ -32,8 +32,9 @@ class Message:
             random.choices("abcdefghijklmnopqrstuvwxyzç1234567890", k=64)
         )
 
-    def set_color(self, color: str) -> "Message":
-        self.color = color
+    def set_status(self, status: str) -> "Message":
+        """Define o status da mensagem (ex: 'success', 'error') para aplicar o estilo CSS correto."""
+        self.status = status
         return self
 
     def insert_raw(self, content: str | list[str]) -> "Message":
@@ -48,8 +49,27 @@ class Message:
     ) -> "Message":
         tag_end = tag_end or tag
 
+        status_to_class = {
+            "success": "success-message",
+            "error": "error-message",
+            "default": "p",
+        }
+        css_class = status_to_class.get(self.status, "p")
+
+        def is_traceback(text: str) -> bool:
+            return "Traceback (most recent call last):" in text
+
         def html(string: str):
-            return f"<{tag} class='{self.color}'>{string}</{tag_end}>"
+            # Formata tracebacks automaticamente com a classe 'code_block'
+            if tag == "p" and is_traceback(string):
+                return f'<pre class="code_block">{string}</pre>'
+
+            # Aplica a classe de status se não for 'default'
+            if css_class != "p":
+                return f'<{tag} class="{css_class}">{string}</{tag_end}>'
+
+            # Retorna texto padrão
+            return f"<{tag}>{string}</{tag_end}>"
 
         if isinstance(content, str):
             self._inner_html_queue.append(html(content))
@@ -93,7 +113,6 @@ class Queue:
         self._attachments_queue: list[MIMENonMultipart] = []
         self._has_error: bool = False
 
-        # Corrige o assunto para usar strftime se necessário
         subject = self._config.get("subject", "Sistema de lancamento de notas fiscais")
         try:
             self._config["subject"] = subject.format(
@@ -119,9 +138,12 @@ class Queue:
             return
         html = self._build_html()
         if self._IS_DEBUG:
-            print(html)
+            with open("email_preview.html", "w", encoding="utf-8") as f:
+                f.write(html)
+            print("-> E-mail em modo debug. Preview salvo como 'email_preview.html'")
             self._clear_queues()
             return
+
         msg = MIMEMultipart("related")
         msg["From"] = self._config["from"]
         msg["Subject"] = self._config["subject"]
@@ -136,7 +158,7 @@ class Queue:
         try:
             context = ssl.create_default_context()
             server = smtplib.SMTP(self._config["smtp_sv"], self._config["smtp_prt"])
-            server.set_debuglevel(0)  
+            server.set_debuglevel(0)
             server.starttls(context=context)
             server.login(self._config["from"], self._config["pswd"])
             server.send_message(msg=msg)
@@ -149,21 +171,37 @@ class Queue:
             self._clear_queues()
 
     def _build_html(self) -> str:
-        # Inclui o CSS externo se existir
         css_path = os.path.join(os.path.dirname(__file__), "data", "style.css")
         css = ""
         if os.path.exists(css_path):
             with open(css_path, "r", encoding="utf-8") as f:
                 css = f"<style>{f.read()}</style>"
+
+        email_title = self._config.get("subject", "Relatório do Sistema")
+
         html = f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 {css}
 </head>
 <body>
-{self._header_queue}
-{self._body_queue}
+    <div class="email-container">
+        <div class="email-header">
+            {email_title}
+        </div>
+        
+        <div class="email-body">
+            {self._header_queue}
+            {self._body_queue}
+        </div>
+
+        <div class="email-footer">
+            <p>Este é um e-mail automático gerado pelo sistema DANI.</p>
+            <p>{datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}</p>
+        </div>
+    </div>
 </body>
 </html>
 """
@@ -189,50 +227,38 @@ class Queue:
         return traceback.format_exc()
 
 
-# Inicializa o arquivo
 if __name__ == "__main__":
     import pyautogui
 
-    config = yaml.safe_load(open("./data/dani_ti.yaml", "r", encoding="utf-8").read())
-    dani = Queue(config)
-
-    # Testes de mensagens
-    message = (
-        dani.make_message()
-        .set_color("green")
-        .add_text("Isto é um teste com imagem")
-        .add_img(pyautogui.screenshot())
-        .add_text(
-            [
-                "Isto é uma mensagem de teste",
-                "Isso támbem é um teste",
-                "Isso não é um teste, favor entrar em panico de imediato.",
-            ]
+    if not os.path.exists("./data/dani_ti.yaml"):
+        print("Erro: Arquivo de configuração './data/dani_ti.yaml' não encontrado.")
+    else:
+        config = yaml.safe_load(
+            open("./data/dani_ti.yaml", "r", encoding="utf-8").read()
         )
-        .add_img(pyautogui.screenshot())
-        .add_text(["Main falhou silenciosamente.", dani.print_trace()])
-    )
 
-    message2 = (
-        dani.make_message()
-        .set_color("red")
-        .add_text(
-            ["Este teste prova se a fila foi resetada corretamente.", "eu espero"]
-        )
-        .add_text("ola! isso é um teste de titulo", tag="h1")
-        .add_img(pyautogui.screenshot())
-        .insert_raw("<h3><b><i>isto prova que é possivel inserir html</b></i></h3>")
-        .add_text("<br><i>Isto prova que não é possivel injetar html arbitrario</i>")
-    )
+        dani = Queue(config, is_debug=True)
 
-    (
-        dani.push(message)
-        .push(
+        message_success = (
             dani.make_message()
-            .set_color("green")
-            .add_text("Isto é uma mensagem de cabeçalho")
+            .set_status("success")
+            .add_text("Processo concluído com sucesso!")
+            .add_text("Todos os relatórios foram processados e validados.")
+            .add_img(pyautogui.screenshot())
         )
-        .flush()
-        .push(message2)
-        .flush()
-    )
+
+        try:
+            _ = 1 / 0
+        except Exception:
+            traceback_info = dani.print_trace()
+
+        message_error = (
+            dani.make_message()
+            .set_status("error")
+            .add_text("Falha Crítica no Sistema", tag="h2")
+            .add_text("Ocorreu um erro inesperado durante a execução do processo 'X'.")
+            .add_text("Detalhes do erro:")
+            .add_text(traceback_info)
+        )
+
+        (dani.push(message_success).push(message_error).flush())
