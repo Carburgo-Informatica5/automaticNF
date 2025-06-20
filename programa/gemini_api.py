@@ -66,12 +66,12 @@ class GeminiAPI:
     - "Numero": Número do endereço do tomador (apenas números; se não houver, use "Informacao ausente")
     - "Cidade": Cidade do endereço do tomador (apenas nome da cidade; se não houver, use "Informacao ausente")
 
-- "num_nota": Número da nota fiscal, conta ou fatura (apenas números, sem caracteres especiais; priorize o número da fatura se houver)
+- "num_nota": Número da nota fiscal, conta ou fatura (apenas números, sem caracteres especiais; priorize o número da nota fiscal se houver. Não utilize o número do recibo provisório de serviços.)
 - "data_emissao": Data de emissão (formato DDMMYYYY, sem barras ou outros caracteres; se não houver, use "Informacao ausente")
 - "valor_total": Valor total da nota (use ponto como separador decimal; se não houver, use "0.00")
 - "valor_liquido": Valor líquido (use ponto como separador decimal; se não houver, use o valor total)
 - "ISS_retido": "Sim" se houver ISS retido, "Nao" caso contrário
-- "serie": Série da nota (se não houver, use "Informacao ausente")
+- "serie": Série da nota (se não houver, use "0")
 - "chave_acesso": Chave de acesso (apenas para notas de frete; se não houver, use "Informacao ausente")
 
 - "impostos":  

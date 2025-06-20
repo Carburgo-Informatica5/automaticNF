@@ -116,8 +116,6 @@ def extract_values(text):
                 values["rateio"] = line.split(":", 1)[1].strip()
             elif line.startswith("código de tributação:"):
                 values["cod_item"] = line.split(":", 1)[1].strip()
-            
-            #somente para PDF
             elif "data vencimento" in line.lower():
                 data_vencimento = line.split(":", 1)[1].strip()
                 values["data_vencimento"] = data_vencimento.replace("/", "")
@@ -1089,7 +1087,7 @@ class SystemNF:
 
                         gui.press("tab", presses=40)
                         gui.press("left")
-                gui.press("tab", presses=11)
+                gui.press("tab", presses=15)
                 gui.press("left", presses=2)
                 gui.press("tab", presses=5)
                 gui.press("enter")
@@ -1180,6 +1178,65 @@ class SystemNF:
                 gui.press("enter")
                 gui.press("tab", presses=3)
                 gui.press("enter")
+                gui.press("tab", presses=36)
+                gui.press("enter")
+                # gui.press(["enter", "tab", "tab", "tab", "enter"])
+                # gui.press("tab", presses=36)
+                if rateio.lower() == "sim":
+                    logging.info(f"dados_centros_de_custo recebido para rateio: {dados_centros_de_custo} ({type(dados_centros_de_custo)})")
+                    if not isinstance(dados_centros_de_custo, list):
+                        logging.error(f"dados_centros_de_custo não é uma lista: {dados_centros_de_custo}")
+                        send_email_error(
+                            dani,
+                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                            "Erro: dados_centros_de_custo não é uma lista",
+                            nmr_nota_notificacao,
+                            dados_email
+                        )
+                        return
+                    gui.press("enter")
+                    for i in range(6):
+                        gui.hotkey("ctrl", "delete")
+                        gui.press("enter")
+                    gui.press("tab", presses=9)
+                    logging.info("Pressionou o tab corretamente")
+                    total_rateio = 0
+                    for i, (cc, valor) in enumerate(dados_centros_de_custo):
+                        try:
+                            valor_float = float(str(valor).replace(",", "."))
+                        except Exception as e:
+                            logging.error(f"Erro ao converter valor do centro de custo: {valor} ({e})")
+                            valor_float = 0.0
+                        logging.info("Lançando centro de custo")
+                        logging.info(f"Centro de custo: {cc}, Valor: {valor_float}")
+                        logging.info(f"Dados centro de custo: {dados_centros_de_custo}")
+                        logging.info(f"Revenda: {revenda}")
+                        logging.info(f"Revenda nome: {revenda_nome}")
+                        if i >= 1:
+                            gui.press("tab")
+                        gui.write(str(revenda_nome))
+                        logging.info(f"Revenda nome escrito: {revenda_nome}")
+                        gui.press("tab", presses=3)
+                        logging.info(f"pressionando tab para escrever centro de custo: {cc}")
+                        gui.write(cc)
+                        logging.info(f"Centro de custo escrito: {cc}")
+                        gui.press("tab", presses=2)
+                        gui.write(origem)
+                        gui.press("tab", presses=2)
+                        if i == len(dados_centros_de_custo) - 1:
+                            valor_float = float(valor_total.replace(",", ".")) - total_rateio
+                        else:
+                            total_rateio += valor_float
+                        gui.write(f"{valor_float:.2f}".replace(".", ","))
+                        gui.press("f2", interval=2)
+                        gui.press("f3")
+                        if i == len(dados_centros_de_custo) - 1:
+                            gui.press("f2", interval=2)
+                            gui.press("esc", presses=3)
+                            logging.info("Último centro de custo salvo e encerrado.")
+                            gui.press("tab", presses=3)
+                        else:
+                            gui.press("tab", presses=3)
                 gui.press("tab", presses=39)
                 gui.press("enter")
 
