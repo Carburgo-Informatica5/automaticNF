@@ -1195,9 +1195,11 @@ class SystemNF:
                         )
                         return
                     gui.press("enter")
-                    for i in range(6):
-                        gui.hotkey("ctrl", "delete")
-                        gui.press("enter")
+                    if descricao.lower() == "linx renave":
+                        for i in range(6):
+                            gui.hotkey("ctrl", "delete")
+                            gui.press("enter")
+                            gui.press("enter")
                     gui.press("tab", presses=9)
                     logging.info("Pressionou o tab corretamente")
                     total_rateio = 0
@@ -1228,6 +1230,7 @@ class SystemNF:
                         else:
                             total_rateio += valor_float
                         gui.write(f"{valor_float:.2f}".replace(".", ","))
+                        gui.press("tab")
                         gui.press("f2", interval=2)
                         gui.press("f3")
                         if i == len(dados_centros_de_custo) - 1:
@@ -1236,8 +1239,8 @@ class SystemNF:
                             logging.info("Último centro de custo salvo e encerrado.")
                             gui.press("tab", presses=3)
                         else:
-                            gui.press("tab", presses=3)
-                gui.press("tab", presses=39)
+                            gui.press("tab", presses=6)
+                gui.press("tab", presses=3)
                 gui.press("enter")
 
 

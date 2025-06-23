@@ -71,7 +71,7 @@ class GeminiAPI:
 - "valor_total": Valor total da nota (use ponto como separador decimal; se não houver, use "0.00")
 - "valor_liquido": Valor líquido (use ponto como separador decimal; se não houver, use o valor total)
 - "ISS_retido": "Sim" se houver ISS retido, "Nao" caso contrário
-- "serie": Série da nota (se não houver, use "0")
+- "serie": Série da nota (**se não houver, use "0"**)
 - "chave_acesso": Chave de acesso (apenas para notas de frete; se não houver, use "Informacao ausente")
 
 - "impostos":  
