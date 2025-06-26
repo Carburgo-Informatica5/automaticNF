@@ -892,8 +892,8 @@ class SystemNF:
         valor_liquido, tipo_imposto, impostos, tipo_documento, modelo_email, dados_email=None
     ):
 
-        gui.PAUSE = 1
-
+        gui.PAUSE = 0.2
+        
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
@@ -1087,7 +1087,10 @@ class SystemNF:
 
                         gui.press("tab", presses=40)
                         gui.press("left")
-                gui.press("tab", presses=15)
+                if tipo_documento == "fatura" or tipo_documento == "boleto":
+                    gui.press("tab", presses=11)
+                else: 
+                    gui.press("tab", presses=15)
                 gui.press("left", presses=2)
                 gui.press("tab", presses=5)
                 gui.press("enter")
@@ -1179,10 +1182,10 @@ class SystemNF:
                 gui.press("tab", presses=3)
                 gui.press("enter")
                 gui.press("tab", presses=36)
-                gui.press("enter")
                 # gui.press(["enter", "tab", "tab", "tab", "enter"])
                 # gui.press("tab", presses=36)
                 if rateio.lower() == "sim":
+                    gui.press("enter")
                     logging.info(f"dados_centros_de_custo recebido para rateio: {dados_centros_de_custo} ({type(dados_centros_de_custo)})")
                     if not isinstance(dados_centros_de_custo, list):
                         logging.error(f"dados_centros_de_custo não é uma lista: {dados_centros_de_custo}")
@@ -1241,6 +1244,8 @@ class SystemNF:
                         else:
                             gui.press("tab", presses=6)
                 gui.press("tab", presses=3)
+                gui.press("enter")
+                time.sleep(1)
                 gui.press("enter")
 
 
@@ -1333,6 +1338,9 @@ class SystemNF:
                             gui.press("tab", presses=3)
                         else:
                             gui.press("tab", presses=3)
+                gui.press("tab", presses=3)
+                gui.press("enter")
+                time.sleep(1)
                 gui.press("enter")
 
         except Exception as e:
@@ -1508,4 +1516,4 @@ if __name__ == "__main__":
                 dados_email
             )
         logging.info("Esperando antes da nova verificação...")
-        time.sleep(30)
+        time.sleep(5)
