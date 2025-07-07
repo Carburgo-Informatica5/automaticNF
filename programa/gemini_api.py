@@ -7,13 +7,18 @@ import re
 
 from db_connection import cnpj
 
+
 class GeminiAPI:
     def __init__(self, api_key):
         genai.configure(api_key=api_key)
 
     def normalize_text(self, text):
         """Normaliza o texto para remover caracteres especiais."""
-        return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+        return (
+            unicodedata.normalize("NFKD", text)
+            .encode("ascii", "ignore")
+            .decode("utf-8")
+        )
 
     def upload_pdf(self, path, mime_type="application/pdf"):
         """Faz o upload do arquivo PDF para o Gemini."""
@@ -43,87 +48,91 @@ class GeminiAPI:
         }
 
         model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
+            model_name="gemini-2.5-flash",
             generation_config=generation_config,
         )
 
         file_obj = genai.get_file(file_id)
         chat_session = model.start_chat(history=[])
 
-        response = chat_session.send_message([
-            {"text": """
-            Você receberá um arquivo PDF de um documento fiscal (nota fiscal, fatura ou boleto). Extraia as informações abaixo e retorne **apenas** um JSON válido, sem explicações, comentários ou texto adicional.
+        response = chat_session.send_message(
+            [
+                {
+                    "text": """
+Você receberá um arquivo PDF de um documento fiscal (nota fiscal, fatura ou boleto). Extraia as informações abaixo e retorne **apenas** um JSON válido, sem explicações, comentários ou texto adicional.
 
 **Campos obrigatórios do JSON:**
 
-- "emitente":  
-    - "cnpj": CNPJ do prestador (apenas números, sem pontos ou traços; se não houver, use "Nao encontrado")
-    - "nome": Nome completo do prestador
+- \"emitente\":  
+    - \"cnpj\": CNPJ do prestador (apenas números, sem pontos ou traços; se não houver, use \"Nao encontrado\")
+    - \"nome\": Nome completo do prestador
 
-- "destinatario":  
-    - "cnpj": CNPJ do tomador (apenas números, sem pontos ou traços; se não houver, use "Nao encontrado")
-    - "nome": Nome completo do tomador
-    - "Numero": Número do endereço do tomador (apenas números; se não houver, use "Informacao ausente")
-    - "Cidade": Cidade do endereço do tomador (apenas nome da cidade; se não houver, use "Informacao ausente")
+- \"destinatario\":  
+    - \"cnpj\": CNPJ do tomador (apenas números, sem pontos ou traços; se não houver, use \"Nao encontrado\")
+    - \"nome\": Nome completo do tomador
+    - \"Numero\": Número do endereço do tomador (apenas números; se não houver, use \"Informacao ausente\")
+    - \"Cidade\": Cidade do endereço do tomador (apenas nome da cidade; se não houver, use \"Informacao ausente\")
 
-- "num_nota": Número da nota fiscal, conta ou fatura (apenas números, sem caracteres especiais; priorize o número da nota fiscal se houver. Não utilize o número do recibo provisório de serviços.)
-- "data_emissao": Data de emissão (formato DDMMYYYY, sem barras ou outros caracteres; se não houver, use "Informacao ausente")
-- "valor_total": Valor total da nota (use ponto como separador decimal; se não houver, use "0.00")
-- "valor_liquido": Valor líquido (use ponto como separador decimal; se não houver, use o valor total)
-- "ISS_retido": "Sim" se houver ISS retido, "Nao" caso contrário
-- "serie": Série da nota (**se não houver, use "0"**)
-- "chave_acesso": Chave de acesso (apenas para notas de frete; se não houver, use "Informacao ausente")
+- \"num_nota\": Número da nota fiscal, conta ou fatura (apenas números, sem caracteres especiais; priorize o número da nota fiscal se houver. Não utilize o número do recibo provisório de serviços. pegue sempre os últimos 6 digítos do número da nota.)
+- \"data_emissao\": Data de emissão (formato DDMMYYYY, sem barras ou outros caracteres; se não houver, use \"Informacao ausente\")
+- \"valor_total\": Valor total da nota (use ponto como separador decimal; se não houver, use \"0.00\")
+- **\"valor_liquido\": Valor líquido (use ponto como separador decimal; este campo é obrigatório. Extraia o valor líquido exatamente como está no documento, se houver. Caso não exista explicitamente, calcule: valor_liquido = valor_total - soma dos impostos. Sempre preencha este campo.)**
+- \"ISS_retido\": \"Sim\" se houver ISS retido, \"Nao\" caso contrário
+- \"serie\": Série da nota (**se não houver, use \"0\"**)
+- \"chave_acesso\": Chave de acesso (apenas para notas de frete; se não houver, use \"Informacao ausente\")
 
-- "impostos":  
-    - "PIS": Valor do PIS (padrão "0.00" se não houver)
-    - "COFINS": Valor do COFINS (padrão "0.00" se não houver)
-    - "INSS": Valor do INSS (padrão "0.00" se não houver)
-    - "ISS_retido": Valor do ISS retido (padrão "0.00" se não houver)
-    - "IR": Valor do IR (padrão "0.00" se não houver)
-    - "CSLL": Valor do CSLL (padrão "0.00" se não houver)
+- **\"impostos\":  
+    - \"PIS\": Valor do PIS (padrão \"0.00\" se não houver)
+    - \"COFINS\": Valor do COFINS (padrão \"0.00\" se não houver)
+    - \"INSS\": Valor do INSS (padrão \"0.00\" se não houver)
+    - \"ISS_retido\": Valor do ISS retido (padrão \"0.00\" se não houver)
+    - \"IR\": Valor do IR (padrão \"0.00\" se não houver)
+    - \"CSLL\": Valor do CSLL (padrão \"0.00\" se não houver)**
 
 **Regras adicionais:**
-- Se o documento for de frete, use o remetente como tomador e preencha "chave_acesso" e "série" que sempre estará ao lado esquerdo do número da nota.
-- Se o documento for de frete, pegue somente o valor do frete e não o valor total da carga.
-- Se algum campo não for encontrado ou estiver ilegível, use "Informacao ausente" ou "Nao encontrado" conforme o caso.
+- Extraia todos os valores de impostos discriminados no documento e preencha corretamente o campo \"impostos\".
+- Sempre que possível, extraia o valor líquido exatamente como está no documento. Se não houver, calcule: valor_liquido = valor_total - soma dos impostos.
+- Confira se o valor líquido extraído do documento bate com o valor calculado. Se houver diferença, priorize o valor líquido informado no documento, mas registre um alerta no campo \"observacao\" indicando a diferença.
+- Se algum campo não for encontrado ou estiver ilegível, use \"Informacao ausente\" ou \"Nao encontrado\" conforme o caso.
 - O JSON deve ser bem formatado, válido e não conter caracteres inválidos.
 - Não inclua explicações, apenas o JSON.
-
 **Exemplo de resposta esperada:**
 
 {
-    "emitente": {
-        "cnpj": "12345678000195",
-        "nome": "Empresa Prestadora de Serviços LTDA"
+    \"emitente\": {
+        \"cnpj\": \"12345678000195\",
+        \"nome\": \"Empresa Prestadora de Serviços LTDA\"
     },
-    "destinatario": {
-        "cnpj": "98765432000112",
-        "nome": "Empresa Tomadora de Serviços SA",
-        "Numero": "123",
-        "Cidade": "Novo Hamburgo"
+    \"destinatario\": {
+        \"cnpj\": \"98765432000112\",
+        \"nome\": \"Empresa Tomadora de Serviços SA\",
+        \"Numero\": \"123\",
+        \"Cidade\": \"Novo Hamburgo\"
     },
-    "num_nota": "12345",
-    "data_emissao": "01042025",
-    "valor_total": "1500.00",
-    "valor_liquido": "1400.00",
-    "ISS_retido": "Sim",
-    "serie": "7",
-    "chave_acesso": "12345678901234567890123456789012345678901234",
-    "impostos": {
-        "PIS": "50.00",
-        "COFINS": "100.00",
-        "INSS": "0.00",
-        "ISS_retido": "50.00",
-        "IR": "0.00",
-        "CSLL": "0.00"
+    \"num_nota\": \"12345\",
+    \"data_emissao\": \"01042025\",
+    \"valor_total\": \"1500.00\",
+    \"valor_liquido\": \"1400.00\",
+    \"ISS_retido\": \"Sim\",
+    \"serie\": \"7\",
+    \"chave_acesso\": \"12345678901234567890123456789012345678901234\",
+    \"impostos\": {
+        \"PIS\": \"50.00\",
+        \"COFINS\": \"100.00\",
+        \"INSS\": \"0.00\",
+        \"ISS_retido\": \"50.00\",
+        \"IR\": \"0.00\",
+        \"CSLL\": \"0.00\"
     }
 }
 
 Retorne **apenas** o JSON.
-            """},
-            file_obj
-        ])
-        
+            """
+                },
+                file_obj,
+            ]
+        )
+
         logging.info(f"Resposta da API recebida. {response.text}")
 
         # Garantindo que temos uma string para trabalhar
@@ -137,12 +146,18 @@ Retorne **apenas** o JSON.
             extracted_text = extracted_text.replace("\n", " ").replace("\r", "")
 
             # Removendo possíveis marcadores de código (```json)
-            extracted_text = re.sub(r'^```json|```$', '', extracted_text, flags=re.IGNORECASE)
+            extracted_text = re.sub(
+                r"^```json|```$", "", extracted_text, flags=re.IGNORECASE
+            )
 
             # Verificar se há múltiplos objetos JSON concatenados
             if extracted_text.count("{") > 1 and extracted_text.count("}") > 1:
-                logging.warning("Texto contém múltiplos objetos JSON. Tentando corrigir...")
-                extracted_text = extracted_text[extracted_text.find("{"):extracted_text.rfind("}") + 1]
+                logging.warning(
+                    "Texto contém múltiplos objetos JSON. Tentando corrigir..."
+                )
+                extracted_text = extracted_text[
+                    extracted_text.find("{") : extracted_text.rfind("}") + 1
+                ]
 
             try:
                 extracted_json = json.loads(extracted_text)
@@ -154,8 +169,13 @@ Retorne **apenas** o JSON.
                 logging.info(f"JSON extraído: {extracted_json}")
 
                 # Garantir que valor_total esteja presente
-                if "valor_total" not in extracted_json or not extracted_json["valor_total"]:
-                    logging.warning("Campo 'valor_total' ausente ou vazio no JSON extraído.")
+                if (
+                    "valor_total" not in extracted_json
+                    or not extracted_json["valor_total"]
+                ):
+                    logging.warning(
+                        "Campo 'valor_total' ausente ou vazio no JSON extraído."
+                    )
                     extracted_json["valor_total"] = "0.00"  # Valor padrão
             except json.JSONDecodeError as e:
                 logging.error(f"Falha ao decodificar JSON: {e}")
@@ -178,7 +198,9 @@ Retorne **apenas** o JSON.
                     result = cnpj(num_endereco=num_endereco, cidade=cidade)
                     cnpj_tomador = result if result else "Não encontrado"
                     extracted_json["destinatario"]["cnpj"] = cnpj_tomador
-                    logging.info(f"Consultando CNPJ com número: {num_endereco}, cidade: {cidade}")
+                    logging.info(
+                        f"Consultando CNPJ com número: {num_endereco}, cidade: {cidade}"
+                    )
                     if cnpj_tomador != "Nao encontrado":
                         logging.info(f"CNPJ atualizado: {cnpj_tomador}")
                         logging.info(f"JSON atualizado: {extracted_json}")
@@ -187,9 +209,11 @@ Retorne **apenas** o JSON.
             except Exception as e:
                 logging.error(f"Erro ao buscar CNPJ: {e}")
                 extracted_json["destinatario"]["cnpj"] = "Erro na consulta"
-        
+
         valor_liquido = extracted_json.get("valor_liquido", "Informacao ausente")
         if valor_liquido == "Informacao ausente":
-            extracted_json["valor_liquido"] = extracted_json.get("valor_total", "Informacao ausente")
+            extracted_json["valor_liquido"] = extracted_json.get(
+                "valor_total", "Informacao ausente"
+            )
 
         return extracted_json

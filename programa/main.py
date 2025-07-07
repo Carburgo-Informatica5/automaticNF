@@ -468,18 +468,22 @@ def check_emails(nmr_nota, extract_values):
             logging.error(f"Erro ao encerrar conexão POP3: {e}")
 
 def clean_extracted_json(json_data):
+    import logging
+
     if not isinstance(json_data, dict):
         logging.error(f"Erro: clean_extracted_json recebeu {type(json_data)} em vez de dict.")
         return {}
 
-    if "ISS Retido" in json_data and isinstance(json_data["ISS Retido"], str):
-        if json_data["ISS Retido"].lower() == "não":
-            json_data["ISS Retido"] = "Não"
+    # logging.info(f"Conteúdo de json_data antes da limpeza: {json_data}")
+
+    if "ISS_retido" in json_data and isinstance(json_data["ISS_retido"], str):
+        if json_data["ISS_retido"].lower() in ["não", "nao"]:
+            json_data["ISS_retido"] = "Não"
         else:
             try:
-                json_data["ISS Retido"] = f"{float(json_data['ISS Retido']):.2f}"
+                json_data["ISS_retido"] = f"{float(json_data['ISS_retido']):.2f}"
             except ValueError:
-                logging.warning(f"Valor inválido para ISS Retido: {json_data['ISS Retido']}")
+                logging.warning(f"Valor inválido para ISS_retido: {json_data['ISS_retido']}")
 
     return json_data
 
@@ -581,13 +585,16 @@ def process_pdf(pdf_path, dados_email):
                     "valor_total": cleaned_json.get("valor_total", "0.00")
                 }
             ],
+            "valor_liquido": {
+                "valor_liquido": cleaned_json.get("valor_liquido", "0.00")
+            },
             "impostos": {
-                "ISS_retido": cleaned_json.get("ISS retido", "0.00"),
-                "PIS": cleaned_json.get("PIS", "0.00"),
-                "COFINS": cleaned_json.get("COFINS", "0.00"),
-                "INSS": cleaned_json.get("INSS", "0.00"),
-                "IR": cleaned_json.get("IR", "0.00"),
-                "CSLL": cleaned_json.get("CSLL", "0.00"),
+                "ISS_retido": cleaned_json.get("impostos", {}).get("ISS_retido"),
+                "PIS": cleaned_json.get("impostos", {}).get("PIS"),
+                "COFINS": cleaned_json.get("impostos", {}).get("COFINS"),
+                "INSS": cleaned_json.get("impostos", {}).get("INSS"),
+                "IR": cleaned_json.get("impostos", {}).get("IR"),
+                "CSLL": cleaned_json.get("impostos", {}).get("CSLL"),
             },
             "pagamento_parcelado": cleaned_json.get("pagamento_parcelado", []),
             "info_adicional": {}
@@ -892,7 +899,7 @@ class SystemNF:
         valor_liquido, tipo_imposto, impostos, tipo_documento, modelo_email, dados_email=None
     ):
 
-        gui.PAUSE = 0.2
+        gui.PAUSE = 1
         
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
@@ -1065,25 +1072,30 @@ class SystemNF:
                         gui.press("tab", presses=17)
                         gui.write(valor_total)
                         gui.press("tab", presses=2)
-                        gui.write(impostos.get("IR"))
-
-                    elif impostos.get("PIS") != "0.00":
+                        IR = impostos.get("IR").replace(".", ",")
+                        logging.info(f"IR formatado: {IR}")
+                        gui.write(IR)
+                    if impostos.get("PIS") != "0.00":
                         gui.press("tab", presses=24)
                         gui.write(valor_total)
                         gui.press("tab")
-                        gui.write(impostos.get("PIS"))
-
-                    elif impostos.get("COFINS") != "0.00":
+                        PIS = impostos.get("PIS").replace(".", ",")
+                        logging.info(f"PIS formatado: {PIS}")
+                        gui.write(PIS)
+                    if impostos.get("COFINS") != "0.00":
                         gui.press("tab", presses=5)
                         gui.write(valor_total)
                         gui.press("tab")
-                        gui.write(impostos.get("COFINS"))
-
-                    elif impostos.get("CSLL") != "0.00":
+                        COFINS = impostos.get("COFINS").replace(".", ",")
+                        logging.info(f"COFINS formatado: {COFINS}")
+                        gui.write(COFINS)
+                    if impostos.get("CSLL") != "0.00":
                         gui.press("tab", presses=5)
                         gui.write(valor_total)
                         gui.press("tab")
-                        gui.write(impostos.get("CSLL"))
+                        CSLL = impostos.get("CSLL").replace(".", ",")
+                        logging.info(f"CSLL formatado: {CSLL}")
+                        gui.write(CSLL)
 
                         gui.press("tab", presses=40)
                         gui.press("left")
