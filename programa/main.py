@@ -899,7 +899,7 @@ class SystemNF:
         valor_liquido, tipo_imposto, impostos, tipo_documento, modelo_email, dados_email=None
     ):
 
-        gui.PAUSE = 1
+        gui.PAUSE = 0.2
         
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
@@ -1187,8 +1187,11 @@ class SystemNF:
                 
                 if valor_liquido == None:
                     valor_liquido = valor_total
+                    
+                logging.info(f"Valor líquido: {valor_liquido}")
+                logging.info(f"valor total: {valor_total}")
                 
-                gui.write(valor_liquido)
+                gui.write(valor_liquido.replace(".", ","))
                 gui.press("tab")
                 gui.press("enter")
                 gui.press("tab", presses=3)

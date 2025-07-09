@@ -4,8 +4,8 @@
         "nome": "LINX AUTOMOTIVO LIDA"
     },
     "destinatario": {
-        "cnpj": "02918557000212",
-        "nome": "BURGOS VEICULOS LTDA",
+        "cnpj": "91667618000750",
+        "nome": "CARBURGO VEICULOS LTDA",
         "Numero": "240",
         "Cidade": "NOVO HAMBURGO"
     },
@@ -13,11 +13,11 @@
         "chave": "Informacao ausente"
     },
     "num_nota": {
-        "numero_nota": "28802"
+        "numero_nota": "031403"
     },
     "serie": "0",
     "data_emi": {
-        "data_emissao": "12062025"
+        "data_emissao": "02072025"
     },
     "data_venc": {
         "data_venc": null
@@ -33,11 +33,14 @@
     },
     "valor_total": [
         {
-            "valor_total": "42.24"
+            "valor_total": "3118.20"
         }
     ],
+    "valor_liquido": {
+        "valor_liquido": "3118.20"
+    },
     "impostos": {
-        "ISS_retido": "0.00",
+        "ISS_retido": "62.36",
         "PIS": "0.00",
         "COFINS": "0.00",
         "INSS": "0.00",
