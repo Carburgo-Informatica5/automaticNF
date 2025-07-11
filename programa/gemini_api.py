@@ -95,6 +95,7 @@ Você receberá um arquivo PDF de um documento fiscal (nota fiscal, fatura ou bo
 - Confira se o valor líquido extraído do documento bate com o valor calculado. Se houver diferença, priorize o valor líquido informado no documento, mas registre um alerta no campo \"observacao\" indicando a diferença.
 - Se algum campo não for encontrado ou estiver ilegível, use \"Informacao ausente\" ou \"Nao encontrado\" conforme o caso.
 - O JSON deve ser bem formatado, válido e não conter caracteres inválidos.
+- Se for notas fiscais da Vivo extraia somente a primeira página do PDF
 - Não inclua explicações, apenas o JSON.
 **Exemplo de resposta esperada:**
 
