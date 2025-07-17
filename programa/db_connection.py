@@ -41,3 +41,14 @@ def cnpj(num_endereco, cidade):
     cursor.close()
     conn.close()
     return result[0] if result else None
+
+def login (sender):
+    db_config = load_db_config()
+    conn = connect_to_db(db_config)
+    cursor = conn.cursor()
+    query = "SELECT LOGIN FROM GER_USUARIO U WHERE U.EMAIL = :sender"  
+    cursor.execute(query, [sender])
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return result

@@ -19,7 +19,7 @@ import yaml
 from email.utils import parseaddr
 
 from processar_xml import *
-from db_connection import revenda
+from db_connection import revenda, login as db_login
 from DANImail import Queue, WriteTo
 from gemini_api import GeminiAPI
 from gemini_main import *
@@ -33,7 +33,6 @@ logging.basicConfig(
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/bravos")
 
-from bravos import openBravos
 
 logging.info("Iniciando o Programa")
 
@@ -82,6 +81,13 @@ with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 dani = Queue(config)
 
+def buscar_login_usuario(sender):
+    resultado = db_login(sender)
+    if resultado:
+        return resultado
+    logging.error(f"Usuário {sender} não encontrado no banco de dados.")
+    logging.info(f"resultado da consulta: {resultado}")
+
 # Extrai valores do corpo do e-mail
 def extract_values(text):
     if not isinstance(text, str):  # Evita chamar `.lower()` em um dicionário
@@ -127,6 +133,8 @@ def extract_values(text):
                 values["modelo_email"] = line.split(":", 1)[1].strip()
             elif line.startswith("tipo documento:"):
                 values["tipo_documento"] = line.split(":", 1)[1].strip()
+            elif line.startswith("senha usuario:"):
+                values["senha_user"] = line.split(":", 1)[1].strip()
 
     logging.info(f"Valores extraídos: {values}")
 
@@ -212,6 +220,43 @@ def check_emails(nmr_nota, extract_values):
                             logging.info(f"Dados do e-mail após extração: {dados_email}")
                             if not nmr_nota:
                                 logging.error("Número da nota fiscal não encontrado nos dados extraídos.")
+                        
+                            resultado_login_db = db_login(sender) 
+                            
+                            usuario_login = None
+                            if resultado_login_db and resultado_login_db[0]: 
+                                usuario_login = resultado_login_db[0] 
+                                logging.info(f"Login do usuário encontrado no banco de dados: {usuario_login}") 
+                            else:
+                                logging.error(f"Usuário {sender} não encontrado no banco de dados ou resultado vazio.") #
+                                send_email_error( 
+                                    dani, 
+                                    sender, 
+                                    "Erro: Usuário não encontrado no banco de dados para login. Entre em contato com a TI.", #
+                                    nmr_nota_notificacao, 
+                                    dados_email 
+                                ) 
+                                continue 
+                            
+                            senha_login_from_email = dados_email.get("senha_user", None) 
+
+                            if not senha_login_from_email: 
+                                logging.error("Senha do usuário não encontrada no e-mail.") 
+                                send_email_error( 
+                                    dani, 
+                                    sender, 
+                                    "Erro: Senha não encontrada no corpo do e-mail. Por favor, inclua 'senha usuario:' no e-mail.", #
+                                    nmr_nota_notificacao, 
+                                    dados_email 
+                                ) 
+                                continue 
+                            
+                            dados_email["usuario_login"] = usuario_login 
+                            dados_email["senha_login"] = senha_login_from_email 
+                            
+                            logging.info(f"Dados do e-mail após atualização de login/senha: {dados_email}") 
+                            logging.info(f"usuario_login final em dados_email: {dados_email.get('usuario_login')}") 
+                            logging.info(f"senha_login final em dados_email (parcial): {dados_email.get('senha_login', '')[:2]}**") 
                         elif part.get("Content-Disposition") is not None:
                             logging.info("Encontrado anexo no e-mail")
                             # Processar o anexo com os dados atualizados
@@ -225,6 +270,18 @@ def check_emails(nmr_nota, extract_values):
                                     origem = valores_extraidos["origem"]
                                     descricao = valores_extraidos["descricao"]
                                     cc_texto = valores_extraidos["cc"]
+                                    senha_user = valores_extraidos.get("senha_user", None)
+                                    resultado = buscar_login_usuario(sender)
+                                    logging.info(f"Login do usuário encontrado: {resultado}")
+                                    if not resultado:
+                                        send_email_error(
+                                            dani,
+                                            sender,
+                                            "Erro: Usuário não encontrado no banco de dados. Entre em contato com a TI.",
+                                            nmr_nota_notificacao,
+                                            dados_email
+                                        )
+                                        return None
                                     logging.info(
                                         f"Texto de centros de custo extraído: {cc_texto}"
                                     )
@@ -233,7 +290,8 @@ def check_emails(nmr_nota, extract_values):
                                     data_vencimento = valores_extraidos["data_vencimento"]
                                     tipo_imposto = valores_extraidos["tipo_imposto"]
                                     logging.info(f"Tipo de imposto extraído: {valores_extraidos.get('tipo_imposto')}")
-
+                                    
+                                    
                                     if not dados_nota_fiscal:
                                         logging.error("Erro: 'dados_nota_fiscal' está vazio. O anexo pode não ter sido processado corretamente.")
                                     elif "json_path" not in dados_nota_fiscal:
@@ -320,6 +378,8 @@ def check_emails(nmr_nota, extract_values):
                                         "tipo_arquivo": dados_email.get("tipo_arquivo", "DESCONHECIDO"),
                                         "tipo_documento": json_data.get("tipo_documento", {}).get("tipo_documento"),
                                         "modelo_email": json_data.get("modelo_email", {}).get("modelo_email"),
+                                        "usuario_login": dados_email.get("usuario_login"), 
+                                        "senha_login": dados_email.get("senha_login"), 
                                     }
 
                                     logging.info(
@@ -901,6 +961,38 @@ class SystemNF:
 
         gui.PAUSE = 0.2
         
+        class faker:
+            def __call__(self, *args, **kwds):
+                return self
+
+            def __getattr__(self, name):
+                return self
+        
+        usuario_login = dados_email.get("usuario_login")
+        senha_login = dados_email.get("senha_login")
+        
+        logging.info(f"Usuário de login: {usuario_login}")
+        logging.info(f"Senha de login: {senha_login}")
+        
+        if usuario_login and senha_login:
+            config = {
+                "bravos_usr": usuario_login,
+                "bravos_pswd": senha_login,
+            }
+            from bravos.infoBravos import bravos as BravosClass
+            self.br = BravosClass(config, m_queue=faker())  
+            self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+        else:
+            logging.error("Login ou senha do usuário não encontrados.")
+            send_email_error(
+                dani,
+                dados_email.get("email_usuario", "caetano.apollo@carburgo.com.br"),
+                "Erro: Login ou senha do usuário não encontrados.",
+                nmr_nota,
+                dados_email
+            )
+            return
+        
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
@@ -1063,7 +1155,9 @@ class SystemNF:
                     gui.press("tab", presses=26)
                 else:
                     gui.press("tab", presses=34)
+                gui.press("capslock")
                 gui.write(descricao)
+                gui.press("capslock")
                 if tipo_documento == "fatura" or tipo_documento == "boleto":
                     gui.press("tab")
                     gui.press("enter")
@@ -1286,7 +1380,9 @@ class SystemNF:
                 logging.info(f"Valor total: {valor_total}")
                 gui.write(valor_total)
                 gui.press("tab", presses=26)
+                gui.press("capslock")
                 gui.write(descricao)
+                gui.press("capslock")
                 gui.press(["tab", "enter"])
                 gui.press("tab", presses=11)
                 gui.press("left", presses=2)
