@@ -81,7 +81,7 @@ with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 dani = Queue(config)
 
-def buscar_login_usuario(sender):
+def retrive_user_login(sender):
     resultado = db_login(sender)
     if resultado:
         return resultado
@@ -271,7 +271,7 @@ def check_emails(nmr_nota, extract_values):
                                     descricao = valores_extraidos["descricao"]
                                     cc_texto = valores_extraidos["cc"]
                                     senha_user = valores_extraidos.get("senha_user", None)
-                                    resultado = buscar_login_usuario(sender)
+                                    resultado = retrive_user_login(sender)
                                     logging.info(f"Login do usuário encontrado: {resultado}")
                                     if not resultado:
                                         send_email_error(
@@ -899,7 +899,7 @@ def send_success_message(dani, destinatario, nmr_nota_notificacao, dados_email=N
         logging.error(f"Erro ao enviar e-mail de sucesso: {e}")
 
 
-def processar_parcelas(parcelas):
+def process_installments(parcelas):
     logging.info("Iniciando o processamento das parcelas")
     for parcela in parcelas:
         logging.info(f"Processando parcela: {parcela}")
@@ -1390,7 +1390,7 @@ class SystemNF:
                 logging.info(f"Processando parcelas: {parcelas}")
                 gui.press("tab")
                 gui.press("enter")
-                processar_parcelas(parcelas)
+                process_installments(parcelas)
 
                 gui.press("tab", presses=3)
                 gui.press(["enter", "tab", "tab", "tab", "enter"])
@@ -1515,7 +1515,7 @@ if __name__ == "__main__":
                     logging.warning("Chave 'parcelas' não encontrada em dados_email")
                 logging.info(f"Parcelas recebidas: {parcelas}")
                 
-                def processar_dados(dados_email):
+                def process_data(dados_email):
                     if (
                         "emitente" in dados_email
                         and "num_nota" in dados_email
