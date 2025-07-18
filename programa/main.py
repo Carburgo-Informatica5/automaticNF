@@ -1095,10 +1095,7 @@ class SystemNF:
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
             gui.press("alt")
-            if revenda_nome == 4:
-                gui.press("right", presses=4)
-            else:
-                gui.press("right", presses=6)
+            gui.press("right", presses=6)
             gui.press("down", presses=4)
             gui.press("enter")
             gui.press("down", presses=2)
@@ -1352,6 +1349,7 @@ class SystemNF:
                             gui.press("tab", presses=3)
                         else:
                             gui.press("tab", presses=6)
+                gui.press("enter")
                 gui.press("tab", presses=3)
                 gui.press("enter")
                 time.sleep(1)
