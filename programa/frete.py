@@ -20,7 +20,7 @@ from typing import Callable, Any
 from email.utils import parseaddr
 
 from processar_xml import *
-from db_connection import revenda
+from db_connection import revenda, login as db_login
 from DANImail import Queue, WriteTo
 from gemini_api import GeminiAPI
 from gemini_main import *
@@ -32,7 +32,7 @@ logging.basicConfig(
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/bravos")
 
-from bravos import openBravos
+from bravos.infoBravos import bravos as BravosClass
 
 logging.info("Iniciando o Programa")
 
@@ -96,6 +96,7 @@ def extract_values(text):
         "data_vencimento": None,
         "tipo_imposto": None,
         "senha_arquivo": None,
+        "senha_user": None
     }
 
     lines = text.lower().splitlines()
@@ -126,6 +127,8 @@ def extract_values(text):
                 values["modelo_email"] = line.split(":", 1)[1].strip()
             elif line.startswith("tipo documento:"):
                 values["tipo_documento"] = line.split(":", 1)[1].strip()
+            elif line.startswith("senha usuário:"):
+                values["senha_user"] = line.split(":", 1)[1].strip()
 
     logging.info(f"Valores extraídos: {values}")
 
@@ -204,6 +207,27 @@ def check_emails(nmr_nota, extract_values):
                             valores_extraidos = extract_values(body)
                             dados_email.update(valores_extraidos)
                             logging.info(f"Dados do e-mail após extração: {dados_email}")
+                            logging.info(f"conferindo no banco o usuário: {sender}")
+                            resultado_login_db = db_login(sender)
+                            
+                            usuario_login = None
+                            if resultado_login_db:
+                                usuario_login = resultado_login_db[0] if isinstance(resultado_login_db, tuple) else resultado_login_db
+                                logging.info(f"Usuário encontrado no banco de dados: {usuario_login}")
+                            else:
+                                logging.error(f"Usuário {sender} não encontrado no banco de dados ou resultado vazio.") 
+                                send_email_error(dani, sender, "Erro: Seu usuário não foi encontrado no banco de dados para login. Entre em contato com a TI.", nmr_nota) 
+                                continue 
+                            
+                            senha_login_from_email = dados_email.get("senha_user")
+                            if not senha_login_from_email: 
+                                logging.error("Senha do usuário não encontrada no e-mail.") 
+                                send_email_error(dani, sender, "Erro: Senha não encontrada. Por favor, inclua 'senha usuário: [sua_senha]' no corpo do e-mail.", nmr_nota) 
+                                continue 
+                            
+                            dados_email["usuario_login"] = usuario_login
+                            dados_email["senha_login"] = senha_login_from_email
+                            logging.info(f"Credenciais de login armazenadas para {usuario_login}.")
                         elif part.get("Content-Disposition") is not None:
                             logging.info("Encontrado anexo no e-mail")
                             # Processar o anexo com os dados atualizados
@@ -312,6 +336,8 @@ def check_emails(nmr_nota, extract_values):
                                         "tipo_arquivo": dados_email.get("tipo_arquivo", "DESCONHECIDO"),
                                         "tipo_documento": json_data.get("tipo_documento", {}).get("tipo_documento"),
                                         "modelo_email": json_data.get("modelo_email", {}).get("modelo_email"),
+                                        "usuario_login": usuario_login,
+                                        "senha_login": senha_login_from_email,
                                     }
 
                                     logging.info(
@@ -386,7 +412,7 @@ def check_emails(nmr_nota, extract_values):
                                         dados_email.get('impostos', {}),
                                         dados_email.get('tipo_documento'),
                                         dados_email.get('modelo_email'),
-                                        dados_email
+                                        dados_email=dados_email
                                     )
 
                                     # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
@@ -725,14 +751,14 @@ def send_email_error(dani, destinatario, erro, nmr_nota):
 
     mensagem = (
         dani.make_message()
-        .set_color("red")
+        # .set_color("red")  # Remover esta linha
         .add_text(f"Erro durante lançamento de nota fiscal: {nmr_nota}", tag="h1")
         .add_text(str(erro), tag="pre")
     )
 
     mensagem_assinatura = (
         dani.make_message()
-        .set_color("green")
+        # .set_color("green")  # Remover esta linha
         .add_text("DANI", tag="h1")
         .add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
         .add_text(
@@ -753,14 +779,14 @@ def send_success_message(dani, destinatario, nmr_nota):
 
     mensagem = (
         dani.make_message()
-        .set_color("green")
+        # .set_color("green")  # Remover esta linha
         .add_text(f"Nota lançada com sucesso número da nota: {nmr_nota}", tag="h1")
         .add_text("Acesse o sistema para verificar o lançamento.", tag="pre")
     )
 
     mensagem_assinatura = (
         dani.make_message()
-        .set_color("green")
+        # .set_color("green")  # Remover esta linha
         .add_text("DANI", tag="h1")
         .add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
         .add_text(
@@ -842,6 +868,37 @@ class SystemNF:
 
         gui.PAUSE = 1
 
+        class faker:
+            def __call__(self, *args, **kwds):
+                return self
+
+            def __getattr__(self, name):
+                return self
+        
+        usuario_login = dados_email.get("usuario_login")
+        senha_login = dados_email.get("senha_login")
+        
+        logging.info(f"Usuário de login: {usuario_login}")
+        logging.info(f"Senha de login: {senha_login}")
+        
+        if usuario_login and senha_login:
+            config = {
+                "bravos_usr": usuario_login,
+                "bravos_pswd": senha_login,
+            }
+            from bravos.infoBravos import bravos as BravosClass
+            self.br = BravosClass(config, m_queue=faker())  
+            self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+        else:
+            logging.error("Login ou senha do usuário não encontrados.")
+            send_email_error(
+                dani,
+                dados_email.get("email_usuario", "caetano.apollo@carburgo.com.br"),
+                "Erro: Login ou senha do usuário não encontrados.",
+                nmr_nota,
+            )
+            return
+
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
@@ -903,6 +960,40 @@ class SystemNF:
                 logging.error(f"Erro: Variável revenda não definida: {e}")
         else:
             logging.error("Erro: Revenda não foi definida corretamente.")
+        
+        
+        class faker:
+            def __call__(self, *args, **kwds):
+                return self
+
+            def __getattr__(self, name):
+                return self
+        
+        usuario_login = dados_email.get("usuario_login")
+        senha_login = dados_email.get("senha_login")
+        
+        logging.info(f"Tentando login com usuário: {usuario_login}")
+        
+        if usuario_login and senha_login:
+            config_bravos = {
+                "bravos_usr": usuario_login,
+                "bravos_pswd": senha_login,
+            }
+            logging.info("Chamando acquire_bravos para abrir o Bravos")
+            try:
+                self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+                logging.info("Chamada para abrir o Bravos realizada")
+            except Exception as e:
+                logging.error(f"Erro ao tentar abrir o Bravos: {e}")
+        else:
+            logging.error("Login ou senha do usuário não encontrados nos dados do e-mail.")
+            send_email_error(
+                dani,
+                dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                "Erro crítico: Login ou senha não foram passados para a função de automação.",
+                nmr_nota,
+            )
+            return
 
         
         try:
@@ -1069,7 +1160,7 @@ class SystemNF:
                 gui.press("tab", presses=3)
                 gui.press("enter")
                 gui.press("tab", presses=39)
-                gui.press("enter")
+                # gui.press("enter")
         except Exception as e:
             logging.error(f"Erro durante a automação: {e}")
 

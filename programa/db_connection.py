@@ -46,7 +46,7 @@ def login (sender):
     db_config = load_db_config()
     conn = connect_to_db(db_config)
     cursor = conn.cursor()
-    query = "SELECT LOGIN FROM GER_USUARIO U WHERE U.EMAIL = :sender"  
+    query = "SELECT LOGIN FROM GER_USUARIO U WHERE U.EMAIL = :sender AND  U.ATIVO = 'S'"  
     cursor.execute(query, [sender])
     result = cursor.fetchone()
     cursor.close()

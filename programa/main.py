@@ -41,7 +41,7 @@ PORT = 995  # Porta segura (SSL)
 USERNAME = "dani@carburgo.com.br"
 PASSWORD = "p@r!sA1856"
 # Assunto alvo para busca
-ASSUNTO_ALVO = "lançamento nota fiscal"
+ASSUNTO_ALVO = "Lançamento nota fiscal"
 # Diretório para salvar os anexos
 DIRECTORY = os.path.join(current_dir, "anexos")
 
@@ -122,7 +122,7 @@ def extract_values(text):
                 values["rateio"] = line.split(":", 1)[1].strip()
             elif line.startswith("código de tributação:"):
                 values["cod_item"] = line.split(":", 1)[1].strip()
-            elif "data vencimento" in line.lower():
+            elif "data de vencimento" in line.lower():
                 data_vencimento = line.split(":", 1)[1].strip()
                 values["data_vencimento"] = data_vencimento.replace("/", "")
             elif line.startswith("tipo imposto:"):
@@ -133,7 +133,7 @@ def extract_values(text):
                 values["modelo_email"] = line.split(":", 1)[1].strip()
             elif line.startswith("tipo documento:"):
                 values["tipo_documento"] = line.split(":", 1)[1].strip()
-            elif line.startswith("senha usuario:"):
+            elif line.startswith("senha usuário:"):
                 values["senha_user"] = line.split(":", 1)[1].strip()
 
     logging.info(f"Valores extraídos: {values}")
@@ -217,6 +217,13 @@ def check_emails(nmr_nota, extract_values):
                             valores_extraidos = extract_values(body)
                             nmr_nota = valores_extraidos.get("numero_nota") or valores_extraidos.get("num_nota") or nmr_nota
                             dados_email.update(valores_extraidos)
+                            if "senha usuario" not in dados_email or not dados_email["senha_usuario"]:
+                                import re
+                                match = re.search(r"senha usuario:\s*([^\s]+)", dados_email.get("body", ""), re.IGNORECASE)
+                                if match:
+                                    dados_email["senha_usuario"] = match.group(1)
+                                else:
+                                    dados_email["senha_usuario"] = None
                             logging.info(f"Dados do e-mail após extração: {dados_email}")
                             if not nmr_nota:
                                 logging.error("Número da nota fiscal não encontrado nos dados extraídos.")
@@ -224,21 +231,22 @@ def check_emails(nmr_nota, extract_values):
                             resultado_login_db = db_login(sender) 
                             
                             usuario_login = None
-                            if resultado_login_db and resultado_login_db[0]: 
-                                usuario_login = resultado_login_db[0] 
-                                logging.info(f"Login do usuário encontrado no banco de dados: {usuario_login}") 
+                            if resultado_login_db:
+                                usuario_login = resultado_login_db[0] if isinstance(resultado_login_db, tuple) else resultado_login_db
+                                logging.info(f"Usuário encontrado no banco de dados: {usuario_login}")
+
                             else:
-                                logging.error(f"Usuário {sender} não encontrado no banco de dados ou resultado vazio.") #
+                                logging.error(f"Usuário {sender} não encontrado no banco de dados ou resultado vazio.") 
                                 send_email_error( 
                                     dani, 
                                     sender, 
-                                    "Erro: Usuário não encontrado no banco de dados para login. Entre em contato com a TI.", #
+                                    "Erro: Usuário não encontrado no banco de dados para login. Entre em contato com a TI.", 
                                     nmr_nota_notificacao, 
                                     dados_email 
                                 ) 
                                 continue 
                             
-                            senha_login_from_email = dados_email.get("senha_user", None) 
+                            senha_login_from_email = dados_email.get("senha usuario") or dados_email.get("senha_user") or dados_email.get("senha_login")
 
                             if not senha_login_from_email: 
                                 logging.error("Senha do usuário não encontrada no e-mail.") 
@@ -251,8 +259,10 @@ def check_emails(nmr_nota, extract_values):
                                 ) 
                                 continue 
                             
-                            dados_email["usuario_login"] = usuario_login 
-                            dados_email["senha_login"] = senha_login_from_email 
+                            dados_email["usuario_login"] = usuario_login
+                            dados_email["senha_login"] = dados_email.get("senha_user")
+                            logging.info(f"Usuário de login: {usuario_login}")
+                            logging.info(f"Senha de login: {dados_email['senha_login']}")
                             
                             logging.info(f"Dados do e-mail após atualização de login/senha: {dados_email}") 
                             logging.info(f"usuario_login final em dados_email: {dados_email.get('usuario_login')}") 
@@ -351,7 +361,7 @@ def check_emails(nmr_nota, extract_values):
                                         f"Dados dos centros de custo: {dados_centros_de_custo}"
                                     )
 
-                                    dados_email = {
+                                    dados_novos = {
                                         "departamento": departamento,
                                         "origem": origem,
                                         "descricao": descricao,
@@ -378,9 +388,8 @@ def check_emails(nmr_nota, extract_values):
                                         "tipo_arquivo": dados_email.get("tipo_arquivo", "DESCONHECIDO"),
                                         "tipo_documento": json_data.get("tipo_documento", {}).get("tipo_documento"),
                                         "modelo_email": json_data.get("modelo_email", {}).get("modelo_email"),
-                                        "usuario_login": dados_email.get("usuario_login"), 
-                                        "senha_login": dados_email.get("senha_login"), 
                                     }
+                                    dados_email.update(dados_novos)
 
                                     logging.info(
                                         f"Dados carregados: {dados_nota_fiscal}"
@@ -432,29 +441,29 @@ def check_emails(nmr_nota, extract_values):
                                     logging.info(f"COFINS: {dados_email.get('impostos', {}).get('COFINS')}")
                                     logging.info(f"CSLL: {dados_email.get('impostos', {}).get('CSLL')}")
                                     sistema_nf.automation_gui(
-                                        dados_email.get('departamento'),
-                                        dados_email.get('origem'),
-                                        dados_email.get('descricao'),
-                                        dados_email.get('cc'),
-                                        dados_email.get('cod_item'),
-                                        dados_email.get('valor_total'),
-                                        dados_email.get('dados_centros_de_custo'),
-                                        dados_email.get('emitente', {}).get('cnpj'),
-                                        dados_email.get('num_nota', {}).get('numero_nota'),
-                                        dados_email.get('data_emi', {}).get('data_emissao'),
-                                        dados_email.get('data_venc', {}).get('data_venc'),
-                                        dados_email.get('chave_acesso', {}).get('chave'),
-                                        dados_email.get('modelo', {}).get('modelo'),
-                                        dados_email.get('rateio'),
-                                        dados_email.get('parcelas'),
-                                        dados_email.get('serie'),
-                                        dados_email.get('data_venc_nfs'),
-                                        dados_email.get('valor_liquido', {}).get('valor_liquido'),
-                                        dados_email.get('tipo_imposto'),
-                                        dados_email.get('impostos', {}),
-                                        dados_email.get('tipo_documento'),
-                                        dados_email.get('modelo_email'),
-                                        dados_email
+                                        departamento=departamento,
+                                        origem=origem,
+                                        descricao=descricao,
+                                        cc=cc_texto,
+                                        cod_item=cod_item,
+                                        valor_total=valor_total,
+                                        dados_centros_de_custo=dados_centros_de_custo,
+                                        cnpj_emitente=dados_nota_fiscal["emitente"]["cnpj"],
+                                        nmr_nota=dados_nota_fiscal["num_nota"]["numero_nota"],
+                                        data_emi=dados_nota_fiscal["data_emi"]["data_emissao"],
+                                        data_venc=dados_nota_fiscal["data_venc"]["data_venc"],
+                                        chave_acesso=dados_nota_fiscal["chave_acesso"]["chave"],
+                                        modelo=dados_nota_fiscal["modelo"]["modelo"],
+                                        rateio=rateio,
+                                        parcelas=dados_nota_fiscal.get("pagamento_parcelado", []),
+                                        serie=dados_nota_fiscal.get("serie", ""),
+                                        data_venc_nfs=valores_extraidos["data_vencimento"],
+                                        valor_liquido=json_data.get("valor_liquido", {}).get("valor_liquido"),
+                                        tipo_imposto=valores_extraidos.get("tipo_imposto", "NÃO INFORMADO"),
+                                        impostos=json_data.get("impostos", {}),
+                                        tipo_documento=json_data.get("tipo_documento", {}).get("tipo_documento"),
+                                        modelo_email=json_data.get("modelo_email", {}).get("modelo_email"),
+                                        dados_email=dados_email
                                     )
 
                                     # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
