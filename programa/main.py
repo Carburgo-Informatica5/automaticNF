@@ -90,55 +90,37 @@ def retrive_user_login(sender):
 
 # Extrai valores do corpo do e-mail
 def extract_values(text):
-    if not isinstance(text, str):  # Evita chamar `.lower()` em um dicionário
+    if not isinstance(text, str):
         logging.error(f"Erro: extract_values recebeu {type(text)} em vez de string.")
         return {}
 
-    values = {
-        "departamento": None,
-        "origem": None,
-        "descricao": None,
-        "cc": None,
-        "rateio": None,
-        "cod_item": None,
-        "data_vencimento": None,
-        "tipo_imposto": None,
-        "senha_arquivo": None,
+    clean_text = text.replace('\n', ' ').replace('\r', '')
+
+    patterns = {
+        "departamento": re.search(r"departamento:\s*([\d]+)", clean_text, re.IGNORECASE),
+        "origem": re.search(r"origem:\s*([\d]+)", clean_text, re.IGNORECASE),
+        "descricao": re.search(r"descri..o:\s*([^|]+?)\s*(rateio:|cc:)", clean_text, re.IGNORECASE),
+        "cc": re.search(r"cc:\s*(\|\|.*?\|\|)", clean_text, re.IGNORECASE),
+        "rateio": re.search(r"rateio:\s*(sim|nao|n.o)", clean_text, re.IGNORECASE),
+        "cod_item": re.search(r"c.digo de tributa..o:\s*([\d]+)", clean_text, re.IGNORECASE),
+        "data_vencimento": re.search(r"data de vencimento:\s*([\d/]+)", clean_text, re.IGNORECASE),
+        "tipo_imposto": re.search(r"tipo imposto:\s*([\w\s]+)", clean_text, re.IGNORECASE),
+        "senha_arquivo": re.search(r"senha arquivo:\s*([\w\d]+)", clean_text, re.IGNORECASE),
+        "modelo_email": re.search(r"modelo:\s*([\w\d]+)", clean_text, re.IGNORECASE),
+        "tipo_documento": re.search(r"tipo documento:\s*([\w\s]+)", clean_text, re.IGNORECASE),
+        "senha_user": re.search(r"senha usu.rio:\s*([\d]+)", clean_text, re.IGNORECASE),
     }
 
-    lines = text.lower().splitlines()
-    for line in lines:
-        line = line.strip()
-        if isinstance(line, str): 
-            if line.startswith("departamento:"):
-                values["departamento"] = line.split(":", 1)[1].strip()
-            elif line.startswith("origem:"):
-                values["origem"] = line.split(":", 1)[1].strip()
-            elif line.startswith("descrição:"):
-                values["descricao"] = line.split(":", 1)[1].strip()
-            elif line.startswith("cc:"):
-                values["cc"] = line.split(":", 1)[1].strip()
-            elif line.startswith("rateio:"):
-                values["rateio"] = line.split(":", 1)[1].strip()
-            elif line.startswith("código de tributação:"):
-                values["cod_item"] = line.split(":", 1)[1].strip()
-            elif "data de vencimento" in line.lower():
-                data_vencimento = line.split(":", 1)[1].strip()
-                values["data_vencimento"] = data_vencimento.replace("/", "")
-            elif line.startswith("tipo imposto:"):
-                values["tipo_imposto"] = line.split(":", 1)[1].strip()
-            elif line.startswith("senha arquivo:"):
-                values["senha_arquivo"] = line.split(":", 1)[1].strip()
-            elif line.startswith("modelo:"):
-                values["modelo_email"] = line.split(":", 1)[1].strip()
-            elif line.startswith("tipo documento:"):
-                values["tipo_documento"] = line.split(":", 1)[1].strip()
-            elif line.startswith("senha usuário:"):
-                values["senha_user"] = line.split(":", 1)[1].strip()
+    extracted_data = {key: match.group(1).strip() if match else None for key, match in patterns.items()}
+    
+    if extracted_data.get("cc"):
+        extracted_data["cc"] = extracted_data["cc"].replace('||', '').strip()
+        
+    if extracted_data.get("data_vencimento"):
+        extracted_data["data_vencimento"] = extracted_data["data_vencimento"].replace('/', '')
 
-    logging.info(f"Valores extraídos: {values}")
-
-    return values
+    logging.info(f"Valores extraídos (Regex Global): {extracted_data}")
+    return extracted_data
 
 # Adiciona o caminho do arquivo JSON de emails processados
 PROCESSED_EMAILS_FILE = os.path.join(current_dir, "processed_emails.json")
@@ -244,20 +226,26 @@ def check_emails(nmr_nota, extract_values):
                                     nmr_nota_notificacao, 
                                     dados_email 
                                 ) 
-                                continue 
+                                return 
                             
-                            senha_login_from_email = dados_email.get("senha usuario") or dados_email.get("senha_user") or dados_email.get("senha_login")
+                            if "senha_user" not in dados_email or not dados_email.get("senha_user"):
+                                match = re.search(r"senha usu.rio:\s*([^\s|]+)", dados_email.get("body", ""), re.IGNORECASE)
+                                if match:
+                                    dados_email["senha_user"] = match.group(1).strip()
+                                    logging.info(f"Senha do usuário encontrada via Regex: {dados_email['senha_user']}")
+                                else:
+                                    dados_email["senha_user"] = None
 
-                            if not senha_login_from_email: 
+                            if not dados_email.get("senha_user"): 
                                 logging.error("Senha do usuário não encontrada no e-mail.") 
                                 send_email_error( 
                                     dani, 
                                     sender, 
-                                    "Erro: Senha não encontrada no corpo do e-mail. Por favor, inclua 'senha usuario:' no e-mail.", #
+                                    "Erro: Senha não encontrada no corpo do e-mail. Por favor, inclua 'senha usuario:' no e-mail.", 
                                     nmr_nota_notificacao, 
                                     dados_email 
                                 ) 
-                                continue 
+                                return 
                             
                             dados_email["usuario_login"] = usuario_login
                             dados_email["senha_login"] = dados_email.get("senha_user")
@@ -291,7 +279,7 @@ def check_emails(nmr_nota, extract_values):
                                             nmr_nota_notificacao,
                                             dados_email
                                         )
-                                        return None
+                                        return
                                     logging.info(
                                         f"Texto de centros de custo extraído: {cc_texto}"
                                     )
@@ -356,7 +344,7 @@ def check_emails(nmr_nota, extract_values):
                                             "valor_total"
                                         ]
                                     ).replace(".", ",")
-                                    dados_centros_de_custo = process_cost_centers(cc_texto, float(valor_total.replace(",", ".")))
+                                    dados_centros_de_custo = process_cost_centers(cc_texto, float(valor_total.replace(",", ".")), origem)
                                     logging.info(
                                         f"Dados dos centros de custo: {dados_centros_de_custo}"
                                     )
@@ -496,7 +484,7 @@ def check_emails(nmr_nota, extract_values):
                                         nmr_nota_notificacao,
                                         dados_email
                                     )
-                                    return None
+                                    return 
                             else:
                                 logging.error("Erro ao salvar ou processar o anexo")
                                 send_email_error(
@@ -506,7 +494,7 @@ def check_emails(nmr_nota, extract_values):
                                     nmr_nota_notificacao,
                                     dados_email
                                 )
-                                return None
+                                return 
                 else:
                     charset = email_message.get_content_charset()
                     body = decode_body(email_message.get_payload(decode=True), charset)
@@ -527,7 +515,7 @@ def check_emails(nmr_nota, extract_values):
                 nmr_nota_notificacao,
                 dados_email
             )
-        return None
+        return 
     finally:
         try:
             if server:
@@ -776,64 +764,76 @@ def save_attachment(part, directory, dados_email):
         logging.error(f"Tipo de arquivo não suportado: {tipo_arquivo}")
         return None
 
-def process_cost_centers(cc_texto, valor_total):
+def process_cost_centers(cc_texto, valor_total, origem_padrao):
+    """
+    Processa a string de centros de custo, lidando com todos os cenários:
+    1. Único CC (ex: "9")
+    2. Múltiplos CCs com valor/percentual (ex: "9 - 70.5, 5 - 29.5")
+    3. Múltiplos CCs com origens específicas (ex: "9 - 70.5 (5148), 5 - 29.5")
+    """
     valor_total = float(valor_total)
-    centros_de_custo = []
+    lancamentos_finais = []
     total_calculado = 0.0
 
-    # Verifica se cc_texto é uma string
-    if not isinstance(cc_texto, str):
-        logging.error(f"Erro: cc_texto deve ser uma string, mas recebeu {type(cc_texto)}.")
-        return centros_de_custo
-
-    cc_texto = re.sub(r"[\u2013\u2014-]+", "-", cc_texto)
-
-    if cc_texto.strip().isdigit():
-        cc_texto = f"{cc_texto.strip()}-100%"
-
-    itens = [item.strip() for item in cc_texto.split(",")]
-
-    for i, item in enumerate(itens):
-        try:
-            partes = [x.strip() for x in item.split("-")]
-            if len(partes) != 2:
-                logging.error(f"Formato inválido para centro de custo: {item}")
-                continue
-            cc, valor = partes
-            logging.info(f"Processando centro de custo: {cc}, valor: {valor}")
-            if "%" in valor:
-                porcentagem = float(valor.replace("%", ""))
-                valor_calculado = round((valor_total * porcentagem) / 100, 2)
-            else:
-                valor_calculado = float(valor.replace(",", "."))
-            total_calculado += valor_calculado
-            centros_de_custo.append((cc, valor_calculado))
-        except Exception as e:
-            logging.error(f"Erro ao processar centro de custo: {item} ({e})")
-
-    diferenca = round(valor_total - total_calculado, 2)
-
-    if abs(diferenca) > 0:
-        if centros_de_custo:
-            ultimo_cc, ultimo_valor = centros_de_custo[-1]
-            if isinstance(ultimo_valor, str):
-                ultimo_valor = float(ultimo_valor.replace(",", "."))
-            diferenca_float = ultimo_valor + diferenca
-            centros_de_custo[-1] = (ultimo_cc, diferenca_float)
-        else:
-            logging.error("Nenhum centro de custo encontrado para aplicar a diferença")
-            raise ValueError("Erro: Nenhum centro de custo encontrado para aplicar a diferença")
-
-    if isinstance(centros_de_custo, list):
-        for item in centros_de_custo:
-            if not (isinstance(item, tuple) and len(item) == 2):
-                logging.error(f"Item inválido em centros_de_custo: {item}")
-                return []
-    else:
-        logging.error(f"centros_de_custo não é uma lista: {centros_de_custo}")
+    if not isinstance(cc_texto, str) or not cc_texto.strip():
+        logging.error(f"Erro: cc_texto deve ser uma string não vazia, mas recebeu {type(cc_texto)}.")
         return []
 
-    return centros_de_custo
+    # Regra 1: Trata o caso de um único setor informado
+    if cc_texto.strip().isdigit():
+        logging.info(f"Centro de custo único detectado: {cc_texto}. Atribuindo 100% do valor.")
+        # Transforma "9" em "9 - 100%" para ser processado pela lógica padrão
+        cc_texto = f"{cc_texto.strip()} - 100%"
+
+    # Expressão Regular para capturar: CC, valor/percentual e a origem (opcional)
+    padrao = re.compile(r"(\d+)\s*-\s*([\d.,%]+)(?:\s*\(\s*(\d+)\s*\))?")
+    
+    # Separa os lançamentos pela vírgula
+    itens = cc_texto.split(',')
+
+    for item in itens:
+        item = item.strip()
+        match = padrao.match(item)
+
+        if not match:
+            logging.error(f"Formato inválido para o lançamento de rateio: '{item}'. Ignorando.")
+            continue
+
+        cc, valor_str, origem_especifica = match.groups()
+        
+        # Regra 3: Define a origem correta
+        # Usa a origem específica do lançamento (entre parênteses), se houver.
+        # Caso contrário, usa a origem padrão do e-mail.
+        origem_final = origem_especifica.strip() if origem_especifica else origem_padrao
+
+        try:
+            # Regra 2: Processa múltiplos setores com valor ou percentual
+            if "%" in valor_str:
+                porcentagem = float(valor_str.replace("%", "").replace(",", "."))
+                valor_calculado = round((valor_total * porcentagem) / 100, 2)
+            else:
+                valor_calculado = float(valor_str.replace(",", "."))
+
+            total_calculado += valor_calculado
+            lancamentos_finais.append({
+                "cc": cc.strip(),
+                "valor": valor_calculado,
+                "origem": origem_final
+            })
+        except ValueError as e:
+            logging.error(f"Erro ao converter o valor '{valor_str}' no lançamento '{item}': {e}")
+        except Exception as e:
+            logging.error(f"Erro inesperado ao processar o lançamento '{item}': {e}")
+
+    # Ajuste final para garantir que a soma dos rateios seja exatamente o valor total da nota
+    diferenca = round(valor_total - total_calculado, 2)
+    if abs(diferenca) > 0.01 and lancamentos_finais: # Usa uma tolerância
+        logging.warning(f"Diferença de R$ {diferenca} encontrada no rateio. Ajustando último lançamento.")
+        lancamentos_finais[-1]['valor'] += diferenca
+
+    logging.info(f"Processamento de rateio finalizado. Resultado: {lancamentos_finais}")
+    
+    return lancamentos_finais
 
 def send_email_error(dani, destinatario, erro, nmr_nota_notificacao, dados_email=None):
     if not nmr_nota_notificacao and dados_email:
@@ -1321,7 +1321,10 @@ class SystemNF:
                     gui.press("tab", presses=9)
                     logging.info("Pressionou o tab corretamente")
                     total_rateio = 0
-                    for i, (cc, valor) in enumerate(dados_centros_de_custo):
+                    for i, lancamento in enumerate(dados_centros_de_custo):
+                        cc = lancamento['cc']
+                        valor = lancamento['valor']
+                        origem_lancamento = lancamento['origem']
                         try:
                             valor_float = float(str(valor).replace(",", "."))
                         except Exception as e:
@@ -1341,7 +1344,7 @@ class SystemNF:
                         gui.write(cc)
                         logging.info(f"Centro de custo escrito: {cc}")
                         gui.press("tab", presses=2)
-                        gui.write(origem)
+                        gui.write(origem_lancamento)
                         gui.press("tab", presses=2)
                         if i == len(dados_centros_de_custo) - 1:
                             valor_float = float(valor_total.replace(",", ".")) - total_rateio
@@ -1380,6 +1383,7 @@ class SystemNF:
                         nmr_nota_notificacao,
                         dados_email
                     )
+                    return
                 gui.write(cod_item)
                 gui.press("tab", presses=10)
                 gui.write("1")
@@ -1420,7 +1424,10 @@ class SystemNF:
                     gui.press("tab", presses=9)
                     logging.info("Pressionou o tab corretamente")
                     total_rateio = 0
-                    for i, (cc, valor) in enumerate(dados_centros_de_custo):
+                    for i, lancamento in enumerate(dados_centros_de_custo):
+                        cc = lancamento['cc']
+                        valor = lancamento['valor']
+                        origem_lancamento = lancamento['origem']
                         try:
                             valor_float = float(str(valor).replace(",", "."))
                         except Exception as e:
@@ -1440,7 +1447,7 @@ class SystemNF:
                         gui.write(cc)
                         logging.info(f"Centro de custo escrito: {cc}")
                         gui.press("tab", presses=2)
-                        gui.write(origem)
+                        gui.write(origem_lancamento)
                         gui.press("tab", presses=2)
                         if i == len(dados_centros_de_custo) - 1:
                             valor_float = float(valor_total.replace(",", ".")) - total_rateio
@@ -1469,8 +1476,7 @@ class SystemNF:
                 nmr_nota_notificacao,
                 dados_email
             )
-            print(f"Erro durante a automação: {e}")
-            print("Automação iniciada com os dados extraídos.")
+            return
 
 if __name__ == "__main__":
     while True:
@@ -1495,6 +1501,7 @@ if __name__ == "__main__":
                         nmr_nota_notificacao,
                         dados_email
                     )
+                    raise
 
                 pdf_path = os.path.join(DIRECTORY, "anexos")
                 extracted_info = process_pdf(pdf_path, dados_email)
@@ -1559,6 +1566,7 @@ if __name__ == "__main__":
                             nmr_nota_notificacao,
                             dados_email
                         )
+                        return
         
                 # Adicionando logs para verificar os dados extraídos
                 logging.info(f"Departamento: {departamento}")
@@ -1609,7 +1617,6 @@ if __name__ == "__main__":
                     send_success_message(
                         dani,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        nmr_nota_notificacao,
                         dados_email
                     )
                 except Exception as e:
@@ -1618,9 +1625,9 @@ if __name__ == "__main__":
                         dani,
                         dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
                         e,
-                        nmr_nota_notificacao,
                         dados_email
                     )
+                    raise
             else:
                 logging.info("Nenhum dado extraído, automação não será executada")
                 logging.error("Erro: dados_email é None. Verifique o processamento do e-mail.")
@@ -1633,5 +1640,6 @@ if __name__ == "__main__":
                 nmr_nota_notificacao,
                 dados_email
             )
+            raise
         logging.info("Esperando antes da nova verificação...")
         time.sleep(5)
