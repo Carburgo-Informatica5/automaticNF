@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "05441493000380",
+        "nome": "NEXT SOLUCOES TECNOLOGICAS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "09112414000187",
+        "nome": "PREMIERE VEICULOS LTDA",
+        "Numero": "901",
+        "Cidade": "NOVO HAMBURGO"
+    },
+    "chave_acesso": {
+        "chave": "Informacao ausente"
+    },
+    "num_nota": {
+        "numero_nota": "69025"
+    },
+    "serie": "0",
+    "data_emi": {
+        "data_emissao": "24062025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "fatura"
+    },
+    "modelo_email": {
+        "modelo_email": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "720.91"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

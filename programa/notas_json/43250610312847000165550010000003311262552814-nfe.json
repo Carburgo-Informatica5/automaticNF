@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "10312847000165",
+        "nome": "NET COMMERCE COMERCIO ELETRONICO LTDA"
+    },
+    "destinatario": {
+        "cnpj": "02918557000212",
+        "nome": "BURGOS VEICULOS LTDA NH"
+    },
+    "chave_acesso": {
+        "chave": "43250610312847000165550010000003311262552814"
+    },
+    "num_nota": {
+        "numero_nota": "331"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "25062025"
+    },
+    "data_venc": {
+        "data_venc": "02072025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "2925.60"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-07-02",
+            "valor_parcela": "975.22"
+        },
+        {
+            "numero_parcela": "002",
+            "data_vencimento": "2025-07-23",
+            "valor_parcela": "975.19"
+        },
+        {
+            "numero_parcela": "003",
+            "data_vencimento": "2025-08-20",
+            "valor_parcela": "975.19"
+        }
+    ],
+    "info_adicional": {}
+}

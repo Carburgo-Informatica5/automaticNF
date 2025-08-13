@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "06541327000157",
+        "nome": "Grupo People Telecom Ltda"
+    },
+    "destinatario": {
+        "cnpj": "04682292000140",
+        "nome": "EIFFEL VEICULOS COMERCIO E IMPORTACAO LTDA MATRIZ 2400",
+        "Numero": "1226",
+        "Cidade": "Caxias do Sul"
+    },
+    "chave_acesso": {
+        "chave": "Informacao ausente"
+    },
+    "num_nota": {
+        "numero_nota": "000055578"
+    },
+    "serie": "21",
+    "data_emi": {
+        "data_emissao": "27062025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "fatura"
+    },
+    "modelo_email": {
+        "modelo_email": "22"
+    },
+    "valor_total": [
+        {
+            "valor_total": "240.00"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

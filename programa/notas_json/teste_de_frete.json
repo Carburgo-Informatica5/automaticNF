@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "00428307000511",
+        "nome": "EXPRESSO SAO MIGUEL S/A"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA",
+        "Numero": "240",
+        "Cidade": "NOVO HAMBURGO"
+    },
+    "chave_acesso": {
+        "chave": "43250400428307000511570060004610661004610665"
+    },
+    "num_nota": {
+        "numero_nota": "077777"
+    },
+    "serie": "6",
+    "data_emi": {
+        "data_emissao": "08042025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "frete"
+    },
+    "modelo_email": {
+        "modelo_email": "57"
+    },
+    "valor_total": [
+        {
+            "valor_total": "66.16"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

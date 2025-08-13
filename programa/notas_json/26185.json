@@ -1,0 +1,52 @@
+{
+    "emitente": {
+        "cnpj": "40712883000187",
+        "nome": "HOLMES TECHNOLOGY LTDA."
+    },
+    "destinatario": {
+        "cnpj": "09112414000187",
+        "nome": "PREMIERE VEICULOS LTDA",
+        "Numero": "901",
+        "Cidade": "Novo Hamburgo"
+    },
+    "chave_acesso": {
+        "chave": "Informacao ausente"
+    },
+    "num_nota": {
+        "numero_nota": "026185"
+    },
+    "serie": "0",
+    "data_emi": {
+        "data_emissao": "04082025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "None"
+    },
+    "modelo_email": {
+        "modelo_email": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "540.91"
+        }
+    ],
+    "valor_liquido": {
+        "valor_liquido": "540.91"
+    },
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

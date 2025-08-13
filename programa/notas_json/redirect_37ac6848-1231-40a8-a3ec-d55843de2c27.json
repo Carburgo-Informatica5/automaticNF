@@ -1,0 +1,52 @@
+{
+    "emitente": {
+        "cnpj": "37472191000285",
+        "nome": "DEALER CONSULTORIA LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA",
+        "Numero": "240",
+        "Cidade": "NOVO HAMBURGO"
+    },
+    "chave_acesso": {
+        "chave": "Informacao ausente"
+    },
+    "num_nota": {
+        "numero_nota": "001053"
+    },
+    "serie": "0",
+    "data_emi": {
+        "data_emissao": "05072025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "None"
+    },
+    "modelo_email": {
+        "modelo_email": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "120.00"
+        }
+    ],
+    "valor_liquido": {
+        "valor_liquido": "120.00"
+    },
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

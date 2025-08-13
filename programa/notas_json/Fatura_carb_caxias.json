@@ -1,0 +1,52 @@
+{
+    "emitente": {
+        "cnpj": "53464762000296",
+        "nome": "LINX AUTOMOTIVO LIDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000831",
+        "nome": "CARBURGO VEICULOS LTDA",
+        "Numero": "3195",
+        "Cidade": "CIDADE NOVA"
+    },
+    "chave_acesso": {
+        "chave": "Informacao ausente"
+    },
+    "num_nota": {
+        "numero_nota": "032869"
+    },
+    "serie": "0",
+    "data_emi": {
+        "data_emissao": "14072025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "None"
+    },
+    "modelo_email": {
+        "modelo_email": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "357.22"
+        }
+    ],
+    "valor_liquido": {
+        "valor_liquido": "357.22"
+    },
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

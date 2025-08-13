@@ -1,0 +1,31 @@
+{
+    "emitente": {
+        "cnpj": "89189104000108",
+        "nome": "A BRUSIUS FILHO COMPONENTES ELETRONICOS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA"
+    },
+    "chave_acesso": {
+        "chave": "43250789189104000108650010004419141537524421"
+    },
+    "num_nota": {
+        "numero_nota": "441914"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "25072025"
+    },
+    "data_venc": {},
+    "modelo": {
+        "modelo": "65"
+    },
+    "valor_total": [
+        {
+            "valor_total": "185.25"
+        }
+    ],
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

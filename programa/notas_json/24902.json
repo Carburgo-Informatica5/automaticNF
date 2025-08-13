@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "40712883000187",
+        "nome": "HOLMES TECHNOLOGY LTDA."
+    },
+    "destinatario": {
+        "cnpj": "91667618000670",
+        "nome": "CARBURGO VEICULOS LTDA",
+        "Numero": "3775",
+        "Cidade": "Sapiranga"
+    },
+    "chave_acesso": {
+        "chave": "Informacao ausente"
+    },
+    "num_nota": {
+        "numero_nota": "00024902"
+    },
+    "serie": "0",
+    "data_emi": {
+        "data_emissao": "03072025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "None"
+    },
+    "modelo_email": {
+        "modelo_email": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "540.91"
+        }
+    ],
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

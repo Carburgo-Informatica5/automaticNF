@@ -1,0 +1,52 @@
+{
+    "emitente": {
+        "cnpj": "02558157001720",
+        "nome": "Telefonica Brasil S/A"
+    },
+    "destinatario": {
+        "cnpj": "02918557000212",
+        "nome": "BURGOS VEICULOS LTDA",
+        "Numero": "855",
+        "Cidade": "Novo Hamburgo"
+    },
+    "chave_acesso": {
+        "chave": "43250702558157001720620070001010171012041813"
+    },
+    "num_nota": {
+        "numero_nota": "101017"
+    },
+    "serie": "7",
+    "data_emi": {
+        "data_emissao": "01072025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "fatura"
+    },
+    "modelo_email": {
+        "modelo_email": "22"
+    },
+    "valor_total": [
+        {
+            "valor_total": "470.00"
+        }
+    ],
+    "valor_liquido": {
+        "valor_liquido": "455.77"
+    },
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "2.53",
+        "COFINS": "11.70",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}

@@ -1,0 +1,49 @@
+{
+    "emitente": {
+        "cnpj": "10312847000165",
+        "nome": "NET COMMERCE COMERCIO ELETRONICO LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA - NH"
+    },
+    "chave_acesso": {
+        "chave": "43250710312847000165550010000004211305576348"
+    },
+    "num_nota": {
+        "numero_nota": "421"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "29072025"
+    },
+    "data_venc": {
+        "data_venc": "30072025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "3745.70"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-07-30",
+            "valor_parcela": "1248.56"
+        },
+        {
+            "numero_parcela": "002",
+            "data_vencimento": "2025-08-20",
+            "valor_parcela": "1248.57"
+        },
+        {
+            "numero_parcela": "003",
+            "data_vencimento": "2025-09-17",
+            "valor_parcela": "1248.57"
+        }
+    ],
+    "info_adicional": {}
+}

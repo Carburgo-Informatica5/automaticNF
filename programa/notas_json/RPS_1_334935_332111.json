@@ -1,0 +1,52 @@
+{
+    "emitente": {
+        "cnpj": "10415575000129",
+        "nome": "HR PROCESSAMENTO DE DADOS LTDA"
+    },
+    "destinatario": {
+        "cnpj": "91667618000750",
+        "nome": "Carburgo Veiculos Ltda",
+        "Numero": "960",
+        "Cidade": "Gravatai"
+    },
+    "chave_acesso": {
+        "chave": "Informacao ausente"
+    },
+    "num_nota": {
+        "numero_nota": "177330"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "04082025"
+    },
+    "data_venc": {
+        "data_venc": null
+    },
+    "modelo": {
+        "modelo": "None"
+    },
+    "tipo_documento": {
+        "tipo_documento": "fatura modelo"
+    },
+    "modelo_email": {
+        "modelo_email": "01"
+    },
+    "valor_total": [
+        {
+            "valor_total": "38.07"
+        }
+    ],
+    "valor_liquido": {
+        "valor_liquido": "38.07"
+    },
+    "impostos": {
+        "ISS_retido": "0.00",
+        "PIS": "0.00",
+        "COFINS": "0.00",
+        "INSS": "0.00",
+        "IR": "0.00",
+        "CSLL": "0.00"
+    },
+    "pagamento_parcelado": [],
+    "info_adicional": {}
+}
