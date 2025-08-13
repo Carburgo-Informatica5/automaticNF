@@ -41,7 +41,8 @@ PORT = 995  # Porta segura (SSL)
 USERNAME = "dani@carburgo.com.br"
 PASSWORD = "p@r!sA1856"
 # Assunto alvo para busca
-ASSUNTO_ALVO = "lançamento frete"
+if "ASSUNTO_ALVO" not in globals():
+    ASSUNTO_ALVO = "lançamento frete"
 # Diretório para salvar os anexos
 DIRECTORY = os.path.join(current_dir, "anexos")
 
@@ -153,317 +154,104 @@ def save_processed_emails(processed_emails):
     with open(PROCESSED_EMAILS_FILE, "w") as file:
         json.dump(processed_emails, file)
 
-def check_emails(nmr_nota, extract_values):
+def processar_email_frete(email_message):
+    logging.info("="*50)
+    logging.info("INICIANDO PROCESSAMENTO DE E-MAIL DE FRETE")
+    logging.info("="*50)
+    
     sender = None
     dados_email = {}
-    try:
-        server = poplib.POP3_SSL(HOST, PORT)
-        server.user(USERNAME)
-        server.pass_(PASSWORD)
-        num_messages = len(server.list()[1])
-        logging.info(f"Conectado ao servidor POP3. Número de mensagens: {num_messages}")
+    nmr_nota = "N/A"
 
-        if not os.path.exists(DIRECTORY):
-            os.makedirs(DIRECTORY)
+    try:
+        from_header = decode_header_value(email_message["from"])
+        sender = parseaddr(from_header)[1]
+        email_id = email_message["Message-ID"]
 
         processed_emails = load_processed_emails()
+        if email_id in processed_emails:
+            logging.warning(f"E-mail (ID: {email_id}) já processado. Ignorando.")
+            return
 
-        for i in range(num_messages):
-            response, lines, octets = server.retr(i + 1)
-            raw_message = b"\n".join(lines).decode("utf-8", errors="ignore")
-            email_message = parser.Parser().parsestr(raw_message)
-            subject = decode_header_value(email_message["subject"])
-            from_header = decode_header_value(email_message["from"])
-            sender = parseaddr(from_header)[1]
-            email_id = email_message["Message-ID"]
+        # 1. Extrair corpo e dados do e-mail
+        body = ""
+        if email_message.is_multipart():
+            for part in email_message.walk():
+                if part.get_content_type() == "text/plain" and "attachment" not in (part.get("Content-Disposition") or ""):
+                    body = decode_body(part.get_payload(decode=True), part.get_content_charset())
+                    break
+        else:
+            body = decode_body(email_message.get_payload(decode=True), email_message.get_content_charset())
+        
+        dados_email = extract_values(body)
+        dados_email["body"] = body
 
-            if email_id in processed_emails:
-                logging.info(f"E-mail já processado: {subject}")
-                continue
+        # 2. Validar usuário e senha
+        resultado_login_db = db_login(sender)
+        if not resultado_login_db:
+            raise ValueError(f"Usuário {sender} não encontrado no banco de dados.")
 
-            logging.info(f"Verificando e-mail com assunto: {subject}")
+        usuario_login = resultado_login_db[0] if isinstance(resultado_login_db, tuple) else resultado_login_db
+        senha_login_from_email = dados_email.get("senha_user")
+        if not senha_login_from_email:
+            raise ValueError("Senha do usuário ('senha usuário:') não encontrada no corpo do e-mail.")
+        
+        dados_email["usuario_login"] = usuario_login
+        dados_email["senha_login"] = senha_login_from_email
+        dados_email["sender"] = sender
+        dados_email["email_id"] = email_id
 
-            normalized_subject = normalize_text(subject)
-            normalized_assunto_alvo = normalize_text(ASSUNTO_ALVO)
+        # 3. Processar Anexo
+        attachment_processed = False
+        for part in email_message.walk():
+            if part.get("Content-Disposition") and "attachment" in part.get("Content-Disposition"):
+                logging.info("Anexo encontrado. Processando...")
+                dados_anexo = save_attachment(part, DIRECTORY, dados_email)
+                if not dados_anexo or "json_path" not in dados_anexo:
+                    raise ValueError("Falha ao salvar, processar ou gerar JSON do anexo.")
+                
+                with open(dados_anexo["json_path"], "r", encoding="utf-8") as f:
+                    json_data = json.load(f)
 
-            if not subject:
-                logging.error("Assunto do e-mail está vazio.")
-                continue
+                # 4. Consolidar todos os dados
+                # Atualiza dados_email com informações do anexo (XML/PDF)
+                dados_email.update(json_data)
+                
+                # Garante que os dados do corpo do e-mail (que são prioritários) sobrescrevam os do anexo se houver conflito
+                dados_email.update(extract_values(body))
 
-            if normalized_subject == normalized_assunto_alvo:
-                logging.info(f"E-mail encontrado com o assunto: {subject}")
+                nmr_nota = dados_email.get('num_nota', {}).get('numero_nota', 'N/A')
+                valor_total = str(dados_email.get('valor_total', [{}])[0].get('valor_total', '0')).replace(".", ",")
+                
+                # Calcula os centros de custo
+                dados_email['dados_centros_de_custo'] = process_cost_centers(
+                    dados_email.get('cc'),
+                    float(valor_total.replace(",", "."))
+                )
 
-                if email_message.is_multipart():
-                    for part in email_message.walk():
-                        content_type = part.get_content_type()
-                        logging.info(f"Parte do e-mail com tipo de conteúdo: {content_type}")
-                        if content_type == "text/plain":
-                            charset = part.get_content_charset()
-                            body = decode_body(part.get_payload(decode=True), charset)
-                            dados_email["body"] = body
-                            logging.info(f"Corpo do e-mail extraído: {dados_email.get('body')}")
+                # 5. Iniciar a Automação GUI
+                logging.info(f"Iniciando automação para a nota fiscal: {nmr_nota}")
+                sistema_nf = SystemNF()
+                sistema_nf.automation_gui(dados_email=dados_email) # Passa o dicionário completo
 
-                            # Extrair valores do corpo do e-mail antes de processar o anexo
-                            valores_extraidos = extract_values(body)
-                            dados_email.update(valores_extraidos)
-                            logging.info(f"Dados do e-mail após extração: {dados_email}")
-                            logging.info(f"conferindo no banco o usuário: {sender}")
-                            resultado_login_db = db_login(sender)
-                            
-                            usuario_login = None
-                            if resultado_login_db:
-                                usuario_login = resultado_login_db[0] if isinstance(resultado_login_db, tuple) else resultado_login_db
-                                logging.info(f"Usuário encontrado no banco de dados: {usuario_login}")
-                            else:
-                                logging.error(f"Usuário {sender} não encontrado no banco de dados ou resultado vazio.") 
-                                send_email_error(dani, sender, "Erro: Seu usuário não foi encontrado no banco de dados para login. Entre em contato com a TI.", nmr_nota) 
-                                continue 
-                            
-                            senha_login_from_email = dados_email.get("senha_user")
-                            if not senha_login_from_email: 
-                                logging.error("Senha do usuário não encontrada no e-mail.") 
-                                send_email_error(dani, sender, "Erro: Senha não encontrada. Por favor, inclua 'senha usuário: [sua_senha]' no corpo do e-mail.", nmr_nota) 
-                                continue 
-                            
-                            dados_email["usuario_login"] = usuario_login
-                            dados_email["senha_login"] = senha_login_from_email
-                            logging.info(f"Credenciais de login armazenadas para {usuario_login}.")
-                        elif part.get("Content-Disposition") is not None:
-                            logging.info("Encontrado anexo no e-mail")
-                            # Processar o anexo com os dados atualizados
-                            dados_nota_fiscal = save_attachment(part, DIRECTORY, dados_email)
-                            if dados_nota_fiscal:
-                                try:
-                                    valores_extraidos = extract_values(body)
-                                    dados_email.update(valores_extraidos)
-                                    logging.info(f"Dados do e-mail após extração: {dados_email}")
-                                    departamento = valores_extraidos["departamento"]
-                                    origem = valores_extraidos["origem"]
-                                    descricao = valores_extraidos["descricao"]
-                                    cc_texto = valores_extraidos["cc"]
-                                    logging.info(
-                                        f"Texto de centros de custo extraído: {cc_texto}"
-                                    )
-                                    rateio = valores_extraidos["rateio"]
-                                    cod_item = valores_extraidos["cod_item"]
-                                    data_vencimento = valores_extraidos["data_vencimento"]
-                                    tipo_imposto = valores_extraidos["tipo_imposto"]
-                                    logging.info(f"Tipo de imposto extraído: {valores_extraidos.get('tipo_imposto')}")
+                # 6. Finalização e Notificação
+                attachment_processed = True
+                processed_emails.append(email_id)
+                save_processed_emails(processed_emails)
+                send_success_message(dani, sender, nmr_nota)
+                logging.info(f"Processo para a nota {nmr_nota} concluído com sucesso.")
+                break 
 
-                                    if not dados_nota_fiscal:
-                                        logging.error("Erro: 'dados_nota_fiscal' está vazio. O anexo pode não ter sido processado corretamente.")
-                                    elif "json_path" not in dados_nota_fiscal:
-                                        logging.error("Erro: 'dados_nota_fiscal' não contém 'json_path'.")
-                                    else:
-                                        with open(dados_nota_fiscal["json_path"], "r") as f:
-                                            json_data = json.load(f)
-                                            logging.info(f"Conteúdo de json_data['valor_total']: {json_data['valor_total']}")
-                                            
-                                        tipo_arquivo = dados_email.get("tipo_arquivo")
-                                        logging.info(f"Tipo de arquivo extraído: {tipo_arquivo}")
+        if not attachment_processed:
+            raise ValueError("Nenhum anexo válido (PDF/XML) foi encontrado no e-mail.")
 
-
-                                        dados_nota_fiscal = {
-                                            "valor_total": [
-                                                {"valor_total": json_data["valor_total"][0]["valor_total"]} if isinstance(json_data["valor_total"], list) else {"valor_total": json_data["valor_total"]["valor_total"]}
-                                            ],
-                                            "emitente": {
-                                                "nome": json_data["emitente"]["nome"],
-                                                "cnpj": json_data["emitente"]["cnpj"],
-                                            },
-                                            "num_nota": {
-                                                "numero_nota": json_data["num_nota"]["numero_nota"]
-                                            },
-                                            "data_emi": {
-                                                "data_emissao": json_data["data_emi"]["data_emissao"]
-                                            },
-                                            "data_venc": {
-                                                "data_venc": valores_extraidos["data_vencimento"]
-                                            },
-                                            "chave_acesso": {
-                                                "chave": json_data["chave_acesso"]["chave"]
-                                            },
-                                            "modelo": {
-                                                "modelo": json_data["modelo"]["modelo"]
-                                            },
-                                            "destinatario": {
-                                                "nome": json_data["destinatario"]["nome"],
-                                                "cnpj": json_data["destinatario"]["cnpj"],
-                                            },
-                                            "pagamento_parcelado": None if tipo_arquivo == "pdf" else json_data.get('pagamento_parcelado', None),
-                                            "serie": json_data["serie"],
-                                        }
-
-                                    if not dados_nota_fiscal["valor_total"]:
-                                        raise ValueError(
-                                            "Valor total não encontrado na nota fiscal"
-                                        )
-
-                                    valor_total = str(
-                                        dados_nota_fiscal["valor_total"][0][
-                                            "valor_total"
-                                        ]
-                                    ).replace(".", ",")
-                                    dados_centros_de_custo = process_cost_centers(cc_texto, float(valor_total.replace(",", ".")))
-                                    logging.info(
-                                        f"Dados dos centros de custo: {dados_centros_de_custo}"
-                                    )
-
-                                    dados_email = {
-                                        "departamento": departamento,
-                                        "origem": origem,
-                                        "descricao": descricao,
-                                        "cc": cc_texto,
-                                        "cod_item": cod_item,
-                                        "valor_total": valor_total,
-                                        "dados_centros_de_custo": dados_centros_de_custo,
-                                        "emitente": dados_nota_fiscal["emitente"],
-                                        "num_nota": dados_nota_fiscal["num_nota"],
-                                        "data_emi": dados_nota_fiscal["data_emi"],
-                                        "data_venc": dados_nota_fiscal["data_venc"],
-                                        "chave_acesso": dados_nota_fiscal["chave_acesso"],
-                                        "modelo": dados_nota_fiscal["modelo"],
-                                        "destinatario": dados_nota_fiscal["destinatario"],
-                                        "rateio": rateio,
-                                        "sender": sender,
-                                        "email_id": email_id,
-                                        "parcelas": dados_nota_fiscal.get("pagamento_parcelado", []),
-                                        "serie": dados_nota_fiscal.get("serie", ""),
-                                        "data_venc_nfs": valores_extraidos["data_vencimento"],
-                                        "tipo_imposto": valores_extraidos["tipo_imposto"],
-                                        "impostos": json_data.get("impostos", {}),  
-                                        "valor_liquido": json_data.get("valor_liquido", {}),
-                                        "tipo_arquivo": dados_email.get("tipo_arquivo", "DESCONHECIDO"),
-                                        "tipo_documento": json_data.get("tipo_documento", {}).get("tipo_documento"),
-                                        "modelo_email": json_data.get("modelo_email", {}).get("modelo_email"),
-                                        "usuario_login": usuario_login,
-                                        "senha_login": senha_login_from_email,
-                                    }
-
-                                    logging.info(
-                                        f"Dados carregados: {dados_nota_fiscal}"
-                                    )
-                                    logging.info(
-                                        f"Parcelas carregadas: {dados_nota_fiscal.get('pagamento_parcelado')}"
-                                    )
-
-                                    if tipo_imposto is None:
-                                        logging.error("Erro: tipo_imposto não foi encontrado nos dados extraídos!")
-                                    logging.info(f"Conteúdo de dados_email antes de automation_gui: {dados_email}")
-                                    logging.info(f"Tipo de imposto antes de chamar automation_gui: {tipo_imposto}")
-                                    
-                                    tipo_imposto = valores_extraidos.get("tipo_imposto", "NÃO INFORMADO")
-                                    logging.info(f"Tipo de arquivo a ser processado: {tipo_arquivo}")
-                                    
-                                    if dados_email is None:
-                                        logging.error("Erro: `dados_email` já é None antes de chamar automation_gui")
-                                    else:
-                                        logging.info(f"`dados_email` antes de chamar automation_gui: {dados_email}")
-                                        logging.info(f"Referência de `dados_email`: {id(dados_email)}")
-                                        
-                                    
-                                    sistema_nf = SystemNF()
-                                    logging.info(f"Chamando automation_gui com os seguintes parâmetros:")
-                                    logging.info(f"departamento: {dados_email.get('departamento')}")
-                                    logging.info(f"origem: {dados_email.get('origem')}")
-                                    logging.info(f"descricao: {dados_email.get('descricao')}")
-                                    logging.info(f"cc: {dados_email.get('cc')}")
-                                    logging.info(f"cod_item: {dados_email.get('cod_item')}")
-                                    logging.info(f"valor_total: {dados_email.get('valor_total')}")
-                                    logging.info(f"dados_centros_de_custo: {dados_email.get('dados_centros_de_custo')}")
-                                    logging.info(f"cnpj_emitente: {dados_email.get('emitente', {}).get('cnpj')}")
-                                    logging.info(f"nmr_nota: {dados_email.get('num_nota', {}).get('numero_nota')}")
-                                    logging.info(f"data_emi: {dados_email.get('data_emi', {}).get('data_emissao')}")
-                                    logging.info(f"data_venc: {dados_email.get('data_venc', {}).get('data_venc')}")
-                                    logging.info(f"chave_acesso: {dados_email.get('chave_acesso', {}).get('chave')}")
-                                    logging.info(f"modelo: {dados_email.get('modelo', {}).get('modelo')}")
-                                    logging.info(f"rateio: {dados_email.get('rateio')}")
-                                    logging.info(f"parcelas: {dados_email.get('parcelas')}")
-                                    logging.info(f"serie: {dados_email.get('serie')}")
-                                    logging.info(f"data_venc_nfs: {dados_email.get('data_venc_nfs')}")
-                                    logging.info(f"ISS_retido: {dados_email.get('impostos', {}).get('ISS_retido')}")
-                                    logging.info(f"INSS: {dados_email.get('impostos', {}).get('INSS')}")
-                                    logging.info(f"IR: {dados_email.get('impostos', {}).get('IR')}")
-                                    logging.info(f"valor_liquido: {dados_email.get('valor_liquido', {}).get('valor_liquido')}")
-                                    logging.info(f"tipo_imposto: {dados_email.get('tipo_imposto')}")
-                                    logging.info(f"PIS: {dados_email.get('impostos', {}).get('PIS')}")
-                                    logging.info(f"COFINS: {dados_email.get('impostos', {}).get('COFINS')}")
-                                    logging.info(f"CSLL: {dados_email.get('impostos', {}).get('CSLL')}")
-                                    sistema_nf.automation_gui(
-                                        dados_email.get('departamento'),
-                                        dados_email.get('origem'),
-                                        dados_email.get('descricao'),
-                                        dados_email.get('cc'),
-                                        dados_email.get('cod_item'),
-                                        dados_email.get('valor_total'),
-                                        dados_email.get('dados_centros_de_custo'),
-                                        dados_email.get('emitente', {}).get('cnpj'),
-                                        dados_email.get('num_nota', {}).get('numero_nota'),
-                                        dados_email.get('data_emi', {}).get('data_emissao'),
-                                        dados_email.get('data_venc', {}).get('data_venc'),
-                                        dados_email.get('chave_acesso', {}).get('chave'),
-                                        dados_email.get('modelo', {}).get('modelo'),
-                                        dados_email.get('rateio'),
-                                        dados_email.get('parcelas'),
-                                        dados_email.get('serie'),
-                                        dados_email.get('data_venc_nfs'),
-                                        dados_email.get('valor_liquido', {}).get('valor_liquido'),
-                                        dados_email.get('tipo_imposto'),
-                                        dados_email.get('impostos', {}),
-                                        dados_email.get('tipo_documento'),
-                                        dados_email.get('modelo_email'),
-                                        dados_email=dados_email
-                                    )
-
-                                    # Adiciona o ID do e-mail processado à lista após lançamento bem-sucedido
-                                    processed_emails = load_processed_emails()
-                                    processed_emails.append(dados_email["email_id"])
-                                    save_processed_emails(processed_emails)
-                                    send_success_message(
-                                        dani,
-                                        sender,
-                                        nmr_nota,
-                                    )
-
-                                except Exception as e:
-                                    logging.error(f"Erro ao processar o e-mail: {e}")
-                                    send_email_error(
-                                        dani,
-                                        sender,
-                                        f"Erro ao processar o e-mail: {e}",
-                                        nmr_nota,
-                                    )
-                                    return None
-                            else:
-                                logging.error("Erro ao salvar ou processar o anexo")
-                                send_email_error(
-                                    dani,
-                                    sender,
-                                    "Erro ao salvar ou processar o anexo",
-                                    nmr_nota,
-                                )
-                                return None
-                else:
-                    charset = email_message.get_content_charset()
-                    body = decode_body(email_message.get_payload(decode=True), charset)
-                    dados_email["body"] = body
-
-        if not dados_email:
-            logging.error("Erro: Nenhum dado extraído do e-mail.")
-            return None
     except Exception as e:
-        logging.error(f"Erro ao verificar emails: {e}")
-        send_email_error(
-            dani,
-            sender if sender else "caetano.apollo@carburgo.com.br",
-            f"Erro ao verificar emails: {e}",
-            nmr_nota,
-        )
-        return None
-    finally:
-        if server:
-            server.quit()
-            logging.info("Conexão com o servidor POP3 encerrada.")
+        logging.error(f"ERRO FATAL no processamento do e-mail de FRETE: {e}")
+        nmr_nota_erro = dados_email.get('num_nota', {}).get('numero_nota', 'N/A')
+        if sender:
+            send_email_error(dani, sender, str(e), nmr_nota_erro)
+        # Relança a exceção para que o dispatcher saiba que o processamento falhou
+        raise
 
 def clean_extracted_json(json_data):
     if not isinstance(json_data, dict):
@@ -1160,222 +948,6 @@ class SystemNF:
                 gui.press("tab", presses=3)
                 gui.press("enter")
                 gui.press("tab", presses=39)
-                # gui.press("enter")
+                gui.press("enter")
         except Exception as e:
             logging.error(f"Erro durante a automação: {e}")
-
-if __name__ == "__main__":
-    while True:
-        logging.info("Iniciando a automação")
-        try:
-            nmr_nota = ""
-            dados_email = check_emails(nmr_nota, extract_values)
-            if dados_email is not None:
-                logging.info("Executando automação GUI")
-                logging.info(f"Conteúdo completo de dados_email: {dados_email}")
-
-                tipo_arquivo = dados_email.get("tipo_arquivo", "DESCONHECIDO")
-                logging.info(f"Tipo de arquivo a ser processado: {tipo_arquivo}")
-                
-                if tipo_arquivo == "DESCONHECIDO":
-                    logging.error("Tipo e arquivo desconhecido ou não especificado")
-                    send_email_error(
-                        dani,
-                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        "Erro: Tipo de arquivo desconhecido ou não suportado",
-                        nmr_nota,
-                    )
-
-                pdf_path = os.path.join(DIRECTORY, "anexos")
-                extracted_info = process_pdf(pdf_path, dados_email)
-                if os.path.exists(pdf_path):
-                    extracted_info = process_pdf(pdf_path, dados_email)
-                else:
-                    logging.error("Erro ao processar o PDF")
-
-                departamento = dados_email.get("departamento")
-                origem = dados_email.get("origem")
-                descricao = dados_email.get("descricao")
-                cc = dados_email.get("cc") 
-                logging.info(f"CC recebido: {cc}")
-                cod_item = dados_email.get("cod_item")
-                valor_total = dados_email.get("valor_total")
-                dados_centros_de_custo = dados_email.get("dados_centros_de_custo")
-                rateio = dados_email.get("rateio")
-                parcelas = dados_email.get("parcelas", [])
-                serie = dados_email.get("serie")
-                data_venc_nfs = dados_email.get("data_vencimento")
-                tipo_imposto = dados_email.get("tipo_imposto", "normal")
-                impostos = dados_email.get("impostos")
-                valor_liquido = dados_email.get("valor_liquido", "valor_total")
-                if "parcelas" in dados_email:
-                    parcelas = dados_email["parcelas"] 
-                else:
-                    logging.warning("Chave 'parcelas' não encontrada em dados_email")
-                logging.info(f"Parcelas recebidas: {parcelas}")
-
-                if (
-                    "emitente" in dados_email
-                    and "num_nota" in dados_email
-                    and "data_emi" in dados_email
-                    and "data_venc" in dados_email
-                    and "chave_acesso" in dados_email
-                    and "modelo" in dados_email
-                    and "destinatario" in dados_email
-                ):
-                    cnpj_emitente = dados_email["emitente"]["cnpj"]
-                    nmr_nota = dados_email["num_nota"]["numero_nota"]
-                    data_emi = dados_email["data_emi"]["data_emissao"]
-                    data_venc = dados_email["data_venc"]["data_venc"]
-                    chave_acesso = dados_email["chave_acesso"]["chave"]
-                    modelo = dados_email["modelo"]["modelo"]
-                    cnpj_dest = dados_email["destinatario"]["cnpj"]
-                else:
-                    logging.error(
-                        "Dados da nota fiscal não foram carregados corretamente"
-                    )
-                    send_email_error(
-                        dani,
-                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        "Erro: Dados da nota fiscal não foram carregados corretamente",
-                        nmr_nota,
-                    )
-                    continue
-
-                def verificar_campos_obrigatorios(
-                    departamento,
-                    origem,
-                    descricao,
-                    cc,
-                    cod_item,
-                    valor_total,
-                    dados_centros_de_custo,
-                    data_venc_nfs,
-                    anexo,
-                ):
-                    campos_obrigatorios = [
-                        departamento,
-                        origem,
-                        descricao,
-                        cc,
-                        cod_item,
-                        valor_total,
-                        dados_centros_de_custo,
-                    ]
-
-                    if not all(campos_obrigatorios):
-                        mensagem_erro = (
-                            "Faltando campos obrigatórios para o lançamento:\n"
-                        )
-                        if not departamento:
-                            mensagem_erro += "- Departamento\n"
-                        if not origem:
-                            mensagem_erro += "- Origem\n"
-                        if not descricao:
-                            mensagem_erro += "- Descrição\n"
-                        if not cc:
-                            mensagem_erro += "- CC\n"
-                        if not cod_item:
-                            mensagem_erro += "- Código de tributação do item\n"
-                        if not valor_total:
-                            mensagem_erro += "- Valor Total\n"
-                        if not dados_centros_de_custo:
-                            mensagem_erro += "- Dados dos Centros de Custo\n"
-
-                        # Verifica se o anexo é um PDF e se a data de vencimento está preenchida
-                        if anexo.endswith(".pdf") and not data_venc_nfs:
-                            mensagem_erro += "- Data de Vencimento\n"
-
-                        logging.error(mensagem_erro)
-                        send_email_error(
-                            dani,
-                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                            mensagem_erro,
-                            nmr_nota,
-                        )
-
-                        # Exemplo de chamada da função
-                        verificar_campos_obrigatorios(
-                            departamento,
-                            origem,
-                            descricao,
-                            cc,
-                            cod_item,
-                            valor_total,
-                            dados_centros_de_custo,
-                            data_venc_nfs,
-                            anexo,
-                        )
-
-                # Adicionando logs para verificar os dados extraídos
-                logging.info(f"Departamento: {departamento}")
-                logging.info(f"Origem: {origem}")
-                logging.info(f"Descrição: {descricao}")
-                logging.info(f"CC: {cc}")
-                logging.info(f"Código do Item: {cod_item}")
-                logging.info(f"Valor Total: {valor_total}")
-                logging.info(f"Dados dos Centros de Custo: {dados_centros_de_custo}")
-                logging.info(f"CNPJ Emitente: {cnpj_emitente}")
-                logging.info(f"Número da Nota: {nmr_nota}")
-                logging.info(f"Data de Emissão: {data_emi}")
-                logging.info(f"Data de Vencimento: {data_venc}")
-                logging.info(f"Chave de Acesso: {chave_acesso}")
-                logging.info(f"Modelo: {modelo}")
-                logging.info(f"Tipo de Imposto: {tipo_imposto}")
-                
-                logging.info(f"Dados disponíveis antes de chamar automation_gui: {dados_email}")
-                logging.info(f"Tipo de imposto extraído: {dados_email.get('tipo_imposto')}")
-
-                sistema_nf = SystemNF()
-
-                logging.info(
-                    f"Parcelas a serem passadas para automation_gui: {parcelas}"
-                )
-
-                try:
-                    logging.info(f"Impostos: {dados_email.get('impostos')}")
-                    logging.info(f"Valor Líquido: {valor_liquido}")
-                    logging.info(f"Tipo de Imposto: {tipo_imposto}")
-                    
-
-                    if dados_email is not None:
-                        modelo_email = dados_email.get("modelo_email", "DESCONHECIDO")
-                        tipo_documento = dados_email.get("tipo_documento", "DESCONHECIDO")
-                        sistema_nf.automation_gui(
-                            departamento, origem, descricao, cc, cod_item, valor_total,
-                            dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
-                            chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
-                            valor_liquido, tipo_imposto, impostos, tipo_documento, modelo_email, dados_email     
-                        )
-                    else:
-                        logging.error("Erro: Dados do e-mail é none. Verifique o processamento do e-mail")
-                    # Adicionar o ID do e-mail processado à lista após lançamento bem-sucedido
-                    processed_emails = load_processed_emails()
-                    processed_emails.append(dados_email["email_id"])
-                    save_processed_emails(processed_emails)
-                    send_success_message(
-                        dani,
-                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        nmr_nota,
-                    )
-                except Exception as e:
-                    logging.error(f"Erro ao chamar automation_gui: {e}")
-                    send_email_error(
-                        dani,
-                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        e,
-                        nmr_nota,
-                    )
-            else:
-                logging.info("Nenhum dado extraído, automação não será executada")
-                logging.error("Erro: dados_email é None. Verifique o processamento do e-mail.")
-        except Exception as e:
-            logging.error(f"Erro durante a automação: {e}")
-            send_email_error(
-                dani,
-                "caetano.apollo@carburgo.com.br",
-                e,
-                nmr_nota,
-            )
-        logging.info("Esperando antes da nova verificação...")
-        time.sleep(30)
