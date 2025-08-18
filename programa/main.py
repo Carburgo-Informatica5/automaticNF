@@ -701,7 +701,7 @@ class SystemNF:
         logging.info("="*20 + " INICIANDO AUTOMACAO GUI (NOTA FISCAL) " + "="*20)
         logging.info(f"Dados para automação: Nota {nmr_nota}, Valor {valor_total}")
 
-        gui.PAUSE = 1
+        gui.PAUSE = 0.5
         
         class faker:
             def __call__(self, *args, **kwds):
@@ -717,6 +717,7 @@ class SystemNF:
         logging.info(f"Senha de login: {senha_login}")
         
         if usuario_login and senha_login:
+ 
             config = {
                 "bravos_usr": usuario_login,
                 "bravos_pswd": senha_login,
@@ -724,6 +725,7 @@ class SystemNF:
             from bravos.infoBravos import bravos as BravosClass
             self.br = BravosClass(config, m_queue=faker())  
             self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+            time.sleep(15)
         else:
             logging.error("Login ou senha do usuário não encontrados.")
             send_email_error(
@@ -782,7 +784,7 @@ class SystemNF:
             empresa, revenda_nome = "Sem CNPJ", "Sem CNPJ"
         
         
-        if revenda:
+        if 'empresa' in locals():
             try:
                 gui.press("alt")
                 gui.press("right")
@@ -802,7 +804,6 @@ class SystemNF:
         try:
             data_atual = datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
-            time.sleep(3)
             window = gw.getWindowsWithTitle("BRAVOS")[0]
             if not window:
                 raise Exception("Janela do BRAVOS não encontrada")
@@ -826,13 +827,14 @@ class SystemNF:
             janela_left = nova_janela.left
             janela_top = nova_janela.top
             time.sleep(5)
-            x, y, width, height = janela_left + 500, janela_top + 323, 120, 21
+            x, y, width, height = janela_left + 490, janela_top + 300, 120, 21
             screenshot = gui.screenshot(region=(x, y, width, height))
             screenshot = screenshot.convert("L")
             threshold = 190
             screenshot = screenshot.point(lambda p: p > threshold and 255)
             config = r"--psm 7 outputbase digits"
             cliente = pytesseract.image_to_string(screenshot, config=config)
+            logging.info(cliente)
 
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
@@ -1089,6 +1091,7 @@ class SystemNF:
                         if i == len(dados_centros_de_custo) - 1:
                             gui.press("f2", interval=2)
                             gui.press("esc", presses=3)
+                            gui.press("enter")
                             logging.info("Último centro de custo salvo e encerrado.")
                             gui.press("tab", presses=3)
                         else:
@@ -1190,13 +1193,14 @@ class SystemNF:
                         if i == len(dados_centros_de_custo) - 1:
                             gui.press("f2", interval=2)
                             gui.press("esc", presses=3)
+                            gui.press("enter")
                             logging.info("Último centro de custo salvo e encerrado.")
                             gui.press("tab", presses=3)
                         else:
                             gui.press("tab", presses=3)
                 gui.press("tab", presses=3)
                 gui.press("enter")
-                time.sleep(1)
+                time.sleep(2)
                 gui.press("enter")
 
         except Exception as e:

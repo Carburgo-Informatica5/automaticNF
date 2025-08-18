@@ -643,12 +643,40 @@ class SystemNF:
     def __init__(self, master=None):
         self.br = None
 
-    def automation_gui(
-        self, departamento, origem, descricao, cc, cod_item, valor_total,
-        dados_centros_de_custo, cnpj_emitente, nmr_nota, data_emi, data_venc,
-        chave_acesso, modelo, rateio, parcelas, serie, data_venc_nfs,
-        valor_liquido, tipo_imposto, impostos, tipo_documento, modelo_email, dados_email=None
-    ):
+    def automation_gui(self, dados_email=None):
+        if not dados_email:
+            raise ValueError("Dados do e-mail não foram fornecidos para a automação GUI.")
+
+        # Extração segura de todas as variáveis do dicionário usando .get()
+        departamento = dados_email.get('departamento')
+        origem = dados_email.get('origem')
+        descricao = dados_email.get('descricao')
+        cc = dados_email.get('cc')
+        cod_item = dados_email.get('cod_item')
+        # Acessando valor_total com segurança
+        valor_total_list = dados_email.get('valor_total', [{}])
+        valor_total = "0.00"
+        if valor_total_list and isinstance(valor_total_list, list):
+            valor_total = str(valor_total_list[0].get('valor_total', '0.00')).replace(".", ",")
+
+        dados_centros_de_custo = dados_email.get('dados_centros_de_custo', [])
+        cnpj_emitente = dados_email.get('emitente', {}).get('cnpj')
+        nmr_nota = dados_email.get('num_nota', {}).get('numero_nota')
+        data_emi = dados_email.get('data_emi', {}).get('data_emissao')
+        data_venc = dados_email.get('data_venc', {}).get('data_venc')
+        chave_acesso = dados_email.get('chave_acesso', {}).get('chave')
+        modelo = dados_email.get('modelo', {}).get('modelo')
+        rateio = dados_email.get('rateio')
+        parcelas = dados_email.get('pagamento_parcelado', [])
+        serie = dados_email.get('serie')
+        data_venc_nfs = dados_email.get('data_vencimento')
+        valor_liquido = dados_email.get('valor_liquido', {}).get('valor_liquido')
+        tipo_imposto = dados_email.get('tipo_imposto')
+        impostos = dados_email.get('impostos', {})
+        tipo_documento = dados_email.get('tipo_documento')
+        modelo_email = dados_email.get('modelo_email')
+        usuario_login = dados_email.get("usuario_login")
+        senha_login = dados_email.get("senha_login")
         
         # Validação dos dados necessários
         if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
@@ -788,7 +816,7 @@ class SystemNF:
             data_atual = datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
             time.sleep(3)
-            window = gw.getWindowsWithTitle("BRAVOS v5.18 Evolutivo")[0]
+            window = gw.getWindowsWithTitle("BRAVOS")[0]
             if not window:
                 raise Exception("Janela do BRAVOS não encontrada")
             window.activate()
@@ -812,7 +840,7 @@ class SystemNF:
             janela_left = nova_janela.left
             janela_top = nova_janela.top
             time.sleep(5)
-            x, y, width, height = janela_left + 475, janela_top + 323, 120, 21
+            x, y, width, height = janela_left + 490, janela_top + 300, 120, 21
             screenshot = gui.screenshot(region=(x, y, width, height))
             screenshot = screenshot.convert("L")
             threshold = 190
