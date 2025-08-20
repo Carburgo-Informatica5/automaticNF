@@ -137,6 +137,49 @@ def extract_values(text):
 
 PROCESSED_EMAILS_FILE = os.path.join(current_dir, "processed_emails.json")
 
+def localizar_e_clicar_no_campo(imagem_label, offset_x=150, confidence=0.9):
+    """
+    Localiza um rótulo na tela usando uma imagem e clica no campo ao lado.
+
+    Args:
+        imagem_label (str): Caminho para o arquivo de imagem do rótulo.
+        offset_x (int): Distância em pixels para a direita do centro do rótulo
+                        onde o clique deve ocorrer. Ajuste este valor conforme necessário.
+        confidence (float): Nível de confiança para a busca da imagem (entre 0.0 e 1.0).
+
+    Returns:
+        bool: True se o campo foi encontrado e clicado, False caso contrário.
+    """
+    try:
+        logging.info(f"Procurando pelo rótulo: {imagem_label}")
+        # Tenta localizar a imagem do rótulo na tela
+        posicao_label = gui.locateOnScreen(imagem_label, confidence=confidence)
+
+        if posicao_label:
+            # Se encontrou, calcula as coordenadas do centro do rótulo
+            label_centro_x, label_centro_y = gui.center(posicao_label)
+            logging.info(f"Rótulo '{imagem_label}' encontrado em: ({label_centro_x}, {label_centro_y})")
+
+            # Calcula a posição do campo (à direita do rótulo)
+            campo_x = label_centro_x + offset_x
+            campo_y = label_centro_y
+
+            # Clica no campo e o ativa
+            logging.info(f"Clicando no campo de faturamento em: ({campo_x}, {campo_y})")
+            gui.click(campo_x, campo_y)
+            time.sleep(0.5) # Pequena pausa para o sistema responder
+            return True
+        else:
+            logging.error(f"Rótulo '{imagem_label}' não encontrado na tela.")
+            return False
+    except FileNotFoundError:
+        logging.error(f"Arquivo de imagem '{imagem_label}' não encontrado. Verifique o caminho.")
+        return False
+    except Exception as e:
+        # Captura outras exceções do pyautogui (ex: imagem não encontrada na tela)
+        logging.error(f"Ocorreu um erro ao tentar localizar a imagem: {e}")
+        return False
+
 def load_processed_emails():
     if os.path.exists(PROCESSED_EMAILS_FILE):
         with open(PROCESSED_EMAILS_FILE, "r") as file:
@@ -798,6 +841,7 @@ class SystemNF:
             logging.info("Chamando acquire_bravos para abrir o Bravos")
             try:
                 self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+                time.sleep(25)
                 logging.info("Chamada para abrir o Bravos realizada")
             except Exception as e:
                 logging.error(f"Erro ao tentar abrir o Bravos: {e}")
@@ -852,12 +896,9 @@ class SystemNF:
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
             gui.press("alt")
-            if revenda_nome == 4:
-                gui.press("right", presses=4)
-            else:
-                gui.press("right", presses=6)
-            gui.press("down", presses=4)
-            gui.press("enter")
+            gui.press("F")
+            gui.press("down", presses=3)
+            gui.press("right")
             gui.press("down", presses=2)
             gui.press("enter")
             time.sleep(5)
