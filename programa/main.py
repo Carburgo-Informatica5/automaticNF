@@ -896,7 +896,7 @@ class SystemNF:
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
             gui.press("alt")
-            gui.press("F")
+            gui.press("a")
             gui.press("down", presses=3)
             gui.press("right")
             gui.press("down", presses=2)

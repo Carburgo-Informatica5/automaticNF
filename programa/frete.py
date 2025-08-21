@@ -841,7 +841,7 @@ class SystemNF:
             logging.info("Chamando acquire_bravos para abrir o Bravos")
             try:
                 self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
-                time.sleep(25)
+                time.sleep(30)
                 logging.info("Chamada para abrir o Bravos realizada")
             except Exception as e:
                 logging.error(f"Erro ao tentar abrir o Bravos: {e}")
@@ -859,7 +859,7 @@ class SystemNF:
         try:
             data_atual = datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
-            time.sleep(15)
+            time.sleep(3)
             window = gw.getWindowsWithTitle("BRAVOS")[0]
             if not window:
                 raise Exception("Janela do BRAVOS não encontrada")
@@ -896,7 +896,7 @@ class SystemNF:
             time.sleep(5)
             gui.hotkey("ctrl", "f4")
             gui.press("alt")
-            gui.press("F")
+            gui.press("a")
             gui.press("down", presses=3)
             gui.press("right")
             gui.press("down", presses=2)
