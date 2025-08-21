@@ -859,7 +859,7 @@ class SystemNF:
         try:
             data_atual = datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
-            time.sleep(3)
+            time.sleep(15)
             window = gw.getWindowsWithTitle("BRAVOS")[0]
             if not window:
                 raise Exception("Janela do BRAVOS não encontrada")
