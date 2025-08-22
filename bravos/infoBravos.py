@@ -174,6 +174,20 @@ class bravos:
                 return window.getWindowsWithTitle("Identificação")[0]
             except:
                 ()
+    
+    def wait_for_login_window(self, timeout_lenght: int) -> window.Win32Window:
+        """
+        Aguarda a janela de 'Identificação' aparecer.
+        """
+        start_time = time.time()
+        while True:
+            if time.time() - start_time > timeout_lenght:
+                raise ValueError("Não foi possível encontrar a janela de 'Identificação'")
+            try:
+                return window.getWindowsWithTitle("Identificação")[0]
+            except IndexError:
+                time.sleep(1) # Espera 1 segundo antes de tentar novamente
+
 
     # Pega as informações do user e faz o login dele
     def acquire_bravos(self, exec: str = "C:\\BravosClient\\FabricaVWClient.exe"):
@@ -188,7 +202,7 @@ class bravos:
         subprocess.Popen(exec, start_new_session=True)
         self.kill_warning(5)
 
-        login_window = self.__find_login(6)
+        login_window = self.wait_for_login_window(60) # Aumentei o timeout para 60 segundos
         login_window.activate()
         login_window.restore()
 

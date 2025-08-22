@@ -20,7 +20,7 @@ from typing import Callable, Any
 from email.utils import parseaddr
 
 from processar_xml import *
-from db_connection import revenda, login as db_login
+from db_connection import revenda, login as db_login, cliente
 from DANImail import Queue, WriteTo
 from gemini_api import GeminiAPI
 from gemini_main import *
@@ -869,34 +869,15 @@ class SystemNF:
             gui.moveTo(x, y, duration=0.5)
             gui.click()
             time.sleep(15)
-            if empresa == 1:
-                gui.press("tab", presses=22)
-            else:
-                gui.press("tab", presses=19)
-            gui.write(cnpj_emitente)
-            time.sleep(2)
-            gui.press("enter")
-            gui.press("enter")
-            pytesseract.pytesseract_cmd = (
-                r"C:\Program Files\Tesseract-OCR/tesseract.exe"
-            )
-            nova_janela = gw.getActiveWindow()
-            janela_left = nova_janela.left
-            janela_top = nova_janela.top
-            time.sleep(5)
-            x, y, width, height = janela_left + 490, janela_top + 300, 120, 21
-            screenshot = gui.screenshot(region=(x, y, width, height))
-            screenshot = screenshot.convert("L")
-            threshold = 190
-            screenshot = screenshot.point(lambda p: p > threshold and 255)
-            config = r"--psm 7 outputbase digits"
-            cliente = pytesseract.image_to_string(screenshot, config=config)
             
+            cliente = cliente(cnpj_emitente)
+            if not cliente:
+                raise ValueError(f"Cliente com CNPJ {cnpj_emitente} não encontrado no banco de dados.")
 
+            logging.info(f"Cliente encontrado no banco de dados: {cliente}")
             time.sleep(5)
-            gui.hotkey("ctrl", "f4")
             gui.press("alt")
-            gui.press("a")
+            gui.press("f")
             gui.press("down", presses=3)
             gui.press("right")
             gui.press("down", presses=2)

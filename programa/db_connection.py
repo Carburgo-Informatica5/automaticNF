@@ -52,3 +52,14 @@ def login (sender):
     cursor.close()
     conn.close()
     return result
+
+def cliente (cnpj_emitente):
+    db_config = load_db_config()
+    conn = connect_to_db(db_config)
+    cursor = conn.cursor()
+    query = "SELECT CLIENTE FROM FAT_CLIENTE CL WHERE CL.CGCCPF = :cnpj_emitente AND CL.FISJUR = 'J'"
+    cursor.execute(query, [cnpj_emitente])
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return result[0] if result else None
