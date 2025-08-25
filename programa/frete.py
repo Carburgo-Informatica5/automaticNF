@@ -863,18 +863,13 @@ class SystemNF:
             window = gw.getWindowsWithTitle("BRAVOS")[0]
             if not window:
                 raise Exception("Janela do BRAVOS não encontrada")
-            window.activate()
-            x, y = window.left + 275, window.top + 80
-            time.sleep(3)
-            gui.moveTo(x, y, duration=0.5)
-            gui.click()
             time.sleep(15)
             
-            cliente = cliente(cnpj_emitente)
-            if not cliente:
+            cliente_cod = cliente(cnpj_emitente)
+            if not cliente_cod:
                 raise ValueError(f"Cliente com CNPJ {cnpj_emitente} não encontrado no banco de dados.")
 
-            logging.info(f"Cliente encontrado no banco de dados: {cliente}")
+            logging.info(f"Cliente encontrado no banco de dados: {cliente_cod}")
             time.sleep(5)
             gui.press("alt")
             gui.press("f")
@@ -892,7 +887,7 @@ class SystemNF:
             gui.press("tab")
             gui.write("0")
             gui.press("tab")
-            gui.write(cliente)
+            gui.write(str(cliente_cod))
             gui.press("tab")
             gui.press("enter")
             gui.press("tab", presses=5)

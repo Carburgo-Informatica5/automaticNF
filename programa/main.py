@@ -3,7 +3,6 @@ import xml.etree.ElementTree as ET
 import sys
 import time
 from datetime import datetime, timedelta
-import calendar
 import pyautogui as gui
 import pygetwindow as gw
 import pytesseract
@@ -15,7 +14,6 @@ import logging
 import unicodedata
 import re
 import yaml
-from typing import Callable, Any
 
 from email.utils import parseaddr
 
@@ -25,14 +23,15 @@ from DANImail import Queue, WriteTo
 from gemini_api import GeminiAPI
 from gemini_main import *
 
+# Configuração do logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# Configuração do diretório atual
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append("C:/Users/VAS MTZ/Desktop/Caetano Apollo/automaticNF/bravos")
 
-from bravos.infoBravos import bravos as BravosClass
 
 logging.info("Iniciando o Programa")
 
@@ -42,11 +41,11 @@ USERNAME = "dani@carburgo.com.br"
 PASSWORD = "p@r!sA1856"
 # Assunto alvo para busca
 if "ASSUNTO_ALVO" not in globals():
-    ASSUNTO_ALVO = "lançamento frete"
+    ASSUNTO_ALVO = "lançamento nota fiscal"
 # Diretório para salvar os anexos
 DIRECTORY = os.path.join(current_dir, "anexos")
 
-
+# Função para decodificar o valor do cabeçalho do e-mail
 def decode_header_value(header_value):
     decoded_fragments = decode_header(header_value)
     decoded_string = ""
@@ -57,6 +56,7 @@ def decode_header_value(header_value):
             decoded_string += fragment
     return decoded_string
 
+# Função para normalizar o texto
 def normalize_text(text):
     if not isinstance(text, str):  # Garante que text seja string
         logging.error(f"Erro: normalize_text recebeu {type(text)} em vez de string.")
@@ -66,7 +66,7 @@ def normalize_text(text):
         c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
     ).lower()
 
-
+# Função para decodificar o corpo do e-mail
 def decode_body(payload, charset):
     if charset is None:
         charset = "utf-8"
@@ -75,111 +75,81 @@ def decode_body(payload, charset):
     except (UnicodeDecodeError, LookupError):
         return payload.decode("ISO-8859-1", errors="ignore")
 
-
+# Arquivo de configuração do servidor de e-mail
 config_path = os.path.join(current_dir, "config.yaml")
 with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 dani = Queue(config)
 
+def retrive_user_login(sender):
+    resultado = db_login(sender)
+    if resultado:
+        return resultado
+    logging.error(f"Usuário {sender} não encontrado no banco de dados.")
+    logging.info(f"resultado da consulta: {resultado}")
 
+# Extrai valores do corpo do e-mail
 def extract_values(text):
-    if not isinstance(text, str): 
+    if not isinstance(text, str):
         logging.error(f"Erro: extract_values recebeu {type(text)} em vez de string.")
         return {}
 
-    values = {
-        "departamento": None,
-        "origem": None,
-        "descricao": None,
-        "cc": None,
-        "rateio": None,
-        "cod_item": None,
-        "data_vencimento": None,
-        "tipo_imposto": None,
-        "senha_arquivo": None,
-        "senha_user": None
-    }
-
-    lines = text.lower().splitlines()
+    values = {}
+    lines = text.splitlines()
     for line in lines:
-        if isinstance(line, str): 
-            if line.startswith("departamento:"):
-                values["departamento"] = line.split(":", 1)[1].strip()
-            elif line.startswith("origem:"):
-                values["origem"] = line.split(":", 1)[1].strip()
-            elif line.startswith("descrição:"):
-                values["descricao"] = line.split(":", 1)[1].strip()
-            elif line.startswith("cc:"):
-                values["cc"] = line.split(":", 1)[1].strip()
-            elif line.startswith("rateio:"):
-                values["rateio"] = line.split(":", 1)[1].strip()
-            elif line.startswith("código de tributação:"):
-                values["cod_item"] = line.split(":", 1)[1].strip()
-            
-            #somente para PDF
-            elif "data vencimento" in line.lower():
-                data_vencimento = line.split(":", 1)[1].strip()
-                values["data_vencimento"] = data_vencimento.replace("/", "")
-            elif line.startswith("tipo imposto:"):
-                values["tipo_imposto"] = line.split(":", 1)[1].strip()
-            elif line.startswith("senha arquivo:"):
-                values["senha_arquivo"] = line.split(":", 1)[1].strip()
-            elif line.startswith("modelo:"):
-                values["modelo_email"] = line.split(":", 1)[1].strip()
-            elif line.startswith("tipo documento:"):
-                values["tipo_documento"] = line.split(":", 1)[1].strip()
-            elif line.startswith("senha usuário:"):
-                values["senha_user"] = line.split(":", 1)[1].strip()
+        line = line.strip()
+        low = line.lower()
+        if low.startswith("departamento:"):
+            values["departamento"] = line.split(":", 1)[1].strip()
+        elif low.startswith("origem:"):
+            values["origem"] = line.split(":", 1)[1].strip()
+        elif low.startswith("descrição:") or low.startswith("descriçao:") or low.startswith("descri��o:"):
+            values["descricao"] = line.split(":", 1)[1].strip()
+        elif low.startswith("cc:"):
+            values["cc"] = line.split(":", 1)[1].strip()
+        elif low.startswith("rateio:"):
+            values["rateio"] = line.split(":", 1)[1].strip()
+        elif low.startswith("código de tributação:") or low.startswith("codigo de tributacao:") or low.startswith("c�digo de tributa��o:"):
+            values["cod_item"] = line.split(":", 1)[1].strip()
+        elif "data venc" in low or "data de venc" in low or "vencimento" in low:
+            parts = re.split(r":|-", line, maxsplit=1)
+            raw = parts[1].strip() if len(parts) > 1 else line
+            m = re.search(r"(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})", raw)
+            if m:
+                raw_date = m.group(1)
+            else:
+                raw_date = re.sub(r"\D", "", raw)
+            digits = re.sub(r"\D", "", raw_date)
+            if len(digits) == 6:
+                digits = digits[:4] + "20" + digits[4:]
+            values["data_vencimento"] = digits 
+        elif low.startswith("tipo imposto:"):
+            values["tipo_imposto"] = line.split(":", 1)[1].strip()
+        elif low.startswith("senha arquivo:"):
+            values["senha_arquivo"] = line.split(":", 1)[1].strip()
+        elif low.startswith("modelo:"):
+            values["modelo_email"] = line.split(":", 1)[1].strip()
+        elif low.startswith("tipo documento:"):
+            values["tipo_documento"] = line.split(":", 1)[1].strip()
+        elif low.startswith("senha usuario:") or low.startswith("senha usuário:"):
+            values["senha_user"] = line.split(":", 1)[1].strip()
 
-    logging.info(f"Valores extraídos: {values}")
+    if "data_vencimento" not in values:
+        m = re.search(r"(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})", text)
+        if m:
+            digits = re.sub(r"\D", "", m.group(1))
+            if len(digits) == 6:
+                digits = digits[:4] + "20" + digits[4:]
+            values["data_vencimento"] = digits
 
+    logging.info(f"Valores extraídos (linha a linha): {values}")
     return values
 
+
+# Adiciona o caminho do arquivo JSON de emails processados
 PROCESSED_EMAILS_FILE = os.path.join(current_dir, "processed_emails.json")
 
-def localizar_e_clicar_no_campo(imagem_label, offset_x=150, confidence=0.9):
-    """
-    Localiza um rótulo na tela usando uma imagem e clica no campo ao lado.
-
-    Args:
-        imagem_label (str): Caminho para o arquivo de imagem do rótulo.
-        offset_x (int): Distância em pixels para a direita do centro do rótulo
-                        onde o clique deve ocorrer. Ajuste este valor conforme necessário.
-        confidence (float): Nível de confiança para a busca da imagem (entre 0.0 e 1.0).
-
-    Returns:
-        bool: True se o campo foi encontrado e clicado, False caso contrário.
-    """
-    try:
-        logging.info(f"Procurando pelo rótulo: {imagem_label}")
-        # Tenta localizar a imagem do rótulo na tela
-        posicao_label = gui.locateOnScreen(imagem_label, confidence=confidence)
-
-        if posicao_label:
-            # Se encontrou, calcula as coordenadas do centro do rótulo
-            label_centro_x, label_centro_y = gui.center(posicao_label)
-            logging.info(f"Rótulo '{imagem_label}' encontrado em: ({label_centro_x}, {label_centro_y})")
-
-            # Calcula a posição do campo (à direita do rótulo)
-            campo_x = label_centro_x + offset_x
-            campo_y = label_centro_y
-
-            # Clica no campo e o ativa
-            logging.info(f"Clicando no campo de faturamento em: ({campo_x}, {campo_y})")
-            gui.click(campo_x, campo_y)
-            time.sleep(0.5) # Pequena pausa para o sistema responder
-            return True
-        else:
-            logging.error(f"Rótulo '{imagem_label}' não encontrado na tela.")
-            return False
-    except FileNotFoundError:
-        logging.error(f"Arquivo de imagem '{imagem_label}' não encontrado. Verifique o caminho.")
-        return False
-    except Exception as e:
-        # Captura outras exceções do pyautogui (ex: imagem não encontrada na tela)
-        logging.error(f"Ocorreu um erro ao tentar localizar a imagem: {e}")
-        return False
-
+# Carrega os emails processados do arquivo JSON
 def load_processed_emails():
     if os.path.exists(PROCESSED_EMAILS_FILE):
         with open(PROCESSED_EMAILS_FILE, "r") as file:
@@ -192,16 +162,17 @@ def load_processed_emails():
                 return []
     return []
 
-
+# Salva os id´s dos emails processados no arquivo JSON
 def save_processed_emails(processed_emails):
     with open(PROCESSED_EMAILS_FILE, "w") as file:
         json.dump(processed_emails, file)
 
-def processar_email_frete(email_message):
+# Função para verificar os e-mails
+def processar_email_nota_fiscal(email_message):
     logging.info("="*50)
-    logging.info("INICIANDO PROCESSAMENTO DE E-MAIL DE FRETE")
+    logging.info("INICIANDO PROCESSAMENTO DE E-MAIL DE NOTA FISCAL")
     logging.info("="*50)
-    
+
     sender = None
     dados_email = {}
     nmr_nota = "N/A"
@@ -213,7 +184,7 @@ def processar_email_frete(email_message):
 
         processed_emails = load_processed_emails()
         if email_id in processed_emails:
-            logging.warning(f"E-mail (ID: {email_id}) já processado. Ignorando.")
+            logging.warning(f"E-mail (ID: {email_id}) já foi processado. Ignorando.")
             return
 
         # 1. Extrair corpo e dados do e-mail
@@ -257,58 +228,59 @@ def processar_email_frete(email_message):
                     json_data = json.load(f)
 
                 # 4. Consolidar todos os dados
-                # Atualiza dados_email com informações do anexo (XML/PDF)
                 dados_email.update(json_data)
-                
-                # Garante que os dados do corpo do e-mail (que são prioritários) sobrescrevam os do anexo se houver conflito
                 dados_email.update(extract_values(body))
 
                 nmr_nota = dados_email.get('num_nota', {}).get('numero_nota', 'N/A')
                 valor_total = str(dados_email.get('valor_total', [{}])[0].get('valor_total', '0')).replace(".", ",")
-                
-                # Calcula os centros de custo
+                origem = dados_email.get('origem')
+
                 dados_email['dados_centros_de_custo'] = process_cost_centers(
                     dados_email.get('cc'),
-                    float(valor_total.replace(",", "."))
+                    float(valor_total.replace(",", ".")),
+                    origem # Passa a origem padrão para a função
                 )
 
                 # 5. Iniciar a Automação GUI
                 logging.info(f"Iniciando automação para a nota fiscal: {nmr_nota}")
                 sistema_nf = SystemNF()
-                sistema_nf.automation_gui(dados_email=dados_email) # Passa o dicionário completo
+                sistema_nf.automation_gui(dados_email=dados_email)
 
                 # 6. Finalização e Notificação
                 attachment_processed = True
                 processed_emails.append(email_id)
                 save_processed_emails(processed_emails)
-                send_success_message(dani, sender, nmr_nota)
+                send_success_message(dani, sender, nmr_nota, dados_email)
                 logging.info(f"Processo para a nota {nmr_nota} concluído com sucesso.")
-                break 
+                break
 
         if not attachment_processed:
             raise ValueError("Nenhum anexo válido (PDF/XML) foi encontrado no e-mail.")
 
     except Exception as e:
-        logging.error(f"ERRO FATAL no processamento do e-mail de FRETE: {e}")
+        logging.error(f"ERRO FATAL no processamento do e-mail de NOTA FISCAL: {e}")
         nmr_nota_erro = dados_email.get('num_nota', {}).get('numero_nota', 'N/A')
         if sender:
-            send_email_error(dani, sender, str(e), nmr_nota_erro)
-        # Relança a exceção para que o dispatcher saiba que o processamento falhou
+            send_email_error(dani, sender, str(e), nmr_nota_erro, dados_email)
         raise
 
 def clean_extracted_json(json_data):
+    import logging
+
     if not isinstance(json_data, dict):
         logging.error(f"Erro: clean_extracted_json recebeu {type(json_data)} em vez de dict.")
         return {}
 
-    if "ISS Retido" in json_data and isinstance(json_data["ISS Retido"], str):
-        if json_data["ISS Retido"].lower() == "não":
-            json_data["ISS Retido"] = "Não"
+    # logging.info(f"Conteúdo de json_data antes da limpeza: {json_data}")
+
+    if "ISS_retido" in json_data and isinstance(json_data["ISS_retido"], str):
+        if json_data["ISS_retido"].lower() in ["não", "nao"]:
+            json_data["ISS_retido"] = "Não"
         else:
             try:
-                json_data["ISS Retido"] = f"{float(json_data['ISS Retido']):.2f}"
+                json_data["ISS_retido"] = f"{float(json_data['ISS_retido']):.2f}"
             except ValueError:
-                logging.warning(f"Valor inválido para ISS Retido: {json_data['ISS Retido']}")
+                logging.warning(f"Valor inválido para ISS_retido: {json_data['ISS_retido']}")
 
     return json_data
 
@@ -378,46 +350,21 @@ def process_pdf(pdf_path, dados_email):
         cleaned_json = clean_extracted_json(extracted_json)
 
         valores_extraidos = dados_email.get("valores_extraidos", {})
-        data_venc = valores_extraidos.get("data_vencimento")
 
         json_result = {
             "emitente": cleaned_json.get("emitente", {}),
             "destinatario": cleaned_json.get("destinatario", {}),
-            "chave_acesso": {
-                "chave": cleaned_json.get("chave_acesso", "")
-            },
-            "num_nota": {
-                "numero_nota": cleaned_json.get("num_nota", "")
-            },
-            "serie": cleaned_json.get("serie", ""),
-            "data_emi": {
-                "data_emissao": cleaned_json.get("data_emissao", "")
-            },
-            "data_venc": {
-                "data_venc": data_venc
-            },
-            "modelo": {
-                "modelo": cleaned_json.get("modelo", f"{dados_email.get('modelo')}")
-            },
-            "tipo_documento": {
-                "tipo_documento": cleaned_json.get("tipo_documento", f"{dados_email.get('tipo_documento')}")
-            },
-            "modelo_email": {
-                "modelo_email": cleaned_json.get("modelo_email", f"{dados_email.get('modelo_email')}")
-            },
-            "valor_total": [
-                {
-                    "valor_total": cleaned_json.get("valor_total", "0.00")
-                }
-            ],
-            "impostos": {
-                "ISS_retido": cleaned_json.get("ISS retido", "0.00"),
-                "PIS": cleaned_json.get("PIS", "0.00"),
-                "COFINS": cleaned_json.get("COFINS", "0.00"),
-                "INSS": cleaned_json.get("INSS", "0.00"),
-                "IR": cleaned_json.get("IR", "0.00"),
-                "CSLL": cleaned_json.get("CSLL", "0.00"),
-            },
+            "chave_acesso": { "chave": cleaned_json.get("chave_acesso", "") },
+            "num_nota": { "numero_nota": cleaned_json.get("num_nota", "") },
+            "serie": cleaned_json.get("serie", "0"),
+            "data_emi": { "data_emissao": cleaned_json.get("data_emissao", "") },
+            "data_venc": { "data_venc": dados_email.get("data_vencimento") },
+            "modelo": { "modelo": cleaned_json.get("modelo", dados_email.get('modelo')) },
+            "tipo_documento": { "tipo_documento": cleaned_json.get("tipo_documento", dados_email.get('tipo_documento')) },
+            "modelo_email": { "modelo_email": cleaned_json.get("modelo_email", dados_email.get('modelo_email')) },
+            "valor_total": [ { "valor_total": cleaned_json.get("valor_total", "0.00") } ],
+            "valor_liquido": { "valor_liquido": cleaned_json.get("valor_liquido", "0.00") },
+            "impostos": cleaned_json.get("impostos", {}),
             "pagamento_parcelado": cleaned_json.get("pagamento_parcelado", []),
             "info_adicional": {}
         }
@@ -443,19 +390,20 @@ def save_attachment(part, directory, dados_email):
     filename = decode_header_value(part.get_filename())
     if not filename:
         logging.error("Nome do arquivo anexado não foi encontrado.")
-        dados_email["tipo_arquivo"] = "DESCONHECIDO"  # Define um valor padrão
+        dados_email["tipo_arquivo"] = "DESCONHECIDO"
         return None
 
-    # Determina o tipo de arquivo (PDF)
     if filename.lower().endswith(".pdf"):
         tipo_arquivo = "PDF"
+    elif filename.lower().endswith(".xml"):
+        tipo_arquivo = "XML"
     else:
-        tipo_arquivo = "DESCONHECIDO"  # Define um valor padrão para outros tipos de arquivo
-        logging.error(f"Arquivo anexado não é um XML ou PDF: {filename}")
+        logging.error(f"Arquivo anexado '{filename}' não é um tipo obrigatório (PDF ou XML).")
+        dados_email["tipo_arquivo"] = "DESCONHECIDO"
+        return None
 
-    # Armazena o tipo de arquivo no dicionário dados_email
     dados_email["tipo_arquivo"] = tipo_arquivo
-    logging.info(f"Tipo de arquivo: {tipo_arquivo}")
+    logging.info(f"Tipo de arquivo obrigatório encontrado: {tipo_arquivo}")
 
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -470,33 +418,27 @@ def save_attachment(part, directory, dados_email):
 
     if tipo_arquivo == "XML":
         dados_nota_fiscal = parse_nota_fiscal(filepath)
-
         if not dados_nota_fiscal:
             logging.error(f"Erro ao processar XML. Nenhum dado extraído.")
             return None
-
+        
         json_folder = os.path.abspath("notas_json")
         os.makedirs(json_folder, exist_ok=True)
-
         json_filename = os.path.splitext(os.path.basename(filepath))[0] + ".json"
         json_path = os.path.join(json_folder, json_filename)
         
-        logging.info(f"Dados nota fiscal: {dados_nota_fiscal}")
-
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(dados_nota_fiscal, f, ensure_ascii=False, indent=4)
-
+        
         logging.info(f"JSON do XML salvo com sucesso: {json_path}")
         return {"json_path": json_path}
 
     elif tipo_arquivo == "PDF":
         senha_arquivo = dados_email.get("senha_arquivo")
-        logging.info(f"Senha recebida para desbloqueio do PDF: {senha_arquivo}")
         if senha_arquivo:
-            logging.info(f"Tentando desbloquear arquivo PDF com senha: {senha_arquivo}")  
+            logging.info(f"Tentando desbloquear arquivo PDF com senha...")
             try:
                 from PyPDF2 import PdfReader, PdfWriter
-                
                 reader = PdfReader(filepath)
                 if reader.is_encrypted:
                     reader.decrypt(senha_arquivo)
@@ -510,10 +452,8 @@ def save_attachment(part, directory, dados_email):
                     
                     logging.info(f"Arquivo PDF desbloqueado e salvo como: {unlocked_filepath}")
                     filepath = unlocked_filepath
-                else:
-                    logging.info("Arquivo PDF não está criptografado.")
             except Exception as e:
-                logging.info(f"Erro ao desbloquear o PDF: {e}")
+                logging.error(f"Erro ao desbloquear o PDF: {e}")
                 return None
         
         json_result = process_pdf(filepath, dados_email)
@@ -521,119 +461,156 @@ def save_attachment(part, directory, dados_email):
             logging.error("Erro: JSON do PDF não foi gerado corretamente.")
             return None
         else:
-            logging.info(f"JSON gerado com sucesso: {json_result}")
-        return json_result
-    else:
-        logging.error(f"Tipo de arquivo não suportado: {tipo_arquivo}")
-        return None
+            logging.info(f"JSON do PDF gerado com sucesso: {json_result}")
+            return json_result
+            
+    return None # Retorno de segurança
 
-def process_cost_centers(cc_texto, valor_total):
+def process_cost_centers(cc_texto, valor_total, origem_padrao):
+    """
+    Processa a string de centros de custo, lidando com todos os cenários:
+    1. Único CC (ex: "9")
+    2. Múltiplos CCs com valor/percentual (ex: "9 - 70.5, 5 - 29.5")
+    3. Múltiplos CCs com origens específicas (ex: "9 - 70.5 (5148), 5 - 29.5")
+    """
     valor_total = float(valor_total)
-    centros_de_custo = []
+    lancamentos_finais = []
     total_calculado = 0.0
 
-    # Verifica se cc_texto é uma string
-    if not isinstance(cc_texto, str):
-        logging.error(f"Erro: cc_texto deve ser uma string, mas recebeu {type(cc_texto)}.")
-        return centros_de_custo
+    if not isinstance(cc_texto, str) or not cc_texto.strip():
+        logging.error(f"Erro: cc_texto deve ser uma string não vazia, mas recebeu {type(cc_texto)}.")
+        return []
 
-    cc_texto = re.sub(r"[\u2013\u2014-]+", "-", cc_texto)
-
+    # Regra 1: Trata o caso de um único setor informado
     if cc_texto.strip().isdigit():
-        cc_texto = f"{cc_texto.strip()}-100%"
+        logging.info(f"Centro de custo único detectado: {cc_texto}. Atribuindo 100% do valor.")
+        # Transforma "9" em "9 - 100%" para ser processado pela lógica padrão
+        cc_texto = f"{cc_texto.strip()} - 100%"
 
-    itens = [item.strip() for item in cc_texto.split(",")]
+    # Expressão Regular para capturar: CC, valor/percentual e a origem (opcional)
+    padrao = re.compile(r"(\d+)\s*-\s*([\d.,%]+)(?:\s*\(\s*(\d+)\s*\))?")
+    
+    # Separa os lançamentos pela vírgula
+    itens = cc_texto.split(',')
 
-    for i, item in enumerate(itens):
+    for item in itens:
+        item = item.strip()
+        match = padrao.match(item)
+
+        if not match:
+            logging.error(f"Formato inválido para o lançamento de rateio: '{item}'. Ignorando.")
+            continue
+
+        cc, valor_str, origem_especifica = match.groups()
+        
+        # Regra 3: Define a origem correta
+        # Usa a origem específica do lançamento (entre parênteses), se houver.
+        # Caso contrário, usa a origem padrão do e-mail.
+        origem_final = origem_especifica.strip() if origem_especifica else origem_padrao
+
         try:
-            cc, valor = [x.strip() for x in item.split("-")]
-            logging.info(f"Processando centro de custo: {cc}, valor: {valor}")
-            if "%" in valor:
-                porcentagem = float(valor.replace("%", ""))
+            # Regra 2: Processa múltiplos setores com valor ou percentual
+            if "%" in valor_str:
+                porcentagem = float(valor_str.replace("%", "").replace(",", "."))
                 valor_calculado = round((valor_total * porcentagem) / 100, 2)
             else:
-                valor_calculado = float(valor.replace(",", "."))
+                valor_calculado = float(valor_str.replace(",", "."))
 
             total_calculado += valor_calculado
-            centros_de_custo.append((cc, valor_calculado))
-        except ValueError:
-            logging.error(f"Erro ao processar centro de custo: {item}")
+            lancamentos_finais.append({
+                "cc": cc.strip(),
+                "valor": valor_calculado,
+                "origem": origem_final
+            })
+        except ValueError as e:
+            logging.error(f"Erro ao converter o valor '{valor_str}' no lançamento '{item}': {e}")
+        except Exception as e:
+            logging.error(f"Erro inesperado ao processar o lançamento '{item}': {e}")
 
+    # Ajuste final para garantir que a soma dos rateios seja exatamente o valor total da nota
     diferenca = round(valor_total - total_calculado, 2)
+    if abs(diferenca) > 0.01 and lancamentos_finais: # Usa uma tolerância
+        logging.warning(f"Diferença de R$ {diferenca} encontrada no rateio. Ajustando último lançamento.")
+        lancamentos_finais[-1]['valor'] += diferenca
 
-    if abs(diferenca) > 0:
-        if centros_de_custo:
-            ultimo_cc, ultimo_valor = centros_de_custo[-1]
-            if isinstance(ultimo_valor, str):
-                ultimo_valor = float(ultimo_valor.replace(",", "."))
-            diferenca_float = ultimo_valor + diferenca
-            diferenca_str = f"{diferenca_float:.2f}".replace(".", ",")
-            centros_de_custo[-1] = (ultimo_cc, diferenca_str)
-        else:
-            logging.error("Nenhum centro de custo encontrado para aplicar a diferença")
-            raise ValueError("Erro: Nenhum centro de custo encontrado para aplicar a diferença")
+    logging.info(f"Processamento de rateio finalizado. Resultado: {lancamentos_finais}")
+    
+    return lancamentos_finais
 
-    return centros_de_custo
-
-
-def send_email_error(dani, destinatario, erro, nmr_nota):
+def send_email_error(dani, destinatario, erro, nmr_nota_notificacao, dados_email=None):
+    if not nmr_nota_notificacao and dados_email:
+        nmr_nota_notificacao = (
+            dados_email.get("num_nota", {}).get("numero_nota")
+            or dados_email.get("nmr_nota")
+            or "Não foi possível recuperar o número da nota"
+        )
+        
     config["to"] = destinatario
     dani = Queue(config)
+    logging.info(f"Enviando mensagem de erro para {destinatario} com número da nota: {nmr_nota_notificacao}")
 
     mensagem = (
         dani.make_message()
-        # .set_color("red")  # Remover esta linha
-        .add_text(f"Erro durante lançamento de nota fiscal: {nmr_nota}", tag="h1")
-        .add_text(str(erro), tag="pre")
+        .set_status("error")
+        .add_text(f"Erro durante lançamento de nota fiscal", tag="h1")
+        .add_text(f"Número da nota: {nmr_nota_notificacao}", tag="pre")
+        .add_text(f"Detalhes do erro: {str(erro)}", tag="pre")
     )
 
-    mensagem_assinatura = (
-        dani.make_message()
-        # .set_color("green")  # Remover esta linha
-        .add_text("DANI", tag="h1")
-        .add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
-        .add_text(
-            "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
-            tag="p",
-        )
-        .add_text(
-            "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
-            tag="p",
-        )
+    assinatura_dani = (
+        "Este é um email enviado automaticamente pelo sistema DANI.<br>"
+        "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br<br>"
+        "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br"
     )
-    dani.push(mensagem).push(mensagem_assinatura).flush()
+    
+    mensagem.add_text(assinatura_dani, tag="p")
+
+    try:
+        dani.push(mensagem).flush()
+    except Exception as e:
+        logging.error(f"Erro ao processar o e-mail: {e}")
+        logging.error("Erro crítico: Não foi possível enviar e-mail de erro.")
 
 
-def send_success_message(dani, destinatario, nmr_nota):
+def send_success_message(dani, destinatario, nmr_nota_notificacao, dados_email=None):
+    if not nmr_nota_notificacao and dados_email:
+        nmr_nota_notificacao = (
+            dados_email.get("num_nota", {}).get("numero_nota")
+            or dados_email.get("nmr_nota")
+            or "Não foi possível recuperar o número da nota"
+        )
+
     config["to"] = destinatario
     dani = Queue(config)
+    logging.info(f"Enviando mensagem de sucesso para {destinatario} com número da nota: {nmr_nota_notificacao}")
+
+    texto_sucesso = (
+        f"Número da nota: {nmr_nota_notificacao}\n"
+        "Acesse o sistema para verificar o lançamento."
+    )
 
     mensagem = (
         dani.make_message()
-        # .set_color("green")  # Remover esta linha
-        .add_text(f"Nota lançada com sucesso número da nota: {nmr_nota}", tag="h1")
-        .add_text("Acesse o sistema para verificar o lançamento.", tag="pre")
+        .set_status("success")
+        .add_text(f"Nota lançada com sucesso", tag="h1")
+        .add_text(texto_sucesso, tag="pre")
     )
 
-    mensagem_assinatura = (
-        dani.make_message()
-        # .set_color("green")  # Remover esta linha
-        .add_text("DANI", tag="h1")
-        .add_text("Este é um email enviado automaticamente pelo sistema DANI.", tag="p")
-        .add_text(
-            "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br",
-            tag="p",
-        )
-        .add_text(
-            "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br",
-            tag="p",
-        )
+    assinatura_dani = (
+        "Este é um email enviado automaticamente pelo sistema DANI.<br>"
+        "Para reportar erros, envie um email para: ticket.dani@carburgo.com.br<br>"
+        "Em caso de dúvidas, entre em contato com: caetano.apollo@carburgo.com.br"
     )
+    
+    mensagem.add_text(assinatura_dani, tag="p")
 
-    dani.push(mensagem).push(mensagem_assinatura).flush()
+    try:
+        dani.push(mensagem).flush()
+    except Exception as e:
+        logging.error(f"Erro ao enviar e-mail de sucesso: {e}")
 
 
-def processar_parcelas(parcelas):
+def process_installments(parcelas):
     logging.info("Iniciando o processamento das parcelas")
     for parcela in parcelas:
         logging.info(f"Processando parcela: {parcela}")
@@ -689,7 +666,7 @@ class SystemNF:
     def automation_gui(self, dados_email=None):
         if not dados_email:
             raise ValueError("Dados do e-mail não foram fornecidos para a automação GUI.")
-
+        
         # Extração segura de todas as variáveis do dicionário usando .get()
         departamento = dados_email.get('departamento')
         origem = dados_email.get('origem')
@@ -720,13 +697,12 @@ class SystemNF:
         modelo_email = dados_email.get('modelo_email')
         usuario_login = dados_email.get("usuario_login")
         senha_login = dados_email.get("senha_login")
+
+        logging.info("="*20 + " INICIANDO AUTOMACAO GUI (NOTA FISCAL) " + "="*20)
+        logging.info(f"Dados para automação: Nota {nmr_nota}, Valor {valor_total}")
+
+        gui.PAUSE = 0.5
         
-        # Validação dos dados necessários
-        if not all([departamento, origem, descricao, cc, cod_item, valor_total]):
-            raise ValueError("Dados obrigatórios estão faltando")
-
-        gui.PAUSE = 1
-
         class faker:
             def __call__(self, *args, **kwds):
                 return self
@@ -741,6 +717,7 @@ class SystemNF:
         logging.info(f"Senha de login: {senha_login}")
         
         if usuario_login and senha_login:
+
             config = {
                 "bravos_usr": usuario_login,
                 "bravos_pswd": senha_login,
@@ -748,6 +725,7 @@ class SystemNF:
             from bravos.infoBravos import bravos as BravosClass
             self.br = BravosClass(config, m_queue=faker())  
             self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
+            time.sleep(15)
         else:
             logging.error("Login ou senha do usuário não encontrados.")
             send_email_error(
@@ -755,9 +733,10 @@ class SystemNF:
                 dados_email.get("email_usuario", "caetano.apollo@carburgo.com.br"),
                 "Erro: Login ou senha do usuário não encontrados.",
                 nmr_nota,
+                dados_email
             )
             return
-
+        
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
         logging.info(f"Parâmetros recebidos em automation_gui: {locals()}")
         logging.info(f"Tipo de Imposto recebido: {tipo_imposto}")
@@ -786,6 +765,7 @@ class SystemNF:
         logging.info(f"Modelo vindo do Email: {modelo_email}")
 
         cnpj_dest = dados_email.get("destinatario", {}).get("cnpj")
+        nmr_nota_notificacao = nmr_nota if nmr_nota else dados_email.get('num_nota', {}).get('numero_nota', 'NÃO INFORMADO')
 
         if cnpj_dest:
             try:
@@ -804,7 +784,7 @@ class SystemNF:
             empresa, revenda_nome = "Sem CNPJ", "Sem CNPJ"
         
         
-        if revenda:
+        if 'empresa' in locals():
             try:
                 gui.press("alt")
                 gui.press("right")
@@ -819,66 +799,25 @@ class SystemNF:
                 logging.error(f"Erro: Variável revenda não definida: {e}")
         else:
             logging.error("Erro: Revenda não foi definida corretamente.")
-        
-        
-        class faker:
-            def __call__(self, *args, **kwds):
-                return self
-
-            def __getattr__(self, name):
-                return self
-        
-        usuario_login = dados_email.get("usuario_login")
-        senha_login = dados_email.get("senha_login")
-        
-        logging.info(f"Tentando login com usuário: {usuario_login}")
-        
-        if usuario_login and senha_login:
-            config_bravos = {
-                "bravos_usr": usuario_login,
-                "bravos_pswd": senha_login,
-            }
-            logging.info("Chamando acquire_bravos para abrir o Bravos")
-            try:
-                self.br.acquire_bravos(exec="C:\\BravosClient\\BRAVOSClient.exe")
-                time.sleep(25)
-                logging.info("Chamada para abrir o Bravos realizada")
-            except Exception as e:
-                logging.error(f"Erro ao tentar abrir o Bravos: {e}")
-        else:
-            logging.error("Login ou senha do usuário não encontrados nos dados do e-mail.")
-            send_email_error(
-                dani,
-                dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                "Erro crítico: Login ou senha não foram passados para a função de automação.",
-                nmr_nota,
-            )
-            return
 
         
         try:
             data_atual = datetime.now()
             data_formatada = data_atual.strftime("%d%m%Y")
-            time.sleep(3)
             window = gw.getWindowsWithTitle("BRAVOS")[0]
             if not window:
                 raise Exception("Janela do BRAVOS não encontrada")
-            window.activate()
-            x, y = window.left + 275, window.top + 80
-            time.sleep(3)
-            gui.moveTo(x, y, duration=0.5)
-            gui.click()
-            time.sleep(15)
-            cliente = cliente(cnpj_emitente)
-            if not cliente:
+            
+            cliente_cod = cliente(cnpj_emitente)
+            if not cliente_cod:
                 raise ValueError(f"Cliente com CNPJ {cnpj_emitente} não encontrado no banco de dados.")
 
-            logging.info(f"Cliente encontrado no banco de dados: {cliente}")
-            time.sleep(5)
+            logging.info(f"Cliente encontrado no banco de dados: {cliente_cod}")
+            
             gui.press("alt")
-            gui.press("a")
+            gui.press("f")
             gui.press("down", presses=3)
-            gui.press("right")
+            gui.press("right")          
             gui.press("down", presses=2)
             gui.press("enter")
             time.sleep(5)
@@ -887,11 +826,11 @@ class SystemNF:
             gui.press("tab")
             gui.write(serie)
             gui.press("tab")
-            gui.press("down", presses=3)
+            gui.press("down")
             gui.press("tab")
             gui.write("0")
             gui.press("tab")
-            gui.write(cliente)
+            gui.write(str(cliente_cod))
             gui.press("tab")
             gui.press("enter")
             gui.press("tab", presses=5)
@@ -901,61 +840,81 @@ class SystemNF:
             gui.press("tab", presses=5)
             gui.write(departamento)
             gui.press("tab", presses=2)
-            if origem != "5129":
-                send_email_error(
-                    dani,
-                    dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                    "Erro: Origem da nota errada",
-                    nmr_nota,
-                )
-            else:
-                gui.write(origem)
+            gui.write(origem)
             gui.press("tab", presses=19)
-            gui.write(chave_acesso)
+            if modelo == "55":
+                gui.write(chave_acesso)
             gui.press("tab")
             if dados_email.get("tipo_arquivo") == "PDF":
-                if modelo_email != "57":
-                    send_email_error(
-                        dani,
-                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
-                        "Erro: Modelo da nota errado",
-                        nmr_nota,
-                    )
-                else:
-                    gui.write(modelo_email)
+                gui.write(modelo_email)
+            else:
+                gui.write(modelo)
             gui.press("tab", presses=18)
 
             tipo_arquivo = dados_email.get("tipo_arquivo", "DESCONHECIDO")
             logging.info(f"Tipo de arquivo: {tipo_arquivo}")
 
             if tipo_arquivo == "PDF":
-                gui.press("right", presses=1)
-                gui.press("tab", presses=20)
+                if tipo_documento == "fatura" or tipo_documento == "boleto":
+                    gui.press("right", presses=2)
+                    gui.press("tab", presses=5)
+                    gui.press("enter")
+                    gui.press("tab", presses=4)
+                else:
+                    gui.press("right", presses=1)
+                    gui.press("tab", presses=20)
                 gui.write(cod_item)
                 gui.press("tab", presses=10)
                 gui.write("1")
                 gui.press("tab")
                 gui.write(valor_total)
-                gui.press("tab", presses=34)
+                if tipo_documento == "fatura" or tipo_documento == "boleto":
+                    gui.press("tab", presses=26)
+                else:
+                    gui.press("tab", presses=34)
+                gui.press("capslock")
                 gui.write(descricao)
+                gui.press("capslock")
                 if tipo_documento == "fatura" or tipo_documento == "boleto":
                     gui.press("tab")
                     gui.press("enter")
                 else:
-                    if departamento == "7" or departamento == "8" or departamento == "5":
-                        gui.press("tab", presses=21)
+                    if impostos.get("IR") != "0.00":
+                        gui.press("tab", presses=17)
+                        gui.write(valor_total)
+                        gui.press("tab", presses=2)
+                        IR = impostos.get("IR").replace(".", ",")
+                        logging.info(f"IR formatado: {IR}")
+                        gui.write(IR)
+                    if impostos.get("PIS") != "0.00":
+                        gui.press("tab", presses=24)
                         gui.write(valor_total)
                         gui.press("tab")
-                        gui.press("enter")
-
-                        gui.press("tab", presses=16)
+                        PIS = impostos.get("PIS").replace(".", ",")
+                        logging.info(f"PIS formatado: {PIS}")
+                        gui.write(PIS)
+                    if impostos.get("COFINS") != "0.00":
+                        gui.press("tab", presses=5)
                         gui.write(valor_total)
-                        gui.press("tab", presses=79)
-                        gui.press("enter")
                         gui.press("tab")
+                        COFINS = impostos.get("COFINS").replace(".", ",")
+                        logging.info(f"COFINS formatado: {COFINS}")
+                        gui.write(COFINS)
+                    if impostos.get("CSLL") != "0.00":
+                        gui.press("tab", presses=5)
+                        gui.write(valor_total)
+                        gui.press("tab")
+                        CSLL = impostos.get("CSLL").replace(".", ",")
+                        logging.info(f"CSLL formatado: {CSLL}")
+                        gui.write(CSLL)
 
-                gui.press("tab", presses=57)
-                gui.press("left")
+                        gui.press("tab", presses=40)
+                        gui.press("left")
+                if tipo_documento == "fatura" or tipo_documento == "boleto":
+                    gui.press("tab", presses=11)
+                else: 
+                    gui.press("tab", presses=15)
+                gui.press("left", presses=2)
                 gui.press("tab", presses=5)
                 gui.press("enter")
 
@@ -978,6 +937,55 @@ class SystemNF:
                 # Calcula a diferença em dias
                 dias_restantes = (dia_20_proximo_mes - hoje).days
 
+
+                impostos = dados_email.get("impostos", {})
+
+                # Função para somar apenas valores diferentes de "0.00" ou None
+                def somar_impostos(*valores):
+                    return sum(
+                        float(valor) for valor in valores if valor and valor != "0.00"
+                    )
+
+                PCC = somar_impostos(
+                    impostos.get("PIS"), impostos.get("COFINS"), impostos.get("CSLL")
+                )
+
+                # Exibe o valor calculado para depuração
+                logging.info(f"Valor de PCC calculado: {PCC:.2f}")
+
+                if impostos.get("IR") != "0.00":
+                    gui.press("tab", presses=7)
+                    if tipo_imposto == "normal":
+                        gui.press("down", presses=2)
+                        logging.info("Tipo de imposto normal")
+                    elif tipo_imposto == "comissão":
+                        gui.press("down", presses=7)
+                        logging.info("Tipo de imposto comissão")
+                    else:
+                        gui.press("down", presses=5)
+                        logging.info("Tipo de imposto não especificado")
+                    gui.press("tab")
+                    gui.write(dias_restantes)
+                    gui.press("tab", presses=2)
+                    gui.write(impostos.get("IR"))
+                    logging.info("Passou do if do IR")
+                    gui.press("tab", "enter")
+                if PCC != 0.00:
+                    gui.press("tab", presses=7)
+                    gui.press("down", presses=3)
+                    gui.press("tab")
+                    gui.write(dias_restantes)
+                    gui.press("tab", presses=2)
+                    gui.write(PCC)
+                    gui.press("tab", "enter")
+                if impostos.get("ISS_retido") != "0.00":
+                    gui.press("tab", presses=7)
+                    gui.press("down", presses=4)
+                    gui.press("tab")
+                    gui.write(dias_restantes - 5)
+                    gui.press("tab", presses=2)
+                    gui.write(impostos.get("ISS_retido"))
+                    gui.press("tab", "enter")
                 gui.press("tab")
                 gui.press("enter")
                 gui.press("tab")
@@ -990,13 +998,191 @@ class SystemNF:
                 
                 if valor_liquido == None:
                     valor_liquido = valor_total
+                    
+                logging.info(f"Valor líquido: {valor_liquido}")
+                logging.info(f"valor total: {valor_total}")
                 
-                gui.write(valor_liquido)
+                gui.write(valor_liquido.replace(".", ","))
                 gui.press("tab")
                 gui.press("enter")
                 gui.press("tab", presses=3)
                 gui.press("enter")
-                gui.press("tab", presses=39)
+                gui.press("tab", presses=36)
+                logging.info(f"Rateio: {rateio}")
+                if rateio.lower() == "sim":
+                    gui.press("enter")
+                    logging.info(f"dados_centros_de_custo recebido para rateio: {dados_centros_de_custo} ({type(dados_centros_de_custo)})")
+                    if not isinstance(dados_centros_de_custo, list):
+                        logging.error(f"dados_centros_de_custo não é uma lista: {dados_centros_de_custo}")
+                        send_email_error(
+                            dani,
+                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                            "Erro: dados_centros_de_custo não é uma lista",
+                            nmr_nota_notificacao,
+                            dados_email
+                        )
+                        return
+                    gui.press("enter")
+                    if descricao.lower() == "linx renave":
+                        for i in range(6):
+                            gui.hotkey("ctrl", "delete")
+                            gui.press("enter")
+                            gui.press("enter")
+                    gui.press("tab", presses=9)
+                    logging.info("Pressionou o tab corretamente")
+                    total_rateio = 0
+                    for i, lancamento in enumerate(dados_centros_de_custo):
+                        cc = lancamento['cc']
+                        valor = lancamento['valor']
+                        origem_lancamento = lancamento['origem']
+                        try:
+                            valor_float = float(str(valor).replace(",", "."))
+                        except Exception as e:
+                            logging.error(f"Erro ao converter valor do centro de custo: {valor} ({e})")
+                            valor_float = 0.0
+                        logging.info("Lançando centro de custo")
+                        logging.info(f"Centro de custo: {cc}, Valor: {valor_float}")
+                        logging.info(f"Dados centro de custo: {dados_centros_de_custo}")
+                        logging.info(f"Revenda: {revenda}")
+                        logging.info(f"Revenda nome: {revenda_nome}")
+                        if i >= 1:
+                            gui.press("tab")
+                        gui.write(str(revenda_nome))
+                        logging.info(f"Revenda nome escrito: {revenda_nome}")
+                        gui.press("tab", presses=3)
+                        logging.info(f"pressionando tab para escrever centro de custo: {cc}")
+                        gui.write(cc)
+                        logging.info(f"Centro de custo escrito: {cc}")
+                        gui.press("tab", presses=2)
+                        gui.write(origem_lancamento)
+                        gui.press("tab", presses=2)
+                        if i == len(dados_centros_de_custo) - 1:
+                            valor_float = float(valor_total.replace(",", ".")) - total_rateio
+                        else:
+                            total_rateio += valor_float
+                        gui.write(f"{valor_float:.2f}".replace(".", ","))
+                        gui.press("tab")
+                        gui.press("f2", interval=2)
+                        gui.press("f3")
+                        if i == len(dados_centros_de_custo) - 1:
+                            gui.press("f2", interval=2)
+                            gui.press("esc", presses=3)
+                            gui.press("enter")
+                            logging.info("Último centro de custo salvo e encerrado.")
+                            gui.press("tab", presses=3)
+                        else:
+                            gui.press("tab", presses=3)
                 gui.press("enter")
+                time.sleep(1)
+                gui.press("enter")
+
+
+            elif tipo_arquivo == "XML":
+                gui.press("right", presses=2)
+                gui.press("tab", presses=5)
+                gui.press("enter")
+                gui.press("tab", presses=4)
+                if (
+                    modelo == "55" or modelo == "43" or modelo == "22"
+                ) and cod_item != "7":
+                    send_email_error(
+                        dani,
+                        dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                        "Erro: Modelo de nota fiscal inválido para o código de tributação informado.",
+                        nmr_nota_notificacao,
+                        dados_email
+                    )
+                    return
+                gui.write(cod_item)
+                gui.press("tab", presses=10)
+                gui.write("1")
+                gui.press("tab")
+                logging.info(f"Valor total: {valor_total}")
+                gui.write(valor_total)
+                gui.press("tab", presses=26)
+                gui.press("capslock")
+                gui.write(descricao)
+                gui.press("capslock")
+                gui.press(["tab", "enter"])
+                gui.press("tab", presses=11)
+                gui.press("left", presses=2)
+                gui.press("tab", presses=5)
+                gui.press("enter")
+
+                logging.info(f"Processando parcelas: {parcelas}")
+                gui.press("tab")
+                gui.press("enter")
+                process_installments(parcelas)
+
+                gui.press("tab", presses=3)
+                gui.press(["enter", "tab", "tab", "tab", "enter"])
+                gui.press("tab", presses=36)
+                if rateio.lower() == "sim":
+                    logging.info(f"dados_centros_de_custo recebido para rateio: {dados_centros_de_custo} ({type(dados_centros_de_custo)})")
+                    if not isinstance(dados_centros_de_custo, list):
+                        logging.error(f"dados_centros_de_custo não é uma lista: {dados_centros_de_custo}")
+                        send_email_error(
+                            dani,
+                            dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                            "Erro: dados_centros_de_custo não é uma lista",
+                            nmr_nota_notificacao,
+                            dados_email
+                        )
+                        return
+                    gui.press("enter")
+                    gui.press("tab", presses=9)
+                    logging.info("Pressionou o tab corretamente")
+                    total_rateio = 0
+                    for i, lancamento in enumerate(dados_centros_de_custo):
+                        cc = lancamento['cc']
+                        valor = lancamento['valor']
+                        origem_lancamento = lancamento['origem']
+                        try:
+                            valor_float = float(str(valor).replace(",", "."))
+                        except Exception as e:
+                            logging.error(f"Erro ao converter valor do centro de custo: {valor} ({e})")
+                            valor_float = 0.0
+                        logging.info("Lançando centro de custo")
+                        logging.info(f"Centro de custo: {cc}, Valor: {valor_float}")
+                        logging.info(f"Dados centro de custo: {dados_centros_de_custo}")
+                        logging.info(f"Revenda: {revenda}")
+                        logging.info(f"Revenda nome: {revenda_nome}")
+                        if i >= 1:
+                            gui.press("tab")
+                        gui.write(str(revenda_nome))
+                        logging.info(f"Revenda nome escrito: {revenda_nome}")
+                        gui.press("tab", presses=3)
+                        logging.info(f"pressionando tab para escrever centro de custo: {cc}")
+                        gui.write(cc)
+                        logging.info(f"Centro de custo escrito: {cc}")
+                        gui.press("tab", presses=2)
+                        gui.write(origem_lancamento)
+                        gui.press("tab", presses=2)
+                        if i == len(dados_centros_de_custo) - 1:
+                            valor_float = float(valor_total.replace(",", ".")) - total_rateio
+                        else:
+                            total_rateio += valor_float
+                        gui.write(f"{valor_float:.2f}".replace(".", ","))
+                        gui.press("f2", interval=2)
+                        gui.press("f3")
+                        if i == len(dados_centros_de_custo) - 1:
+                            gui.press("f2", interval=2)
+                            gui.press("esc", presses=3)
+                            gui.press("enter")
+                            logging.info("Último centro de custo salvo e encerrado.")
+                            gui.press("tab", presses=3)
+                        else:
+                            gui.press("tab", presses=3)
+                gui.press("enter")
+                time.sleep(2)
+                gui.press("enter")
+
         except Exception as e:
-            logging.error(f"Erro durante a automação: {e}")
+            send_email_error(
+                dani,
+                dados_email.get("sender", "caetano.apollo@carburgo.com.br"),
+                e,
+                nmr_nota_notificacao,
+                dados_email
+            )
+            return
