@@ -63,3 +63,14 @@ def cliente (cnpj_emitente):
     cursor.close()
     conn.close()
     return result[0] if result else None
+
+def cod_veiculo (chassi):
+    db_config = load_db_config()
+    conn = connect_to_db(db_config)
+    cursor = conn.cursor()
+    query = "select veiculo from vei_veiculo where chassi = ':chassi'"
+    cursor.execute(query, [chassi])
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return result[0] if result else None
