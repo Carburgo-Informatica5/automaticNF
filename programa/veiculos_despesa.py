@@ -14,6 +14,14 @@ import logging
 import unicodedata
 import re
 import yaml
+import pyperclip
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+
+
+driver = webdriver.Chrome()
+
+driver.get("http://selenium.dev")
 
 from email.utils import parseaddr
 
@@ -576,6 +584,7 @@ class SystemNF:
         logging.info(f"Dados para automação: Nota {nmr_nota}, Valor {valor_total}")
 
         chassi = dados_email.get('chassi')
+        despesa = dados_email.get('despesa')
         cod_veiculo_valor = None
         if chassi:
             cod_veiculo_valor = cod_veiculo(chassi)
@@ -719,6 +728,11 @@ class SystemNF:
             gui.press("down")
             gui.press("tab")
             gui.write("0")
+            gui.hotkey("ctrl", "a")
+            gui.hotkey("ctrl", "c")
+            time.sleep(0.5)
+            contador = pyperclip.paste()
+            logging.info(f"Valor do campo Contador copiado: {contador}")
             gui.press("tab")
             gui.write(str(cliente_cod))
             gui.press("tab")
@@ -770,9 +784,10 @@ class SystemNF:
             gui.press("tab", presses=11)
             gui.press("left", presses=2)
             
-            '''
-            gui.press("tab", presses=39)
+            #! Testar com a Lisi no Repasse, ou pedir para ela encaminhar uma nota XML
+            gui.press("tab", presses=40)
             gui.press("enter")
+            time.sleep(10)
             manutencao = driver.find_element(By.ID, "mat-tab-label-0-2")
             manutencao.click()
             veiculo_input = driver.find_element(By.ID, "Veiculo")
@@ -792,9 +807,8 @@ class SystemNF:
             salvar = driver.find_element(By.ID, "linx-utils-checkbox-field-3")
             salvar.click()
             gui.hotkey("ctrl", "f4")
-            '''
             
-            gui.press("tab", presses=5)
+            gui.press("tab", presses=13)
             gui.press("enter")
             logging.info(f"Processando parcelas: {parcelas}")
             gui.press("tab")

@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "34255113000150",
+        "nome": "VANDERLEI INACIO MULLER"
+    },
+    "destinatario": {
+        "cnpj": "91667618000165",
+        "nome": "CARBURGO VEICULOS LTDA"
+    },
+    "chave_acesso": {
+        "chave": "43250834255113000150550010000018771000018784"
+    },
+    "num_nota": {
+        "numero_nota": "7777"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "26082025"
+    },
+    "data_venc": {
+        "data_venc": "31122025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "965.98"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-12-31",
+            "valor_parcela": "965.98"
+        }
+    ],
+    "info_adicional": {}
+}

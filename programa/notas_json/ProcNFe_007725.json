@@ -1,0 +1,39 @@
+{
+    "emitente": {
+        "cnpj": "05846734000100",
+        "nome": "DEM INFORMATICA LTDA"
+    },
+    "destinatario": {
+        "cnpj": "04682292000140",
+        "nome": "EIFFEL VEICULOS COMERCIO E IMPORTACAO LTDA"
+    },
+    "chave_acesso": {
+        "chave": "43250805846734000100550010000077251955651200"
+    },
+    "num_nota": {
+        "numero_nota": "7725"
+    },
+    "serie": "1",
+    "data_emi": {
+        "data_emissao": "22082025"
+    },
+    "data_venc": {
+        "data_venc": "19092025"
+    },
+    "modelo": {
+        "modelo": "55"
+    },
+    "valor_total": [
+        {
+            "valor_total": "450.00"
+        }
+    ],
+    "pagamento_parcelado": [
+        {
+            "numero_parcela": "001",
+            "data_vencimento": "2025-09-19",
+            "valor_parcela": "450.00"
+        }
+    ],
+    "info_adicional": {}
+}

@@ -10,7 +10,7 @@ from email.header import decode_header
 # Importa as funções principais dos outros scripts
 from main import processar_email_nota_fiscal
 from frete import processar_email_frete
-
+from veiculos_despesa import processar_email_despesa_veiculo  
 # --- Configurações do Email ---
 HOST = "mail.carburgo.com.br"
 PORT = 995
@@ -18,8 +18,9 @@ USERNAME = "dani@carburgo.com.br"
 PASSWORD = "p@r!sA1856"
 
 # --- Assuntos Alvo ---
-ASSUNTO_NOTA_FISCAL = "lançamento nota fiscal"
-ASSUNTO_FRETE = "lançamento frete"
+ASSUNTO_NOTA_FISCAL = "lançamento nota fiscal" or "lançamento nf" or "lançamento nfe" or "lançamento nfs" or "lançamento nfs-e" or "lançamento de nota fiscal"
+ASSUNTO_FRETE = "lançamento frete" or "lançamento de frete" or "lancamento frete" or "lancamento de frete"
+ASSUNTO_VEICULO = "lançamento despesa veiculo" or "lançamento despesa veículo" or "lancamento despesa veiculo" or "lancamento despesa veículo" or "lançamento despesa de veiculo" or "lançamento despesa de veículo" or "lancamento despesa de veiculo" or "lancamento despesa de veículo"
 
 # --- Arquivo para guardar IDs dos e-mails já processados ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -98,6 +99,10 @@ if __name__ == '__main__':
                     elif ASSUNTO_NOTA_FISCAL in subject_lower:
                         logging.info("Assunto de NOTA FISCAL detectado. Acionando o script principal.")
                         processar_email_nota_fiscal(msg)
+                        task_executed = True
+                    elif ASSUNTO_VEICULO in subject_lower:
+                        logging.info("Assunto de DESPESA DE VEICULO detectado. Acionando o script principal.")
+                        processar_email_despesa_veiculo(msg)
                         task_executed = True
                     else:
                         logging.warning(f"O assunto '{subject}' não corresponde a nenhuma ação. E-mail ignorado.")
