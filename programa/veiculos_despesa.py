@@ -17,11 +17,9 @@ import yaml
 import pyperclip
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-
-driver = webdriver.Chrome()
-
-driver.get("http://selenium.dev")
 
 from email.utils import parseaddr
 
@@ -786,27 +784,69 @@ class SystemNF:
             
             #! Testar com a Lisi no Repasse, ou pedir para ela encaminhar uma nota XML
             gui.press("tab", presses=40)
+            driver = webdriver.Chrome()
+            driver.get("http://10.40.100.252:81/LinxDMSPrincipal/#/principal/")
+            wait = WebDriverWait(driver, 30) 
+
+            usuario_input = wait.until(EC.presence_of_element_located((By.ID, "login")))
+            usuario_input.send_keys(usuario_login)
+            senha_input = wait.until(EC.presence_of_element_located((By.ID, "senha")))
+            senha_input.send_keys(senha_login)
             gui.press("enter")
+
+            driver.get("http://10.40.100.252:81/LinxDMSPrincipal/#/principal/outras-despesas")
+            wait.until(EC.presence_of_element_located((By.ID, "mat-tab-label-0-2"))).click()
             time.sleep(10)
-            manutencao = driver.find_element(By.ID, "mat-tab-label-0-2")
-            manutencao.click()
-            veiculo_input = driver.find_element(By.ID, "Veiculo")
-            veiculo_input.send_keys(cod_veiculo_valor)
-            despesa_input = driver.find_element(By.ID, "undefined")
-            despesa_input.send_keys(despesa)
-            documento_input = driver.find_element(By.ID, "Documento")
-            documento_input.send_keys(nmr_nota)
-            conta_input = driver.find_element(By.ID, "Contador")
-            conta_input.send_keys(contador)
-            valor_input = driver.find_element(By.ID, "Valor")
-            valor_input.send_keys(valor_total.replace(".", ","))
-            data_input = driver.find_element(By.ID, "data")
-            data_input.send_keys(data_venc_nfs)
-            observacao_input = driver.find_element(By.ID, "Observacao")
-            observacao_input.send_keys(descricao)
-            salvar = driver.find_element(By.ID, "linx-utils-checkbox-field-3")
-            salvar.click()
-            gui.hotkey("ctrl", "f4")
+
+            # Veiculo
+            campo_veiculo = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Veiculo']")))
+            campo_veiculo.click()
+            time.sleep(2)
+            logging.info(f"Cod Veiculo: {cod_veiculo_valor}")
+            campo_veiculo.send_keys(cod_veiculo_valor)
+
+            # Despesa
+            campo_despesa = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@id='undefined']")))
+            campo_despesa.click()
+            time.sleep(2)
+            campo_despesa.send_keys(despesa)
+
+            # Documento
+            campo_documento = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Documento']")))
+            campo_documento.click()
+            time.sleep(2)
+            campo_documento.send_keys(nmr_nota)
+
+            # Contador
+            campo_contador = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Contador']")))
+            campo_contador.click()
+            time.sleep(2)
+            campo_contador.send_keys(contador)
+
+            # Valor
+            campo_valor = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Valor']")))
+            campo_valor.click()
+            time.sleep(2)
+            campo_valor.send_keys(valor_total.replace(".", ","))
+
+            # Data
+            campo_data = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@id='data']")))
+            campo_data.click()
+            time.sleep(2)
+            logging.info(f"Data de Vencimento NFs: {data_venc}")
+            campo_data.send_keys(data_venc)
+            gui.press("enter")
+
+            # Observacao
+            campo_obs = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Observacoes']")))
+            campo_obs.click()
+            time.sleep(2)
+            campo_obs.send_keys(descricao)
+
+            # Checkbox
+            wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@id='linx-utils-checkbox-field-3']"))).click()
+            
+            # gui.hotkey("ctrl", "f4")
             
             gui.press("tab", presses=13)
             gui.press("enter")
@@ -873,9 +913,9 @@ class SystemNF:
                         gui.press("tab", presses=3)
                     else:
                         gui.press("tab", presses=3)
-            gui.press("enter")
+            # gui.press("enter")
             time.sleep(2)
-            gui.press("enter")
+            # gui.press("enter")
 
         except Exception as e:
             send_email_error(
